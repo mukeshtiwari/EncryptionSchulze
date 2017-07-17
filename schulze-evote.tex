@@ -12,7 +12,105 @@
 \newcommand{\Pow}{\mathsf{Pow}}
 \newcommand{\GFP}{\mathsf{GFP}}
 
+\title{Homomorphic Schulze Counting}
 \begin{document}
+\maketitle
+
+\section{Problem.}
+
+Given a data structure that represents encrypted ballots, to compute
+the margin function. There is choice in the data structure that we
+use to represent ballots.
+
+\section{Solutions}
+\subsection{Vanessa et al's protocol}
+
+This is taken from Appendix B of the shuffle sum paper. Given: the
+ballot in preference order. Produces: an encrypted binary matrix
+that indicates pairwise preferences for candidates.
+
+\begin{itemize}
+\item the preference order ballot (with encrypted candidate numbers)
+\item tuples (E(0), *, *) and (E(-1), *, *) where * are suitably chose
+\item candidates
+\item a shuffle of these types
+\item a ZKP that the shuffle is genuine
+\item the shuffled tuples, where the 2nd and 3rd component are decrypted
+\item evidence that the decryption of the 2nd and 3rd component of the
+      tuple is actually correct
+\item the matrix constructed from the tuples with decrypted 2nd and 3rd
+      entry.
+\end{itemize}
+
+\subsection{Making the matrix representation the main data
+structure}
+
+Given: the matrix of encrypted pairwise preferences (as main data
+structure). Produces: evidence that the matrix is in fact an
+encoding of preferences.
+
+\begin{itemize}
+\item  evidence that the matrix is binary, i.e. just has 0/1 entries
+ using a shuffle + ZKP + decryption
+\item  a shuffle of the rows + ZKP
+\item  the homomorphic sums of the rows + decryption
+\item  homomorphic sum of the diagonal, and diagonally symmetric elements
+ + decryption.
+\end{itemize}
+
+The idea here is that a matrix which 
+\begin{itemize}
+\item is binary, i.e. just 0 and 1 entries
+\item has zeros in the diagonal
+\item the sum $a_{ij} + a_{ji} = 1$
+\item has one row summing up to $n-1$, another row to $n-2$ and so
+forth
+\end{itemize}
+is necessarily obtained from assigning preferences.
+
+\subsection{Using a permutation Matrix}
+
+Another idea is that one could represent a ballot by a permutation
+matrix, but it's not clear how
+\begin{itemize}
+\item evidence that an encrupted matrix is really a permutation
+matrix
+\item given that we know it's a permutation matrix, how to compute
+the pairwise preferences.
+\end{itemize}
+
+\subsection{Using Shuffle Naively}
+
+This may be too naive, but how about the following: given a ballot
+in candidate order
+\begin{itemize}
+\item decrypt, and construct the matrix of pairwise preferences
+\item encrypt the parwise preference matrix
+\item pick a random permutation $\sigma$ 
+\item shuffle the ballot using $\sigma$
+\item shuffle the encrypted pairwise preference matrix using
+$\sigma$ (both rows and columns)
+\item decrypt the shuffled ballots + the shuffled preference matrix
+and give evidence for the fact that they are indeed decrypted.
+\end{itemize}
+
+\subsection{Using Range Proofs}
+
+Given: the encrypted ballot in candidate order.
+
+\begin{itemize}
+\item using homomorphic subtraction, construct the (encrypted)
+matrix $m_{ij} = \mbox{pref. of cand. $a$ - pref. of candidate
+$b$}$.
+\item using decryption, construct the encrypted pairwise preference
+matrix $(p_{ij})$
+\item publish a shuffle of $(m_{ij})$ and $(p_{ij})$ plus evidence of correctness
+of both shuffles
+\item for every entry $m_{ij}$, use a range proof that witnesses
+that $p_{ij}$ is $+1$ if $m_{ij}$ is positive, $0$ if $m_{ij}$ is
+$0$ and $-1$, otherwise.
+\end{itemize}
+\end{document}
 
 
 
