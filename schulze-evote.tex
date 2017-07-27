@@ -40,7 +40,28 @@ that indicates pairwise preferences for candidates.
       tuple is actually correct
 \item the matrix constructed from the tuples with decrypted 2nd and 3rd
       entry.
+     
+      
 \end{itemize}
+\begin{itemize}
+\item Ballot representation (List representation, Memory requirement O(n))
+1 $=>$ E(c1), 2 $=>$ E(c2), 3 $=>$ E(c3), ..... n $=>$ E(cn)
+\item Tuple or matrix construction (Memory requirement O($n^2$)) 
+[[(E(c1), E(c1), E(0)),(E(c1), E(c2), E(1)), (E(c1), E(c3), E(1)) ....... (E(c1), E(cn), E(1))], 
+ [(E(c2), E(c1), E(0)), (E(c2), E(c2), E(0)),(E(c2), E(c3), E(1))....... (E(c2), E(cn), E(1))], 
+ ......,
+ [(E(cn), E(c1), E(0)), (E(cn), E(c2), E(0)),(E(cn), E(c3), E(0))....... (E(cn), E(cn), E(0))]]
+ \item Chose a random permutation and shuffle the matrix constructed above 
+ (each row and column)
+ \item Zero knowledge proof that shuffle is genuine (data structure of ZKP )
+ \item Decrypt first and second element (encryption of candidate), but not preference
+ \item For evidence, we can publish the ephemeral key used in encryption
+ \item Matrix constructed by decrypting candidates (Memory O($n^2$))
+ 
+\end{itemize}
+
+
+
 
 \subsection{Making the matrix representation the main data
 structure}
