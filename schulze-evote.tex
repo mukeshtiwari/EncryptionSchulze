@@ -94,6 +94,39 @@ $\sigma$ (both rows and columns)
 and give evidence for the fact that they are indeed decrypted.
 \end{itemize}
 
+Remark from Jacub: can chose the permutation so that the pairwise
+preference matrix is in upper diagonal form (ie. all ones above the
+diagonal) so no need to publish the decrypted matrix. 
+
+Even easier:
+\begin{itemize}
+\item publish encrypted pairwise preference matrix
+\item pick a permutation that brings it in upper triangular form
+(always possible if ballot is genuine)
+\item publish encrypted permuted matrix + evidence that it's a
+genuine permutation
+\item publish evidence that it is in upper triangular form.
+\end{itemize}
+
+\subsection{Jakub's 2nd Solution}
+
+Given: candidate order ballot
+\begin{enumerate}
+\item publish candidate order ballot: $(c_1, e(p_1), \dots (c_n,
+e(p_n))$
+\item publish candidate order ballot with encrypted preferences
+\item shuffle the last ballot using specific permutation $\sigma$ so that encypted preferences are
+ascending
+\item publish this last ballot with decrupted preferences.
+\item []
+\item publish the matrix pairwise preference ballot, indexed by
+  candidates $c_1, \dots c_n$ (in ascencing order) and encrypted
+  preferences.
+\end{enumerate}
+
+To verify the latter, need to show that a shuffle by $\sigma^{-1}$
+decrypts to an upper triangular matrix.
+
 \subsection{Using Range Proofs}
 
 Given: the encrypted ballot in candidate order.
