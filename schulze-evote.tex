@@ -149,8 +149,12 @@ they can compute the encrypted preference matrix and compare it our (server)
 encrypted preference matrix. 
 \item What about coercion because each voter can prove his vote ?  
 \item The data needed in this method is ballot representation in encrypted preference order (O(n)), decrypted shuffled ballot 
-using permutation $\sigma$ (O(n)), Zero knowledge proof of shuffle, Encrypted preference matrix constructed from original ballot O($n^2$), Decrypted preference matrix constructed O($n^2$). 
-
+using permutation $\sigma$ (O(n)), Encrypted preference matrix constructed from original ballot O($n^2$), Decrypted preference matrix constructed O($n^2$). 
+\item If we want to stop coercion then we should not publish ephemeral keys, but
+zero knowledge proof that decrypted shuffled ballot is indeed decryption of his 
+ballot (This is obvious for voter because he knows his original ballot and 
+we have published the decrypted shuffled ballot so he can compute $\sigma$, but 
+from this information he can't prove anything )
 	 
 
 
