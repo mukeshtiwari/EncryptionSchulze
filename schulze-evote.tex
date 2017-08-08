@@ -40,7 +40,37 @@ that indicates pairwise preferences for candidates.
       tuple is actually correct
 \item the matrix constructed from the tuples with decrypted 2nd and 3rd
       entry.
+     
+      
 \end{itemize}
+\begin{itemize}
+\item Ballot representation (List representation, Memory requirement O(n))
+1 $=>$ E(c$_{1}$), 2 $=>$ E(c$_{2}$), 3 $=>$ E(c$_{3}$), ..... n $=>$ E(c$_{n}$)
+\item Tuple or matrix construction (Memory requirement O($n^2$)) 
+\[\begin{bmatrix}
+    (E(c_{1}), E(c_{1}), E(0)) & (E(c_{1}), E(c_{2}), E(1)) & (E(c_{1}), E(c_{3}), E(1)) & \dots  & (E(c_{1}), E(c_{n}), E(1)) \\
+    (E(c_{2}), E(c_{1}), E(0)) & (E(c_{2}), E(c_{2}), E(0)) & (E(c_{2}), E(c_{3}), E(1)) & \dots  & (E(c_{2}), E(c_{n}), E(1)) \\
+    \vdots & \vdots & \vdots & \ddots & \vdots \\
+    (E(c_{n}), E(c_{1}), E(0)) & (E(c_{n}), E(c_{2}), E(0)) & (E(c_{n}), E(c_{3}), E(0)) & \dots  & (E(c_{n}), E(c_{n}), E(0))
+\end{bmatrix}
+\]
+ \item The above matrix can be also thought of List containing only those pairs whose value is E(1). [(E(c$_{1}$), E(c$_{2}$), E(1)), (E(c$_{1}$), E(c$_{3}$), E(1)), ...... (E(c$_{n-1}$), E(c$_{n}$), E(1))]
+ \item Chose a random permutation and shuffle the matrix constructed above 
+ (each row and column) or List depending on data structure
+ \item Zero knowledge proof that shuffle is genuine (data structure of ZKP)
+ \item Decrypt first and second element (encryption of candidate), but not preference
+ \item For evidence, we can publish the ephemeral key used in encryption. My understanding of this step is that voter can re-encrypt the candidates and match it to the encrypted ballots published on bulletin board, but he can't prove it to any external party that he voted for some particular candidate because he has no way to show the encrypted choice other than himself. 
+ \item Matrix constructed by decrypting candidates (Memory O($n^2$))
+ \item This scheme involved, encrypted ballot (Linear data O(n)), Tuple construction
+ of encrypted candidate O($n^2$), random permutation (Linear data structure, but not
+ published O(n)), Zero knowledge proof data structure, and final decrypted candidate 
+ Matrix 
+ O($n^2$)
+ 
+\end{itemize}
+
+
+
 
 \subsection{Making the matrix representation the main data
 structure}
@@ -68,6 +98,12 @@ forth
 \end{itemize}
 is necessarily obtained from assigning preferences.
 
+\begin{itemize}
+\item We have encrypted pairwise preference (memory O($n^2$))
+\item 
+\end{itemize}
+
+
 \subsection{Using a permutation Matrix}
 
 Another idea is that one could represent a ballot by a permutation
@@ -85,13 +121,43 @@ This may be too naive, but how about the following: given a ballot
 in candidate order
 \begin{itemize}
 \item decrypt, and construct the matrix of pairwise preferences
-\item encrypt the parwise preference matrix
+\item encrypt the pairwise preference matrix
 \item pick a random permutation $\sigma$ 
 \item shuffle the ballot using $\sigma$
 \item shuffle the encrypted pairwise preference matrix using
 $\sigma$ (both rows and columns)
 \item decrypt the shuffled ballots + the shuffled preference matrix
 and give evidence for the fact that they are indeed decrypted.
+\end{itemize}
+
+\begin{itemize}
+\item Ballot representation (List representation, Memory requirement O(n))
+c$_{1}$ $=>$ E(p$_{1}$),  c$_{2}$ $=>$ E(p$_{2}$), c$_{3}$ $=>$ E(p$_{3}$), ..... c$_{n}$ $=>$ E(p$_{n}$)
+\item Decrypt ballot and construct margin matrix (memory O($n^2$))
+\item Encrypt the matrix constructed in previous step 
+\item Pick a random permutation  $\sigma$  (Memory O(n))
+\item Shuffle the ballot using $\sigma$ (Memory O(n))
+\item Do we need zero knowledge proof of shuffling ?
+\item Shuffle the encrypted matrix using the $\sigma$ (row and column) (memory O($n^2$))
+\item Decrypt shuffled ballots and shuffled preference matrix and evidence of 
+correctness
+\item The evidence here is ephemeral key. Assuming that each voter has
+knowledge about their original vote (in plain text) and we have published the 
+plain text shuffled vote, they can compute $\sigma$. By applying $\sigma^{-1}$ on 
+decrypted shuffled preference matrix and encrypting the values using ephemeral key
+they can compute the encrypted preference matrix and compare it our (server) 
+encrypted preference matrix. 
+\item What about coercion because each voter can prove his vote ?  
+\item The data needed in this method is ballot representation in encrypted preference order (O(n)), decrypted shuffled ballot 
+using permutation $\sigma$ (O(n)), Encrypted preference matrix constructed from original ballot O($n^2$), Decrypted preference matrix constructed O($n^2$). 
+\item If we want to stop coercion then we should not publish ephemeral keys, but
+zero knowledge proof that decrypted shuffled ballot is indeed decryption of his 
+ballot (This is obvious for voter because he knows his original ballot and 
+we have published the decrypted shuffled ballot so he can compute $\sigma$, but 
+from this information he can't prove anything )
+	 
+
+
 \end{itemize}
 
 Remark from Jacub: can chose the permutation so that the pairwise
