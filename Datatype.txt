@@ -1,0 +1,55 @@
+
+
+  (* Different states during the computation *)
+  Inductive HState: Type :=
+    | hpartial: (list eballot * list eballot)  -> (cand -> cand -> Ciphertext) -> HState 
+    | hdecrypt: (cand -> cand -> Z) -> HState
+    | winners: (cand -> bool) ->  HState.
+
+
+
+
+   ence : Z -> (Ciphertext, Z) (* non deterministic *)
+   ence x = (c, k) (* c is the cipher text and k is ephemeral key used during the encryption *)
+
+
+   enc : Z -> Z -> Ciphertext
+   enc x k = c (* k is ephemeral key used during the encryption of x to produce c *)
+
+
+  Inductive HCount (bs : list eballot) : HState -> Type :=
+    | ax us (m : cand -> cand -> Ciphertext) (ev : cand -> cand -> Z): 
+         us = bs -> (forall c d, enc 0 (ev c d) = m c d) -> HCount bs (hpartial (us, []) m)
+    | cvalid u us m nm inbs (v : cand -> cand -> Ciphertext) (p : ZKP) (b : cand -> cand -> Z) 
+         (ev : cand -> cand -> Z) (* p is zero knowledge proof of v being shuffle of u and b is decryption of v *) :
+         HCount (hpartial (u :: us, inbs) m) -> 
+         (check_zkp u v p = true) -> 
+         (forall c d, enc (b c d) (ev c d) = v c d) ->
+         valid b (* ballot b, decryption of v which itself is shuffle of u, is valid and we can transform this ballot as upper triangular matrix of 1s. We 
+                    are not revealing the ballot u during the computation *) ->
+         (forall c d, nm c d = m c d \+\ u c d) ->
+         HCount bs (hpartial (us, inbs) nm)
+    | cinvalid u b us m inbs : HCount (hpartial (u :: us, inbs) m) -> 
+        (forall c d, enc (b c d) (ev c d) = u c d) (* reveal the content of ballot and add it to inbs. Discuss this with Dirk *) -> 
+        invalid b  -> 
+        HCount bs (hpartial (us, u :: inbs) m)
+    (* other alternative for invalidity is 
+    | cinvalid u us m inbs v p b ev : HCount (hpartial (u :: us, inbs) m) ->
+        (check_zkp u v p = true) -> 
+        (forall c d, enc (b c d) (ev c d) = v c d) -> 
+        invalid b (* if b is invalid then it implies the u is also invalid and we are not revealing the content of ballot *) -> 
+        HCount bs (hpartial (us, u :: inbs) m)
+
+    | cderypt inbs m ev dm : HCount (hpartial ([], inbs) m) -> 
+         (forall c d, enc (m c d) (ev c d) = dm c d) ->
+         HCount bs (hdecrypt dm)
+
+    | fin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
+        HCount bs (hdecrypt dm) -> 
+        (forall c, w c = true <-> (exists x, dm c = inl x)) ->
+        (forall c, w c = false <-> (exists x, dm c = inr x)) ->
+        HCount bs (winner w)
+
+
+ 
+
