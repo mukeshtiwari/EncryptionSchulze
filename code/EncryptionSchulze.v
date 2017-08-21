@@ -727,22 +727,23 @@ Section Encryption.
     (* We are using simplest encryption method + *)
     Definition enc x k := x + k + key.
 
-    Variable Zkp : Type.
+    (* Define it in terms of Inductive data type *)
+    Variable Zkp : (cand -> cand -> Z) -> (cand -> cand -> Z) -> Type.
     
     
     Inductive HCount (bs : list eballot) : HState -> Type :=
     | ax us (m : cand -> cand -> Z) (ev : cand -> cand -> Z): 
          us = bs -> (forall c d, enc 0 (ev c d) = m c d) -> HCount bs (hpartial (us, []) m)
-    | cvalid u us m nm inbs (v : cand -> cand -> Z) (p : Zkp) (b : cand -> cand -> Z)
+    | cvalid u us m nm inbs (v : cand -> cand -> Z) (p : Zkp u v) (b : cand -> cand -> Z)
          (ev : cand -> cand -> Z) :
          HCount bs (hpartial (u :: us, inbs) m) -> 
-         ((*check_zkp u v p *) true = true) -> 
+         ((*check_zkp u v (p : Zkp u v) *) true = true) -> 
          (forall c d, enc (b c d) (ev c d) = v c d) ->
          (*valid b -> *)
          (forall c d, nm c d = m c d + u c d) ->
          HCount bs (hpartial (us, inbs) nm)
   
-    | cinvalid u us m inbs (v : cand -> cand -> Z) (p : Zkp) (b : cand -> cand -> Z)
+    | cinvalid u us m inbs (v : cand -> cand -> Z) (p : Zkp u v) (b : cand -> cand -> Z)
                (ev : cand -> cand -> Z) : HCount bs (hpartial (u :: us, inbs) m) ->
         ( (*check_zkp u v p*) true = true) -> 
         (forall c d, enc (b c d) (ev c d) = v c d) -> 
