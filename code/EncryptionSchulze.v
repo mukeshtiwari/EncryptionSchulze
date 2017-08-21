@@ -697,3 +697,75 @@ Section Encryption.
 
     
   End Evote.
+
+
+  Section ECount.
+
+    Axiom ciphertext : Type.
+    Variable key : Z.
+    
+    Definition ballot := cand -> cand -> nat.
+    Definition eballot := cand -> cand -> Z. (* Here Ciphertext is encrypted natural *)
+    (* assume for the moment that Ciphertext is Z *)
+
+    Inductive HState: Type :=
+    | hpartial: (list eballot * list eballot)  -> (cand -> cand -> Z) -> HState 
+    | hdecrypt: (cand -> cand -> Z) -> HState
+    | winners: (cand -> bool) -> HState.
+
+
+
+    Definition ence x :=  (x  + key + 10, 10).
+
+    (* 
+     enc : Z -> Z -> Ciphertext
+     enc x k = c (* k is ephemeral key used during the encryption of x to produce c *)
+     *)
+
+    
+    
+    (* We are using simplest encryption method + *)
+    Definition enc x k := x + k + key.
+
+    Variable Zkp : Type.
+    
+    
+    Inductive HCount (bs : list eballot) : HState -> Type :=
+    | ax us (m : cand -> cand -> Z) (ev : cand -> cand -> Z): 
+         us = bs -> (forall c d, enc 0 (ev c d) = m c d) -> HCount bs (hpartial (us, []) m)
+    | cvalid u us m nm inbs (v : cand -> cand -> Z) (p : Zkp) (b : cand -> cand -> Z)
+         (ev : cand -> cand -> Z) :
+         HCount bs (hpartial (u :: us, inbs) m) -> 
+         ((*check_zkp u v p *) true = true) -> 
+         (forall c d, enc (b c d) (ev c d) = v c d) ->
+         (*valid b -> *)
+         (forall c d, nm c d = m c d + u c d) ->
+         HCount bs (hpartial (us, inbs) nm)
+  
+    | cinvalid u us m inbs (v : cand -> cand -> Z) (p : Zkp) (b : cand -> cand -> Z)
+               (ev : cand -> cand -> Z) : HCount bs (hpartial (u :: us, inbs) m) ->
+        ( (*check_zkp u v p*) true = true) -> 
+        (forall c d, enc (b c d) (ev c d) = v c d) -> 
+        (* invalid b  -> *) 
+        HCount bs (hpartial (us, u :: inbs) m)
+
+    | cderypt inbs m ev dm : HCount bs (hpartial ([], inbs) m) -> 
+         (forall c d, enc (m c d) (ev c d) = dm c d) ->
+         HCount bs (hdecrypt dm)
+
+    | fin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
+        HCount bs (hdecrypt dm) -> 
+        (forall c, w c = true <-> (exists x, d c = inl x)) ->
+        (forall c, w c = false <-> (exists x, d c = inr x)) ->
+        HCount bs (winners w).
+
+
+
+                                    
+  End ECount.
+
+  
+End Encryption.
+
+
+    
