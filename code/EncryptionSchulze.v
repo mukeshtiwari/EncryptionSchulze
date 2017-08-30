@@ -731,10 +731,17 @@ Section Encryption.
 
     Definition good_rel (R : cand -> cand -> Prop) (l : list cand) := 
        exists (c : cand), In c l /\ best c R.
+
+    (* 
+Theorem good_rel_lemma :
+forall R l, exists c, In c l /\ best c R -> forall d, eql c d R -> good_rel R (remove dec_cand d l).
+     *)
     
     Theorem good_rel_lemma :
-      forall R l, exists c, In c l /\ best c R  -> forall d, eql c d R -> good_rel R (remove dec_cand d l).
-
+      forall R l c d , In c l -> In d l -> best c R  ->  eql c d R -> good_rel R (remove dec_cand d l).
+    Proof.
+      intros. unfold good_rel.
+      
       
     Theorem ballot_valid_dec : forall b, {valid b} + {~valid b}.
     Proof.
