@@ -708,7 +708,9 @@ Section Encryption.
     Definition eballot := cand -> cand -> Z. (* Here Ciphertext is encrypted natural *)
     (* assume for the moment that Ciphertext is Z *)
 
-    Hypothesis ballot_zero_one : forall (b : ballot), {forall c d, b c d = 0%nat} + {forall c d, b c d = 1%nat}.
+    Hypothesis ballot_zero_one :
+      forall (b : ballot), {forall c d, b c d = 0%nat /\ b d c = 1%nat} +
+                      {forall c d, b c d = 1%nat /\ b d c = 0%nat}.
     
     Inductive HState: Type :=
     | hpartial: (list eballot * list eballot)  -> (cand -> cand -> Z) -> HState 
@@ -740,11 +742,13 @@ Section Encryption.
     Definition Rel (c d : cand) (b : ballot) :=
       (b c d = 1%nat) \/ (b c d = 0%nat /\ b d c = 0%nat).
 
+      
     Lemma rel_refl : forall (b : ballot) (c : cand), Rel c c b.
     Proof.
       intros b c. unfold Rel in *.
       specialize (ballot_zero_one b). destruct ballot_zero_one.
-      auto. auto.
+      specialize (a c c). omega.
+      specialize (a c c). omega.
     Qed.
 
     
@@ -753,14 +757,22 @@ Section Encryption.
     Proof.
       intros b c d e H1 H2. unfold Rel in *.
       specialize (ballot_zero_one b). destruct ballot_zero_one.
-      auto. auto.
+      destruct H1 as [H1 | [H3 H4]].
+      destruct H2 as [H2 | [H3 H4]].
+      left. specialize (a e c). destruct a. auto.
+      left. specialize (a e c). destruct a. auto.
+      left. specialize (a e c). destruct a. auto.
+      left. specialize (a c e). destruct a. auto.                                  
     Qed.
+
     
     Lemma rel_or : forall (b : ballot) (c d : cand), Rel c d b \/ Rel d c b. 
     Proof.
       intros b c d. unfold Rel in *.
       specialize (ballot_zero_one b). destruct ballot_zero_one.
-      auto. auto.
+      right. left.
+      specialize (a c d). omega.
+      left. left. specialize (a c d). omega.
     Qed.
 
     Lemma rel_last : forall (b : ballot) (c d: cand),  b c d = 1%nat <-> Rel c d b /\ ~Rel d c b.
@@ -772,7 +784,7 @@ Section Encryption.
       split. auto.
       unfold not. intros.
       destruct H0 as [H0 | [H1 H2]].
-      specialize (e c d). omega. omega.
+      specialize (a c d). omega. omega.
       unfold Rel in *. destruct H.
       omega.
 
@@ -780,11 +792,12 @@ Section Encryption.
       unfold Rel in *.
       split. auto.
       unfold not. intros.
-      destruct H0 as [H0 | [H1 H2]]. admit.
+      destruct H0 as [H0 | [H1 H2]]. specialize (a c d). omega.
       omega.
       unfold Rel in *.
       omega.
-
+    Qed.
+    
       
     Theorem good_rel_lemma :
       forall R l c d, In c l -> In d l -> best c R ->
