@@ -708,12 +708,46 @@ Section Encryption.
     Definition eballot := cand -> cand -> Z. (* Here Ciphertext is encrypted natural *)
     (* assume for the moment that Ciphertext is Z *)
 
+    Hypothesis ballot_zero_one : forall (b : ballot), {forall c d, b c d = 0%nat} + {forall c d, b c d = 1%nat}.
+    
     Inductive HState: Type :=
     | hpartial: (list eballot * list eballot)  -> (cand -> cand -> Z) -> HState 
     | hdecrypt: (cand -> cand -> Z) -> HState
     | winners: (cand -> bool) -> HState.
 
 
+    Definition valid (b : ballot) :=
+      exists (R : cand -> cand -> Prop),
+        (forall c, R c c) /\
+        (forall c d e, R c d -> R d e -> R c e) /\
+        (forall c d, R c d \/ R d c) /\
+        (forall c d, b c d = 1%nat <-> R c d /\ ~R d c).
+
+
+    Definition eql (c d : cand) (R : cand -> cand -> Prop) :=  R c d /\ R d c.
+
+    Definition best (c : cand) (R : cand -> cand -> Prop) := forall (d : cand),
+        ~eql c d R -> R c d.
+
+    Definition good_rel (R : cand -> cand -> Prop) (l : list cand) := 
+       exists (c : cand), In c l /\ best c R.
+
+    (* 
+Theorem good_rel_lemma :
+forall R l, exists c, In c l /\ best c R -> forall d, eql c d R -> good_rel R (remove dec_cand d l).
+     *)
+    
+    Theorem good_rel_lemma :
+      forall R l c d , In c l -> In d l -> best c R  ->  eql c d R -> good_rel R (remove dec_cand d l).
+    Proof.
+      intros. unfold good_rel.
+      
+      
+    Theorem ballot_valid_dec : forall b, {valid b} + {~valid b}.
+    Proof.
+     
+
+    
 
     Definition ence x :=  (x  + key + 10, 10).
 
