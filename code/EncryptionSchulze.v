@@ -708,9 +708,6 @@ Section Encryption.
     Definition eballot := cand -> cand -> Z. (* Here Ciphertext is encrypted natural *)
     (* assume for the moment that Ciphertext is Z *)
 
-    Hypothesis ballot_zero_one :
-      forall (b : ballot), {forall c d, b c d = 0%nat /\ b d c = 1%nat} +
-                      {forall c d, b c d = 1%nat /\ b d c = 0%nat}.
     
     Inductive HState: Type :=
     | hpartial: (list eballot * list eballot)  -> (cand -> cand -> Z) -> HState 
@@ -718,13 +715,26 @@ Section Encryption.
     | winners: (cand -> bool) -> HState.
 
 
+    (*
+    Definition Reflexive (R : cand -> cand -> Prop) := forall c, R c c.
+    
+    Definition Transitive (R : cand -> cand -> Prop) :=
+      forall c d e, R c d -> R d e -> R c e.
+
+    Definition Total (R : cand -> cand -> Prop) :=
+      forall c d, R c d \/ R d c.
+
+    Definition TPO (R : cand -> cand -> Prop) :=
+      Reflexive R /\ Transitive R /\ Total R.
+
+    
     Definition valid (b : ballot) :=
       exists (R : cand -> cand -> Prop),
-        (forall c, R c c) /\
-        (forall c d e, R c d -> R d e -> R c e) /\
-        (forall c d, R c d \/ R d c) /\
-        (forall c d, b c d = 1%nat <-> R c d /\ ~R d c).
+        TPO R /\
+        (forall c d, b c d = 1%nat <-> R c d /\ ~R d c) /\
+        (forall c d, b c d = 0%nat \/ b c d = 1%nat).
 
+    
     (* 
     Definition eql (c d : cand) (R : cand -> cand -> Prop) :=  R c d /\ R d c.
 
@@ -738,80 +748,69 @@ Section Encryption.
     (* Try to find the definition of Rel which follows all the 
        properties specified in valid ballot. This definition 
        of Rel working for everything except the last *)
-
-    Definition Rel (c d : cand) (b : ballot) :=
+    
+    Definition Rel (b : ballot) (c d : cand) :=
       (b c d = 1%nat) \/ (b c d = 0%nat /\ b d c = 0%nat).
 
-      
-    Lemma rel_refl : forall (b : ballot) (c : cand), Rel c c b.
-    Proof.
-      intros b c. unfold Rel in *.
-      specialize (ballot_zero_one b). destruct ballot_zero_one.
-      specialize (a c c). omega.
-      specialize (a c c). omega.
-    Qed.
-
     
-    Lemma rel_transitive : forall (b : ballot) (c d e : cand),
-        Rel c d b -> Rel d e b -> Rel c e b.
+    Lemma proof_rel_valid : forall b, TPO (Rel b) <-> valid b.
     Proof.
-      intros b c d e H1 H2. unfold Rel in *.
-      specialize (ballot_zero_one b). destruct ballot_zero_one.
-      destruct H1 as [H1 | [H3 H4]].
-      destruct H2 as [H2 | [H3 H4]].
-      left. specialize (a e c). destruct a. auto.
-      left. specialize (a e c). destruct a. auto.
-      left. specialize (a e c). destruct a. auto.
-      left. specialize (a c e). destruct a. auto.                                  
-    Qed.
-
-    
-    Lemma rel_or : forall (b : ballot) (c d : cand), Rel c d b \/ Rel d c b. 
-    Proof.
-      intros b c d. unfold Rel in *.
-      specialize (ballot_zero_one b). destruct ballot_zero_one.
-      right. left.
-      specialize (a c d). omega.
-      left. left. specialize (a c d). omega.
-    Qed.
-
-    Lemma rel_last : forall (b : ballot) (c d: cand),  b c d = 1%nat <-> Rel c d b /\ ~Rel d c b.
-    Proof.
-      intros b.
-      specialize (ballot_zero_one b). destruct ballot_zero_one.
-      split; intros.
-      unfold Rel in *.
+      split; intros. unfold valid.
+      exists (Rel b). split. auto.
+      split. split; intros.
+      unfold TPO, Rel in *.
+      destruct H as [H1 [H2 H3]].
       split. auto.
       unfold not. intros.
-      destruct H0 as [H0 | [H1 H2]].
-      specialize (a c d). omega. omega.
-      unfold Rel in *. destruct H.
-      omega.
-
+      destruct H as [H | [H4 H5]].
+      unfold Reflexive, Transitive, Total in *.
+      
+      
+      
       split; intros.
-      unfold Rel in *.
-      split. auto.
-      unfold not. intros.
-      destruct H0 as [H0 | [H1 H2]]. specialize (a c d). omega.
-      omega.
-      unfold Rel in *.
-      omega.
-    Qed.
-    
+      unfold valid, TPO, Rel in *.
+      destruct H as [R [[H1 [H2 H3]] [H4 H5]]].
+      split. unfold Reflexive.
+      intros. unfold Reflexive, Transitive, Total in *.
+      destruct (H4 c c) as [H6 H7].
+      destruct (H5 c c) as [H8 | H9].
+      right. omega. omega.
+      split. unfold Reflexive, Transitive, Total in *.
+      intros c d e H6 H7.
+      destruct H6 as [H6 | [H6 H8]].
+      destruct H7 as [H7 | [H9 J10]].
+      destruct (H4 c d) as [H8 H9].
+      specialize (H8 H6).
+      destruct (H4 d e) as [H10 H11].
+      specialize (H10 H7).
+      left. apply H4. split.
+      apply H2 with d. firstorder.
+      firstorder. firstorder.
       
-    Theorem good_rel_lemma :
-      forall R l c d, In c l -> In d l -> best c R ->
-                 eql c d R -> good_rel R (remove dec_cand d l).
-    Proof.
-      intros. unfold best in *. unfold eql in *.
-      unfold good_rel.
+     *)
 
-      induction l. admit. 
-      simpl. unfold best.
-      simpl in *. destruct H. destruct H0.
-      rewrite H0. destruct (dec_cand d d).
-      admit. admit.
+    (* Two candiadate are equal if P c d and P d c holds *)
+    Definition eqr (c d : cand) (P : cand -> cand -> Prop) :=  P c d /\ P d c.
+
+    (* Proposition P is valid over set s if there is function f such that
+       forall c d, P c d if and only if (f c < f d) *)
+    Definition valid (P : cand -> cand -> Prop) (s : list cand) :=
+      exists (f : cand -> nat), forall c d,
+          P c d <-> (f c < f d)%nat.
+
+ 
+
+    Lemma val_decidablity :
+      forall (n : nat) (s : list cand),
+        length s = n -> forall (P : cand -> cand -> Prop),
+          valid P s <->
+          exists c, In c s ->
+               forall d, ~eqr c d P -> P c d /\
+                                 (forall c', eqr c c' P -> valid P (remove dec_cand c' s)).
+    Proof.
       
+      
+                                 
     Theorem ballot_valid_dec : forall b, {valid b} + {~valid b}.
     Proof.
      
