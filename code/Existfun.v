@@ -38,18 +38,20 @@ Section Cand.
   Lemma validity_after_remove_cand :
     forall (P : A -> A -> Prop) (l : list A) (Hpdec : forall c d, P c d \/ ~P c d),
       valid P l <->
-      exists (c : A), forall (d : A), (equal_rank P c d \/ (P c d \/ c = d \/ P d c))
+      exists (c : A), forall (d : A), In c l /\ In d l /\  (equal_rank P c d \/ (P c d \/ c = d \/ P d c))
                             /\ valid P (remove A_dec d l).
   Proof.
     unfold valid, equal_rank.
     split; intros.
     destruct H as [f H].
 
+    
     (* induction on list *)
     induction l. admit.
+    exists a. intros d.
+    destruct (A_dec a d).
+    split. admit. admit. split. admit. split. simpl. right. admit. split. admit.
     
-    exists a. intros. split. left.
-    intros. 
 
   Lemma dec_now : forall (P : A -> A -> Prop),
       (forall c d, P c d \/ ~P c d) ->
