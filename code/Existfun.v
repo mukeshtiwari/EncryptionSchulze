@@ -57,7 +57,7 @@ Section Cand.
     split. apply in_eq.
     split. firstorder.
     split. right. firstorder.
-    exists f. split; intros. rewrite e in Hc, Hd.
+    exists f.  split; intros. rewrite e in Hc, Hd.
     pose proof (H c d0). simpl in *. firstorder.
     rewrite e in Hc, Hd.
     pose proof (H c d0). simpl in *. firstorder.
@@ -65,7 +65,9 @@ Section Cand.
     (* a <> d *)
     split. apply in_eq.
     split. pose proof (H a d (in_eq a l)). firstorder.
-    split. admit. 
+    split. admit.
+    (* Here a <> d means a and d could be equal rank or 
+    a is preferred over d or d is preferred of a ? *)
     exists f. split; intros. simpl in Hc, Hd. destruct (A_dec d a).
     symmetry in e. pose proof (n e). inversion H1.
     simpl in *. destruct Hc, Hd.  firstorder.
