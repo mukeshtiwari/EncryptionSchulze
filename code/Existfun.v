@@ -65,9 +65,9 @@ Section Cand.
     (* a <> d *)
     split. apply in_eq.
     split. pose proof (H a d (in_eq a l)). firstorder.
-    split. admit.
-    (* Here a <> d means a and d could be equal rank or 
-    a is preferred over d or d is preferred of a ? *)
+    split. admit. 
+    (* Here a <> d means a and d could be equal rank then discharge left or 
+    a is preferred over d or d is preferred of a then discharge right ? *)
     exists f. split; intros. simpl in Hc, Hd. destruct (A_dec d a).
     symmetry in e. pose proof (n e). inversion H1.
     simpl in *. destruct Hc, Hd.  firstorder.
@@ -77,10 +77,13 @@ Section Cand.
     pose proof (H c d0). firstorder.
     
     (* reverse direction *)
-    destruct H as [c H].
-
+    destruct H as [x H].
+    pose proof (H x). destruct H0 as [H1 [H2 [H3 [f H4]]]].
+    
     induction l. firstorder.
-   
+
+    (* either a = c or a <> c *)
+    
     
   Lemma dec_now : forall (P : A -> A -> Prop),
       (forall c d, P c d \/ ~P c d) ->
