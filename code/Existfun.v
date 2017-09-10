@@ -30,11 +30,12 @@ Section Cand.
 
   
   Definition valid (P : A -> A -> Prop) (l : list A) :=
-    exists (f : A -> nat), forall c d (Hc : In c l) (Hd : In d l), (P c d <-> (f c < f c)%nat).
+    exists (f : A -> nat), forall c d (Hc : In c l) (Hd : In d l), (P c d <-> (f c < f d)%nat).
 
   Definition equal_rank (P : A -> A -> Prop) (c d : A) :=
      ~P c d /\ ~P d c.
-  
+
+ 
   Lemma validity_after_remove_cand :
     forall (P : A -> A -> Prop) (l : list A) (Hpdec : forall c d, P c d \/ ~P c d),
       valid P l <->
@@ -45,14 +46,40 @@ Section Cand.
     split; intros.
     destruct H as [f H].
 
-    
-    (* induction on list *)
-    induction l. admit.
+    (* induction on l *)
+    induction l.
+    (* admit the empty case for the moment *)
+    admit.
+    (* a :: l and assume c = a *)
     exists a. intros d.
+    (* Either d is a or d is inside the list *)
     destruct (A_dec a d).
-    split. admit. admit. split. admit. split. simpl. right. admit. split. admit.
+    split. apply in_eq.
+    split. firstorder.
+    split. right. firstorder.
+    exists f. split; intros. rewrite e in Hc, Hd.
+    pose proof (H c d0). simpl in *. firstorder.
+    rewrite e in Hc, Hd.
+    pose proof (H c d0). simpl in *. firstorder.
     
+    (* a <> d *)
+    split. apply in_eq.
+    split. pose proof (H a d (in_eq a l)). firstorder.
+    split. admit. 
+    exists f. split; intros. simpl in Hc, Hd. destruct (A_dec d a).
+    symmetry in e. pose proof (n e). inversion H1.
+    simpl in *. destruct Hc, Hd.  firstorder.
+    pose proof (H c d0). firstorder.
+    pose proof (H c d0). firstorder.
+    pose proof (H c d0). firstorder.
+    pose proof (H c d0). firstorder.
+    
+    (* reverse direction *)
+    destruct H as [c H].
 
+    induction l. firstorder.
+   
+    
   Lemma dec_now : forall (P : A -> A -> Prop),
       (forall c d, P c d \/ ~P c d) ->
       {valid P} + {~valid P}.
