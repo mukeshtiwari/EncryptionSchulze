@@ -56,7 +56,11 @@ Section Cand.
     destruct (A_dec a d).
     split. apply in_eq.
     split. firstorder.
-    split. right. firstorder.
+    split. (* At this point we have a = d in assumption and 
+      ~ P a d /\ ~ P d a \/ P a d \/ a = d \/ P d a in goal.
+    I think a = d should mean that either they are equal_rank or a = d and 
+    this should be used to discharge the goal *)
+    right. firstorder.
     exists f.  split; intros. rewrite e in Hc, Hd.
     pose proof (H c d0). simpl in *. firstorder.
     rewrite e in Hc, Hd.
@@ -65,9 +69,12 @@ Section Cand.
     (* a <> d *)
     split. apply in_eq.
     split. pose proof (H a d (in_eq a l)). firstorder.
-    split. admit. 
-    (* Here a <> d means a and d could be equal rank then discharge left or 
-    a is preferred over d or d is preferred of a then discharge right ? *)
+    split.  admit.
+    (* At this point we a <> d in assumption and  
+       ~ P a d /\ ~ P d a \/ P a d \/ a = d \/ P d a in goal.
+      I think a <> d should mean that either P a d or P d a and this 
+      should discharge the assumption
+  *)
     exists f. split; intros. simpl in Hc, Hd. destruct (A_dec d a).
     symmetry in e. pose proof (n e). inversion H1.
     simpl in *. destruct Hc, Hd.  firstorder.
