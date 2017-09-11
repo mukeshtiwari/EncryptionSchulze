@@ -20,22 +20,51 @@ Notation "'existsT' x .. y , p" :=
 
 
 Section Cand.    
-    
+
   Variable A : Type.
-  Variable A_all : list A.
-  (* Hypothesis about A being finite, decidable and nonempty *)
-  Hypothesis Afin : forall (a : A), In a A_all. 
-  Hypothesis A_dec : forall (a b : A) , {a = b} + {a <> b}.
-  Hypothesis A_not_nil : A_all <> nil.
+  Variable P : A -> A -> Prop.
+  Hypothesis Adec : forall (c d : A), {c = d} + {c <> d}. (* A is decidable *)
+  Hypothesis Pdec : forall c d, P c d \/ ~P c d. (* P is decidable *)
+  
+  (* A is finite. finite : Type -> Type *)
+  Definition finite := existsT (l : list A), forall (a : A), In a l.
+
+  (* vl : forall A : Type, (P : A -> A -> Prop) -> (list A) -> Prop *)
+  Definition vl (l : list A) :=
+    exists (f : A -> nat), forall (c d : A) (Hc : In c l) (Hd : In d l), (P c d <-> (f c < f d)%nat).
 
   
-  Definition valid (P : A -> A -> Prop) (l : list A) :=
-    exists (f : A -> nat), forall c d (Hc : In c l) (Hd : In d l), (P c d <-> (f c < f d)%nat).
+  Lemma validity_after_remove_cand :
+    forall (l : list A) (a0 : A),
+      vl (a0 :: l) <->
+      vl l /\
+      ((exists (a0' : A), In a0' l /\ forall (x : A), In x l -> (P a0 x <-> P a0' x) /\
+                                                    (P x a0 <-> P x a0')) \/
+       (forall (x : A), In x l -> P a0 x \/ P x a0)).
+  Proof.
+  Admitted.
+    
+   
+  Lemma vl_or_notvl : forall l : list A, vl l \/ ~vl l.
+  Admitted.
 
-  Definition equal_rank (P : A -> A -> Prop) (c d : A) :=
-     ~P c d /\ ~P d c.
+  Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
- 
+  Lemma from_vl_to_valid : forall l : list A, (forall a : A, In a l -> valid <-> vl l).
+  Proof.
+  Admitted.
+
+  Lemma decidable_valid : finite -> {valid} + {~valid}.
+  Proof.
+  Admitted.
+
+End Cand.
+
+
+
+
+  
+    
   Lemma validity_after_remove_cand :
     forall (P : A -> A -> Prop) (l : list A) (Hpdec : forall c d, P c d \/ ~P c d),
       valid P l <->
@@ -84,7 +113,7 @@ Section Cand.
     pose proof (H c d0). firstorder.
     
     (* reverse direction *)
-    destruct H as [x H].
+    destruct H as [x H]. Check fold_left.
     pose proof (H x). destruct H0 as [H1 [H2 [H3 [f H4]]]].
     
     induction l. firstorder.
