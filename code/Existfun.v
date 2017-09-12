@@ -71,8 +71,32 @@ Section Cand.
     pose proof (H x a (or_intror Hx) (or_intror Hr)).
     firstorder.
 
-    
-    
+    (* time to go right *)
+    right.
+    intros x Hx.
+
+    destruct (lt_eq_lt_dec (f a0) (f x)) as [[H1 | H1] | H1]. 
+    pose proof (H a0 x (in_eq a0 l) (or_intror Hx)).
+    firstorder.
+
+    (* f a0 can't be equal to f x *)
+    assert (Ht : f a0 <> f x).
+    induction l. inversion Hx.
+
+    apply not_in_cons in n.
+    destruct n. destruct Hx. rewrite <- H3 in H1.
+    omega.
+
+    apply IHl. intros.
+    firstorder. assumption. assumption.
+    omega.
+
+    pose proof (H x a0 (or_intror Hx) (in_eq a0 l)).
+    firstorder.
+
+    (* finally finished the first half. feeling great :) *)
+
+
     
     Lemma vl_or_notvl : forall l : list A, vl l \/ ~vl l.
   Admitted.
