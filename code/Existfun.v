@@ -31,7 +31,7 @@ Section Cand.
 
   (* vl : forall A : Type, (P : A -> A -> Prop) -> (list A) -> Prop *)
   Definition vl (l : list A) :=
-    exists (f : A -> nat), forall (c d : A) (Hc : In c l) (Hd : In d l), (P c d <-> (f c < f d)%nat).
+    exists (f : A -> nat), forall (c d : A), In c l -> In d l -> (P c d <-> (f c < f d)%nat).
 
   
   Lemma validity_after_remove_cand :
@@ -42,10 +42,39 @@ Section Cand.
                                                     (P x a0 <-> P x a0')) \/
        (forall (x : A), In x l -> P a0 x \/ P x a0)).
   Proof.
-  Admitted.
+    unfold vl; split; intros.
+    destruct H as [f H]. 
+    split.
+    exists f.  firstorder.
+
+    assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
+      
+    pose proof (in_dec Hnat (f a0) (map f l)). clear Hnat.
+    destruct H0.
+    apply in_map_iff in i. destruct i as [a [Hl Hr]].
+    (* I know the exitence of element which is in l and equal to f a0 *)
+    left. exists a. split. assumption.
+    intros x Hx. split. split; intros.
+
     
-   
-  Lemma vl_or_notvl : forall l : list A, vl l \/ ~vl l.
+    pose proof (H a0 x (in_eq a0 l) (or_intror Hx)).
+    firstorder.
+
+    pose proof (H a x (or_intror Hr) (or_intror Hx)).
+    firstorder.
+
+    split; intros.
+
+    pose proof (H x a0 (or_intror Hx) (in_eq a0 l)).
+    firstorder.
+
+    pose proof (H x a (or_intror Hx) (or_intror Hr)).
+    firstorder.
+
+    
+    
+    
+    Lemma vl_or_notvl : forall l : list A, vl l \/ ~vl l.
   Admitted.
 
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
@@ -56,10 +85,14 @@ Section Cand.
 
   Lemma decidable_valid : finite -> {valid} + {~valid}.
   Proof.
-  Admitted.
-
+    unfold finite, valid.
+    intros H. destruct H as [l Hin].
+    pose proof (from_vl_to_valid l Hin).
+    destruct H.  fi
+    
 End Cand.
 
+Check decidable_valid.
 
 
 
