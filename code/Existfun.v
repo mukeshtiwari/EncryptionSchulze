@@ -95,21 +95,14 @@ Section Cand.
     firstorder.
 
     (* finally finished the first half. feeling great :) *)
-
     
-    
-    destruct H as [[f H1] [[a [H2 H3]] | H2]].
+    destruct H as [[f H1] [[a [H2 H3]] | H2]].    
     (* From H3, I know that f a = f a0  so I am going to supply same function *)
-    exists (fun x => if Adec x a0 then f a else f x). 
-    intros c d H4 H5. split; intros H6.
-
-    destruct H4, H5. rewrite  <- H. rewrite H0.
-
-    destruct (Adec d d).
-    (* I need to draw contradiction from context *)
-    pose proof (H3 a H2). destruct H4 as [[H7 H8] [H9 H10]].
-    pose proof (H1 a a H2 H2).
-    apply H4. firstorder.
+    exists f. intros c d H4 H5. destruct H4, H5.
+    split; intros.
+    rewrite <- H in H4. rewrite <- H0 in H4.
+    (* There is no way to construct f a0 < f a0 from P a0 a0 or I am missing something *)
+    
     
    
     
