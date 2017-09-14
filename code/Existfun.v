@@ -45,7 +45,7 @@ Section Cand.
     unfold vl; split; intros.
     destruct H as [f H]. 
     split.
-    exists f.  firstorder.
+    exists f. firstorder.
 
     assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
       
@@ -96,17 +96,37 @@ Section Cand.
 
     (* finally finished the first half. feeling great :) *)
 
-
     
-    Lemma vl_or_notvl : forall l : list A, vl l \/ ~vl l.
-  Admitted.
+    
+    destruct H as [[f H1] [[a [H2 H3]] | H2]].
+    (* From H3, I know that f a = f a0  so I am going to supply same function *)
+    exists (fun x => if Adec x a0 then f a else f x). 
+    intros c d H4 H5. split; intros H6.
 
+    destruct H4, H5. rewrite  <- H. rewrite H0.
+
+    destruct (Adec d d).
+    (* I need to draw contradiction from context *)
+    pose proof (H3 a H2). destruct H4 as [[H7 H8] [H9 H10]].
+    pose proof (H1 a a H2 H2).
+    apply H4. firstorder.
+    
+   
+    
+  Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
+  Proof.
+    intros l.
+    pose proof (validity_after_remove_cand l).
+    induction l. left. unfold not; intros.
+    unfold vl in *. exists (fun _ => 0%nat). intros. inversion H0.
+    pose proof (H a). destruct H0.
+    
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
   Lemma from_vl_to_valid : forall l : list A, (forall a : A, In a l -> valid <-> vl l).
   Proof.
   Admitted.
-
+  
   Lemma decidable_valid : finite -> {valid} + {~valid}.
   Proof.
     unfold finite, valid.
