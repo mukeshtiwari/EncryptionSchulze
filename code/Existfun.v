@@ -37,7 +37,7 @@ Section Cand.
   Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
       vl (a0 :: l) <->
-      vl l /\
+      vl l /\ ~P a0 a0 /\ 
       ((exists (a0' : A), In a0' l /\ forall (x : A), In x l -> (P a0 x <-> P a0' x) /\
                                                     (P x a0 <-> P x a0')) \/
        (forall (x : A), In x l -> P a0 x \/ P x a0)).
@@ -46,17 +46,19 @@ Section Cand.
     destruct H as [f H]. 
     split.
     exists f. firstorder.
-
+    
+    split. unfold not. intros. pose proof (proj1 (H a0 a0 (in_eq a0 l) (in_eq a0 l)) H0).
+    omega.
+    
     assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
       
-    pose proof (in_dec Hnat (f a0) (map f l)). clear Hnat.
+    pose proof (in_dec Hnat (f a0) (map f l)).  clear Hnat.
     destruct H0.
     apply in_map_iff in i. destruct i as [a [Hl Hr]].
     (* I know the exitence of element which is in l and equal to f a0 *)
     left. exists a. split. assumption.
     intros x Hx. split. split; intros.
 
-    
     pose proof (H a0 x (in_eq a0 l) (or_intror Hx)).
     firstorder.
 
@@ -95,16 +97,25 @@ Section Cand.
     firstorder.
 
     (* finally finished the first half. feeling great :) *)
-    
-    destruct H as [[f H1] [[a [H2 H3]] | H2]].    
+
+    destruct H as [[f H1] [Ht [[a [H2 H3]] | H2]]].    
     (* From H3, I know that f a = f a0  so I am going to supply same function *)
     exists f. intros c d H4 H5. destruct H4, H5.
     split; intros.
     rewrite <- H in H4. rewrite <- H0 in H4.
+    firstorder. rewrite <- H0 in H4.
+    rewrite -> H in H4. omega.
+
+    split; intros. 
+    
     (* There is no way to construct f a0 < f a0 from P a0 a0 or I am missing something *)
+    admit. subst. omega.
+    admit. admit. firstorder.
+
+    (* filter all the element in l for which x is more preffered over a0 *)
     
     
-   
+    
     
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
   Proof.
