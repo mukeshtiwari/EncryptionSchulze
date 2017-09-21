@@ -100,20 +100,49 @@ Section Cand.
 
     destruct H as [[f H1] [Ht [[a [H2 H3]] | H2]]].    
     (* From H3, I know that f a = f a0  so I am going to supply same function *)
-    exists f. intros c d H4 H5. destruct H4, H5.
-    split; intros.
+
+    exists (fun c => if Adec c a0 then f a else f c). intros c d H4 H5. destruct H4, H5.
+    split; intros. 
     rewrite <- H in H4. rewrite <- H0 in H4.
     firstorder. rewrite <- H0 in H4.
     rewrite -> H in H4. omega.
 
-    split; intros. 
-    
-    (* There is no way to construct f a0 < f a0 from P a0 a0 or I am missing something *)
-    admit. subst. omega.
-    admit. admit. firstorder.
+    split; intros.
+    rewrite <- H. destruct (Adec a0 a0).
+    destruct (Adec d a0).
+    subst. congruence.
+    subst. firstorder.
+    congruence. subst.
+    destruct (Adec c c). destruct (Adec d c).
+    omega. firstorder.
+    firstorder.
 
-    (* filter all the element in l for which x is more preffered over a0 *)
+    split; intros.
+    subst. destruct (Adec c d). destruct (Adec d d).
+    subst. congruence.
+    firstorder. destruct (Adec d d). firstorder.
+    firstorder. destruct (Adec c a0). destruct (Adec d a0).
+    subst. firstorder. subst. firstorder.
+    subst. destruct (Adec d d). firstorder.
+    firstorder.
+
+    split; intros.
+    destruct (Adec c a0). destruct (Adec d a0).
+    subst. firstorder.
+    subst. firstorder.
+    destruct (Adec d a0).
+    subst. firstorder.
+    firstorder.
+
+    destruct (Adec c a0). destruct (Adec d a0).
+    subst. firstorder.
+    subst. firstorder.
+    destruct (Adec d a0).
+    subst. firstorder.
+    subst. firstorder.
+
     
+   
     
     
     
