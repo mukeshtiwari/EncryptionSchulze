@@ -34,6 +34,7 @@ Section Cand.
     exists (f : A -> nat), forall (c d : A), In c l -> In d l -> (P c d <-> (f c < f d)%nat).
 
   
+    
   Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
       vl (a0 :: l) <->
@@ -140,9 +141,33 @@ Section Cand.
     destruct (Adec d a0).
     subst. firstorder.
     subst. firstorder.
-
     
-   
+    
+    (* Show the existence of function *)
+
+    (* The idea here is 
+       (f a0) will be in the list (map f l) or not. 
+       If (f a0) is in the list then we have a candidate a such that 
+          f a0 = f a. This is contradition because of 
+           H2 : forall x : A, In x l -> P a0 x \/ P x a0.
+
+       If (f a0) is not in the list (map f l) then we can divide the list, map f l, 
+       into two sorted lists, l1 and l2, such that all the numbers in l1 is less than 
+       (f a0), and all the elements in l2 is greater than (f a0). Give this function
+       as evidence. 
+       Am I thinking in right direction ? *) 
+       
+
+    assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
+    pose proof (in_dec Hnat (f a0) (map f l)).  clear Hnat.
+    destruct H.
+    apply in_map_iff in i. destruct i as [a [Hl Hr]].   
+    (* At this point, I should get contradiction *)
+    pose proof (H2 a Hr).
+    (* I have, Hl : f a = f a0 and H : P a0 a \/ P a a0. 
+       Is it possible to infer contradiction from these two assumptions ?
+       From H, I can say that P a0 a means a0 is more preferred over a (f a0 < f a)
+       so I have contradiction. P a a0 is f a < f a0 and again contradiction. *)
     
     
     
