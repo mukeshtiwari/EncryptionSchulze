@@ -168,7 +168,17 @@ Section Cand.
        Is it possible to infer contradiction from these two assumptions ?
        From H, I can say that P a0 a means a0 is more preferred over a (f a0 < f a)
        so I have contradiction. P a a0 is f a < f a0 and again contradiction. *)
-    
+
+    (* It is contradiction so let's give the same function *)
+    exists f. intros c d Hc Hd.
+    split; intros.
+
+    destruct Hc, Hd. congruence.
+    rewrite <- H3. rewrite <- Hl.
+    apply H1. auto. auto.
+    (* Now I am not able to discharge P a d *)
+    firstorder.
+
     
     
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
