@@ -177,17 +177,29 @@ Section Cand.
     rewrite <- H3. rewrite <- Hl.
     apply H1. auto. auto.
     (* Now I am not able to discharge P a d *)
-    firstorder.
+  Admitted.
 
     
     
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
-  Proof.
+  Proof.    
     intros l.
     pose proof (validity_after_remove_cand l).
-    induction l. left. unfold not; intros.
-    unfold vl in *. exists (fun _ => 0%nat). intros. inversion H0.
-    pose proof (H a). destruct H0.
+    
+    induction l.
+    left. unfold vl. eexists.
+    intros c d Hc Hd; inversion Hc.
+
+    destruct IHl.
+    split; intros.
+    split. firstorder.
+    split. firstorder.
+
+    
+    
+    admit. admit.
+    left. unfold vl. unfold vl in v.
+    admit.
     
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
