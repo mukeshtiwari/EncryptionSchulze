@@ -205,26 +205,49 @@ Section Cand.
        If ~In (f a) (map f l) then we can split the l into two sorted list, l1 , l2
        and discharge forall x, In x l -> P a x \/ P x a *)
     
-
+    
     (* if ~vl l then adding candidate would also not make it valid 
        got for right *)
+    admit.
     right. unfold not. intros.
     destruct n. firstorder.
+    Admitted.
     
 
     
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
-  Lemma from_vl_to_valid : forall l : list A, (forall a : A, In a l -> valid <-> vl l).
+  Lemma from_vl_to_valid : forall (l : list A), ((forall a : A, In a l) -> valid <-> vl l).
   Proof.
-  Admitted.
+    intros l Ha. split; intros.
+    unfold valid in H.
+    unfold vl.
+    destruct H as [f H].
+    firstorder.
+    unfold vl in H. unfold valid.
+    destruct H as [f H].
+    exists f. split; intros.
+    apply H; auto.
+    apply H; auto.
+  Qed.
   
+    
   Lemma decidable_valid : finite -> {valid} + {~valid}.
   Proof.
     unfold finite, valid.
     intros H. destruct H as [l Hin].
-    pose proof (from_vl_to_valid l Hin).
-    destruct H.  fi
+
+
+    
+    pose proof (from_vl_to_valid l).
+    destruct H. unfold valid, vl in *.
+
+    induction l.
+    left. apply H0.
+    eexists. intros c d Hc Hd. inversion Hc.
+    
+
+
     
 End Cand.
 
