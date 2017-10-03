@@ -180,26 +180,38 @@ Section Cand.
   Admitted.
 
     
-    
+
+  (* This proof is mostly followed by validity_after_remove_cand. *)
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
-  Proof.    
-    intros l.
-    pose proof (validity_after_remove_cand l).
+  Proof.
     
     induction l.
     left. unfold vl. eexists.
     intros c d Hc Hd; inversion Hc.
 
+    (* l := a :: l *)
+    pose proof (validity_after_remove_cand l a).
     destruct IHl.
-    split; intros.
-    split. firstorder.
-    split. firstorder.
+    (* if P a a or ~ P a a *)
+    pose proof (Pdec a a).
+    (* I can not destruct H0 of type Prop because goal is of type Set. 
+       We need to probably change the Pdec to forall c d, {P c d} + {~ P c d} ? *)
+    (* After this proof is very easy. 
+       If P a a then we can not construct the valid (a :: l) from vl and go right. 
+       If ~P a a then we can construct the the valid (a :: l) from vl. 
+       In (f a) (map f l) + ~ In (f a) (map f l). 
+       If In (f a) (map f l) then we there is some element, a0, in l such that 
+       f a = f a0 and we can  discharge existential 
+       If ~In (f a) (map f l) then we can split the l into two sorted list, l1 , l2
+       and discharge forall x, In x l -> P a x \/ P x a *)
+    
 
+    (* if ~vl l then adding candidate would also not make it valid 
+       got for right *)
+    right. unfold not. intros.
+    destruct n. firstorder.
     
-    
-    admit. admit.
-    left. unfold vl. unfold vl in v.
-    admit.
+
     
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
