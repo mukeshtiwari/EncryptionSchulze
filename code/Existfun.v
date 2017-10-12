@@ -167,7 +167,7 @@ Section Cand.
     subst. firstorder.
 
     
-    (*
+    
     remember (filter (fun y => if Pdec y a0 then true else false) l) as l1.
     remember (filter (fun y => if Pdec a0 y then true else false) l) as l2.
     assert (Ht1 : forall x, In x l1 -> P x a0).
@@ -180,11 +180,18 @@ Section Cand.
     destruct H0. destruct (Pdec a0 x). auto. inversion H3.
     remember (fun y : A => if Pdec y a0 then true else false) as f1.
     remember (fun y : A => if Pdec a0 y then true else false) as g1.
-    assert (Ht3 : forall x, In x l -> (f1 x = true -> g1 x = false) /\ (g1 x = true -> f1 x = false)).
-    intros. split; intros. rewrite Heqf1 in H0.
-    rewrite Heqg1. destruct (Pdec x a0).
-    destruct (Pdec a0 x). 
-    
+    assert (Ht3 : forall x, In x l -> f1 x = negb (g1 x)).
+    intros. 
+    rewrite Heqf1.
+    rewrite Heqg1.
+    destruct (Pdec x a0) eqn: Ht3.
+    destruct (Pdec a0 x) eqn: Ht4.
+
+    auto.
+    destruct (Pdec a0 x) eqn: Ht4. auto.
+    pose proof (H2 x H). destruct H0.
+    congruence. congruence.
+
     assert (Ht3 : l = l1 ++ l2). *)
       
     (* for a0,  take maximum of all the candidates which is preferred over 
