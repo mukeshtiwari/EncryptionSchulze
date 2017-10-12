@@ -7,8 +7,8 @@ Require Import Coq.omega.Omega.
 Require Import Bool.Sumbool.
 Require Import Bool.Bool.
 Require Import Coq.Logic.ConstructiveEpsilon.
-Require Import Coq.ZArith.ZArith.
-Require Import ListLemma.
+ (* Require Import Coq.ZArith.ZArith.
+ Require Import ListLemma. *)
 Import ListNotations.
 
 
@@ -19,12 +19,30 @@ Notation "'existsT' x .. y , p" :=
      format "'[' 'existsT' '/ ' x .. y , '/ ' p ']'") : type_scope.
 
 
+Lemma filter_empty : forall (A : Type) (l : list A) (f : A -> bool),
+    filter f l = [] <->
+    (forall x, In x l -> f x = false).
+Proof.
+  intros A. induction l.
+  split; intros. inversion H0. reflexivity.
+  split; intros. destruct H0. simpl in H.
+  destruct (f a) eqn : Ht. inversion H.
+  rewrite <- H0. assumption.
+  simpl in H. destruct (f a). inversion H.
+  pose proof (proj1 (IHl f) H x H0). assumption.
+  simpl. destruct (f a) eqn: Ht.
+  pose proof (H a (in_eq a l)). congruence.
+  pose proof (IHl f). destruct H0.
+  apply H1. intros. firstorder.
+Qed.
+
+  
 Section Cand.    
 
   Variable A : Type.
   Variable P : A -> A -> Prop.
   Hypothesis Adec : forall (c d : A), {c = d} + {c <> d}. (* A is decidable *)
-  Hypothesis Pdec : forall c d, P c d \/ ~P c d. (* P is decidable *)
+  Hypothesis Pdec : forall c d, {P c d} + {~P c d}. (* P is decidable *)
   
   (* A is finite. finite : Type -> Type *)
   Definition finite := existsT (l : list A), forall (a : A), In a l.
@@ -33,7 +51,13 @@ Section Cand.
   Definition vl (l : list A) :=
     exists (f : A -> nat), forall (c d : A), In c l -> In d l -> (P c d <-> (f c < f d)%nat).
 
-  
+ 
+  Fixpoint listmax (A : Type) (l : list A) (f : A -> nat) : nat :=
+    match l with
+    | [] => O
+    | h :: t => max (f h) (listmax A t f)
+    end.
+ 
     
   Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
@@ -41,7 +65,7 @@ Section Cand.
       vl l /\ ~P a0 a0 /\ 
       ((exists (a0' : A), In a0' l /\ forall (x : A), In x l -> (P a0 x <-> P a0' x) /\
                                                     (P x a0 <-> P x a0')) \/
-       (forall (x : A), In x l -> P a0 x \/ P x a0)).
+       (forall (x : A), In x l -> P x a0 \/ P a0 x)).
   Proof.
     unfold vl; split; intros.
     destruct H as [f H]. 
@@ -141,46 +165,74 @@ Section Cand.
     destruct (Adec d a0).
     subst. firstorder.
     subst. firstorder.
+
     
+    (*
+    remember (filter (fun y => if Pdec y a0 then true else false) l) as l1.
+    remember (filter (fun y => if Pdec a0 y then true else false) l) as l2.
+    assert (Ht1 : forall x, In x l1 -> P x a0).
+    intros. rewrite Heql1 in H.
+    pose proof (proj1 (filter_In _ _ _) H).
+    destruct H0. destruct (Pdec x a0). auto. inversion H3.
+    assert (Ht2 : forall x, In x l2 -> P a0 x).
+    intros. rewrite Heql2 in H.
+    pose proof (proj1 (filter_In _ _ _) H).
+    destruct H0. destruct (Pdec a0 x). auto. inversion H3.
+    remember (fun y : A => if Pdec y a0 then true else false) as f1.
+    remember (fun y : A => if Pdec a0 y then true else false) as g1.
+    assert (Ht3 : forall x, In x l -> (f1 x = true -> g1 x = false) /\ (g1 x = true -> f1 x = false)).
+    intros. split; intros. rewrite Heqf1 in H0.
+    rewrite Heqg1. destruct (Pdec x a0).
+    destruct (Pdec a0 x). 
     
-    (* Show the existence of function *)
+    assert (Ht3 : l = l1 ++ l2). *)
+      
+    (* for a0,  take maximum of all the candidates which is preferred over 
+       a0 and add one to it. 
+       a1, a2 ......, a0, ....., an
+       We don't need to change the values for candidates preferred over a0, but 
+       those who are less preferred over a0 should be shifted by 1 *)
 
-    (* The idea here is 
-       (f a0) will be in the list (map f l) or not. 
-       If (f a0) is in the list then we have a candidate a such that 
-          f a0 = f a. This is contradition because of 
-           H2 : forall x : A, In x l -> P a0 x \/ P x a0.
+    
+    exists (fun x =>
+         match Adec x a0 with
+         | left _ =>
+           plus (S O)
+                (listmax A (filter (fun y => proj1_sig (bool_of_sumbool (Pdec y a0))) l) f)
+         | right _ => 
+           if andb (proj1_sig (bool_of_sumbool (Pdec a0 x)))
+                   (proj1_sig (bool_of_sumbool (in_dec Adec x l)))
+           then plus (S O) (f x)
+           else  (f x)
+         end).
 
-       If (f a0) is not in the list (map f l) then we can divide the list, map f l, 
-       into two sorted lists, l1 and l2, such that all the numbers in l1 is less than 
-       (f a0), and all the elements in l2 is greater than (f a0). Give this function
-       as evidence. 
-       Am I thinking in right direction ? *) 
-       
-
-    assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
-    pose proof (in_dec Hnat (f a0) (map f l)).  clear Hnat.
-    destruct H.
-    apply in_map_iff in i. destruct i as [a [Hl Hr]].   
-    (* At this point, I should get contradiction *)
-    pose proof (H2 a Hr).
-    (* I have, Hl : f a = f a0 and H : P a0 a \/ P a a0. 
-       Is it possible to infer contradiction from these two assumptions ?
-       From H, I can say that P a0 a means a0 is more preferred over a (f a0 < f a)
-       so I have contradiction. P a a0 is f a < f a0 and again contradiction. *)
-
-    (* It is contradiction so let's give the same function *)
-    exists f. intros c d Hc Hd.
     split; intros.
+    destruct H, H0.
 
-    destruct Hc, Hd. congruence.
-    rewrite <- H3. rewrite <- Hl.
-    apply H1. auto. auto.
-    (* Now I am not able to discharge P a d *)
-  Admitted.
+    (* first case c = a0, d = a0 *)
+    congruence.
+
+    (* second case c = a0, In d l *)
+    rewrite <- H. rewrite <- H in H3.
+    destruct (Adec a0 a0).
+    destruct (Adec d a0).
+    congruence.
+    destruct (Pdec a0 d).
+    destruct (in_dec Adec d l).
+    simpl. apply lt_n_S.
+    remember (filter (fun y : A => proj1_sig (bool_of_sumbool (Pdec y a0))) l) as l1.
+    (* Now l1 can be empty of non empty *) 
+
+    pose proof (list_eq_dec Adec l1 []).
+    destruct H4. rewrite e0 in Heql1. rewrite e0. simpl.
+    symmetry in Heql1.
+    pose proof (proj1 (filter_empty _ l (fun y : A => proj1_sig (bool_of_sumbool (Pdec y a0)))) Heql1).
+    pose proof (H4 d i). simpl in H5.
+    destruct (Pdec d a0).    
+    simpl in H5. inversion H5.
+    simpl in H5. clear H5. 
 
     
-
   (* This proof is mostly followed by validity_after_remove_cand. *)
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
   Proof.
@@ -218,7 +270,7 @@ Section Cand.
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
   Lemma from_vl_to_valid : forall (l : list A), ((forall a : A, In a l) -> valid <-> vl l).
-  Proof.
+  Proof. 
     intros l Ha. split; intros.
     unfold valid in H.
     unfold vl.
@@ -237,16 +289,7 @@ Section Cand.
     unfold finite, valid.
     intros H. destruct H as [l Hin].
 
-
     
-    pose proof (from_vl_to_valid l).
-    destruct H. unfold valid, vl in *.
-
-    induction l.
-    left. apply H0.
-    eexists. intros c d Hc Hd. inversion Hc.
-    
-
 
     
 End Cand.
