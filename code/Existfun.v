@@ -7,10 +7,12 @@ Require Import Coq.omega.Omega.
 Require Import Bool.Sumbool.
 Require Import Bool.Bool.
 Require Import Coq.Logic.ConstructiveEpsilon.
+Require Import Permutation.
  (* Require Import Coq.ZArith.ZArith.
  Require Import ListLemma. *)
 Import ListNotations.
-
+Require Import
+        Program Morphisms Relations RelationClasses Permutation.
 
 
 Notation "'existsT' x .. y , p" :=
@@ -36,13 +38,49 @@ Proof.
   apply H1. intros. firstorder.
 Qed.
 
-  
+
+Lemma complementary_filter_perm A (p: A -> bool) (l: list A):
+  Permutation l (filter p l ++ filter (compose negb p) l).
+Proof with auto.
+  induction l...
+  simpl.
+  unfold compose.
+  destruct (p a); simpl...
+  apply Permutation_cons_app...
+Qed.
+
+Lemma complementary_filter_In : forall
+    (A : Type) (l : list A) (f : A -> bool) (g : A -> bool)
+    (H : forall x, In x l -> f x = negb (g x)),  
+  Permutation l (filter f l ++ filter g l).
+Proof with auto.                                           
+  intros A l f g H.
+  induction l...
+  simpl.
+  destruct (f a) eqn : Ht; simpl...
+  pose proof (H a (in_eq a l)).
+  rewrite Ht in H0.
+  SearchAbout ( negb _ = true). symmetry in H0.
+  apply negb_true_iff in H0.
+  rewrite H0. apply perm_skip. apply IHl.
+  intros. apply H. simpl. right. auto.
+  pose proof (H a (in_eq a l)).
+  rewrite Ht in H0. symmetry in H0. apply negb_false_iff in H0.
+  rewrite H0.
+  apply Permutation_cons_app...
+  apply IHl. intros.
+  apply H. simpl. right. auto.
+Qed.
+
+
+
 Section Cand.    
 
   Variable A : Type.
   Variable P : A -> A -> Prop.
   Hypothesis Adec : forall (c d : A), {c = d} + {c <> d}. (* A is decidable *)
   Hypothesis Pdec : forall c d, {P c d} + {~P c d}. (* P is decidable *)
+  
   
   (* A is finite. finite : Type -> Type *)
   Definition finite := existsT (l : list A), forall (a : A), In a l.
@@ -62,10 +100,14 @@ Section Cand.
   Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
       vl (a0 :: l) <->
-      vl l /\ ~P a0 a0 /\ 
+      vl l /\ ~P a0 a0 /\
+      (forall (c d e : A), In c l -> In d l -> In e l ->  P c d -> P d e -> P c e) /\ 
       ((exists (a0' : A), In a0' l /\ forall (x : A), In x l -> (P a0 x <-> P a0' x) /\
                                                     (P x a0 <-> P x a0')) \/
-       (forall (x : A), In x l -> P x a0 \/ P a0 x)).
+       (* forall (x : A), In x l -> P x a0 \/ P a0 x *)
+       (forall (x : A), In x l -> (P x a0 /\ ~P a0 x)
+                                  \/ (P a0 x /\  ~P x a0))
+       ).
   Proof.
     unfold vl; split; intros.
     destruct H as [f H]. 
@@ -74,7 +116,8 @@ Section Cand.
     
     split. unfold not. intros. pose proof (proj1 (H a0 a0 (in_eq a0 l) (in_eq a0 l)) H0).
     omega.
-    
+
+    split.  intros.  
     assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
       
     pose proof (in_dec Hnat (f a0) (map f l)).  clear Hnat.
@@ -135,7 +178,7 @@ Section Cand.
     split; intros.
     rewrite <- H. destruct (Adec a0 a0).
     destruct (Adec d a0).
-    subst. congruence.
+    congruence.
     subst. firstorder.
     congruence. subst.
     destruct (Adec c c). destruct (Adec d c).
@@ -147,7 +190,7 @@ Section Cand.
     subst. congruence.
     firstorder. destruct (Adec d d). firstorder.
     firstorder. destruct (Adec c a0). destruct (Adec d a0).
-    subst. firstorder. subst. firstorder.
+    firstorder. subst. firstorder.
     subst. destruct (Adec d d). firstorder.
     firstorder.
 
@@ -165,35 +208,37 @@ Section Cand.
     destruct (Adec d a0).
     subst. firstorder.
     subst. firstorder.
-
-    
-    
+      
+    (*
     remember (filter (fun y => if Pdec y a0 then true else false) l) as l1.
     remember (filter (fun y => if Pdec a0 y then true else false) l) as l2.
-    assert (Ht1 : forall x, In x l1 -> P x a0).
+    assert (Ht1 : forall x, In x l1 -> P x a0 /\ ~P a0 x).
     intros. rewrite Heql1 in H.
     pose proof (proj1 (filter_In _ _ _) H).
-    destruct H0. destruct (Pdec x a0). auto. inversion H3.
-    assert (Ht2 : forall x, In x l2 -> P a0 x).
+    destruct H0. pose proof (H2 x H0). destruct H4. auto.
+    destruct (Pdec x a0).  firstorder.  inversion H3.
+    assert (Ht2 : forall x, In x l2 -> P a0 x /\ ~P x a0).
     intros. rewrite Heql2 in H.
     pose proof (proj1 (filter_In _ _ _) H).
-    destruct H0. destruct (Pdec a0 x). auto. inversion H3.
+    destruct H0. pose proof (H2 x H0). destruct H4.
+    destruct (Pdec a0 x). firstorder. inversion H3. auto.
     remember (fun y : A => if Pdec y a0 then true else false) as f1.
-    remember (fun y : A => if Pdec a0 y then true else false) as g1.
+    remember (fun y : A => if Pdec a0 y then true else false) as g1. 
     assert (Ht3 : forall x, In x l -> f1 x = negb (g1 x)).
     intros. 
     rewrite Heqf1.
     rewrite Heqg1.
     destruct (Pdec x a0) eqn: Ht3.
     destruct (Pdec a0 x) eqn: Ht4.
-
+    pose proof (H2 x H). destruct H0.
+    firstorder. firstorder.
     auto.
     destruct (Pdec a0 x) eqn: Ht4. auto.
     pose proof (H2 x H). destruct H0.
-    congruence. congruence.
-
-    assert (Ht3 : l = l1 ++ l2). *)
-      
+    firstorder. firstorder.
+    pose proof (complementary_filter_In _ l f1 g1 Ht3).
+    rewrite <- Heql1 in H. rewrite <- Heql2 in H. *)
+       
     (* for a0,  take maximum of all the candidates which is preferred over 
        a0 and add one to it. 
        a1, a2 ......, a0, ....., an
@@ -213,6 +258,32 @@ Section Cand.
            else  (f x)
          end).
 
+    (* this code is for permuation of list *)
+    (*
+    split; intros.
+    destruct H0, H3.
+    congruence.
+
+    rewrite <- H0. rewrite <- H0 in H4.
+    destruct (Adec a0 a0).
+    destruct (Adec d a0).
+    congruence.
+    destruct (Pdec a0 d).
+    destruct (in_dec Adec d l).
+    simpl. apply lt_n_S.
+
+    (* remove unnecessary assumption *)
+    clear e. clear p. clear i.
+    pose proof Permutation_in.
+    pose proof (H5 A l (l1 ++ l2) d H H3).
+    clear H5.
+    apply in_app_iff in H6. destruct H6.
+    pose proof (Ht1 d H5). firstorder.
+    *)
+    
+
+    
+    
     split; intros.
     destruct H, H0.
 
@@ -227,18 +298,64 @@ Section Cand.
     destruct (Pdec a0 d).
     destruct (in_dec Adec d l).
     simpl. apply lt_n_S.
-    remember (filter (fun y : A => proj1_sig (bool_of_sumbool (Pdec y a0))) l) as l1.
-    (* Now l1 can be empty of non empty *) 
+    (* remove unneccesary lemma *)
+    clear H0. clear e. clear H3. clear n.
+    
+    induction l.
+    simpl. inversion i.
+    simpl. destruct (Pdec a a0).
+    simpl. destruct i. 
+    apply Nat.max_lub_lt_iff.
+    split. destruct H0.
+    pose proof (H2 a (in_eq a l)).
+    subst. firstorder.
+ 
+    pose proof (H2 a (in_eq a l)).
+    subst. firstorder.
+    subst. apply Nat.max_lub_lt_iff.
+    split. apply H1. firstorder.  right. firstorder.
+    (* Can we say that P a c -> P c d -> P a d ? *)
+    admit.
+    apply IHl. firstorder.
+    intros. apply H2. right. auto. auto.
+    simpl. destruct i. 
+    
+    
+    
+    admit. 
+    congruence.
+    congruence.
+    congruence.
 
-    pose proof (list_eq_dec Adec l1 []).
-    destruct H4. rewrite e0 in Heql1. rewrite e0. simpl.
-    symmetry in Heql1.
-    pose proof (proj1 (filter_empty _ l (fun y : A => proj1_sig (bool_of_sumbool (Pdec y a0)))) Heql1).
-    pose proof (H4 d i). simpl in H5.
-    destruct (Pdec d a0).    
-    simpl in H5. inversion H5.
-    simpl in H5. clear H5. 
-
+    (* In c l and a0 = d *)
+    destruct (Adec c a0).
+    congruence.
+    destruct (Pdec a0 c).
+    destruct (in_dec Adec c l).
+    destruct (Adec d a0).
+    simpl. apply lt_n_S.
+    admit.
+    congruence.
+    congruence.
+    destruct (Adec d a0).
+    simpl. rewrite <- e in n0.
+    admit.
+    congruence.
+    destruct (Adec c a0).
+    destruct (Adec d a0).
+    congruence.
+    destruct (Pdec a0 d).
+    destruct (in_dec Adec d l).
+    simpl. apply lt_n_S.
+    admit.
+    congruence.
+    congruence.
+    destruct (Pdec a0 c).
+    destruct (in_dec Adec c l).
+    destruct (Adec d a0).
+    simpl. apply lt_n_S. admit.
+    simpl.
+    
     
   (* This proof is mostly followed by validity_after_remove_cand. *)
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
