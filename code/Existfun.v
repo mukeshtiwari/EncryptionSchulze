@@ -163,7 +163,7 @@ Section Cand.
 
     destruct (lt_eq_lt_dec (f a0) (f x)) as [[H1 | H1] | H1].
     pose proof (H a0 x (in_eq a0 l) (or_intror Hx)).
-    firstorder.
+    right. split. firstorder. firstorder.
 
     (* f a0 can't be equal to f x *)
     assert (Ht : f a0 <> f x).
@@ -369,16 +369,39 @@ Section Cand.
     (* In c l and In d l *)
     destruct (Adec c a0).
     destruct (Adec d a0).
-    congruence.
+    congruence. rewrite e in H0.
+    pose proof (H2 a0 H0). firstorder.    
+    simpl.
+    destruct (Pdec a0 c).
+    destruct (in_dec Adec c l). simpl.
+    destruct (Adec d a0).
+    rewrite e in H3.
+    pose proof (H2 a0 H3). firstorder.
+    destruct (Pdec a0 d).
+    destruct (in_dec Adec d l). simpl.
+    repeat apply lt_n_S. firstorder.
+    congruence. simpl.
+
+    pose proof (H2 c H0).
+    pose proof (H2 d H3).
+    destruct H5, H6.
+    destruct H5. destruct H6. firstorder.
+    firstorder.
+    destruct H5. destruct H6.
+    pose proof (Ht1 d c H3 H0 H6 H5).
+    pose proof (proj1 (H1 c d H0 H3) H4).
+    pose proof (proj1 (H1 d c H3 H0) H9).
+    omega.
+    destruct H5. destruct H6. firstorder.
+    firstorder. simpl.
+    destruct (Adec d a0).
+    rewrite e in H3.
+    pose proof (H2 a0 H3). firstorder.
     destruct (Pdec a0 d).
     destruct (in_dec Adec d l).
-    simpl.
+    simpl. pose proof (proj1 (H1 c d H0 H3) H4). firstorder.
+    congruence. simpl. firstorder.
 
-
-    
-    congruence. congruence.
-    destruct (Pdec a0 c).
-    
     
     (* This proof is mostly followed by validity_after_remove_cand. *)
     Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
