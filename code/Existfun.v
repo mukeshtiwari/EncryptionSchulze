@@ -254,7 +254,7 @@ Section Cand.
     firstorder. firstorder.
     pose proof (complementary_filter_In _ l f1 g1 Ht4).
     rewrite <- Heql1 in H. rewrite <- Heql2 in H. 
-
+ 
     (* for a0,  take maximum of all the candidates which is preferred over
        a0 and add one to it.
        a1, a2 ......, a0, ....., an
@@ -275,11 +275,13 @@ Section Cand.
               end).
 
     (* this code is for permuation of list *)
-   
+     
     split; intros.
     destruct H0, H3.
+    (* c = a0 and d = a0 *)
     congruence.
- 
+
+    (* c = a0 and In d l *)
     rewrite <- H0. rewrite <- H0 in H4.
     destruct (Adec a0 a0).
     destruct (Adec d a0).
@@ -287,7 +289,7 @@ Section Cand.
     destruct (Pdec a0 d).
     destruct (in_dec Adec d l).
     simpl. apply lt_n_S.
-
+ 
     (* remove unnecessary assumption *)
     clear e. clear p. clear i. clear n.
     pose proof Permutation_in.
@@ -312,7 +314,7 @@ Section Cand.
     apply Permutation_sym in H.
     pose proof (H5 A (l1 ++ l2) l y H). apply H9.
     firstorder. firstorder. firstorder.
-
+   
     clear H. clear H5. clear Heql1. clear Ht2.
     induction l1. simpl. omega.
     simpl. destruct l1.
@@ -323,11 +325,61 @@ Section Cand.
 
     congruence.  congruence. congruence.
 
+    (* In c l and d = a0 *)
+    
+    rewrite <- H3. rewrite <- H3 in H4.
+    destruct (Adec c a0). destruct (Adec a0 a0).
+    congruence. congruence.
+    destruct (Pdec a0 c). destruct (in_dec Adec c l).
+    destruct (Adec a0 a0). simpl. apply lt_n_S.
+
+    clear i. clear e. clear n.
+    pose proof (H2 c H0). firstorder.
+    congruence. congruence.
+    simpl. destruct (Adec a0 a0).
+
+    clear e. clear n.
+    pose proof Permutation_in.
+    pose proof (H5 A l (l1 ++ l2) c H H0).
+    apply in_app_iff in H6. destruct H6.
+    pose proof (Ht2 c H6). 
+    rewrite <- Heqf1.
+    rewrite <- Heql1.
+
+    clear H. clear Heql1. clear Ht2. clear H5.     
+    
+    
+    induction l1.
+    inversion H6.
+
+    simpl. destruct l1.
+    destruct H6. rewrite H. omega. inversion H.
+    pose proof (Max.max_dec (f a) (listmax f (a1 :: l1))).
+    destruct H as [H | H].
+    rewrite H.
+    destruct H6. rewrite H5. omega.
+    pose proof (IHl1 H5).
+    apply Nat.max_l_iff in H. omega.
+    rewrite H. destruct H6.
+    rewrite <- H5.
+    apply Nat.max_r_iff in H. omega.
+    pose proof (IHl1 H5). assumption.
+    firstorder. congruence.
+  
+    (* In c l and In d l *)
+    destruct (Adec c a0).
+    destruct (Adec d a0).
+    congruence.
+    destruct (Pdec a0 d).
+    destruct (in_dec Adec d l).
+    simpl.
 
 
-
-
-
+    
+    congruence. congruence.
+    destruct (Pdec a0 c).
+    
+    
     (* This proof is mostly followed by validity_after_remove_cand. *)
     Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
     Proof.
