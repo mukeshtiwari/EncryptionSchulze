@@ -128,12 +128,6 @@ Section Cand.
     omega. omega.
   Qed.
   
-  Lemma bounded_by_uppervalue :
-    forall (f : A -> nat) (l1 l2 : list A) (a : A) (Hin : In a l2)
-           (Hl : forall (x : A), In x l1 -> forall (y : A), In y l2 -> f x < f y),
-      listmax f l1 < f a. 
-  Proof.
-  Admitted.
   
   Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
@@ -144,8 +138,7 @@ Section Cand.
                                                                 (P x a0 <-> P x a0')) \/
        (* forall (x : A), In x l -> P x a0 \/ P a0 x *)
        (forall (x : A), In x l -> (P x a0 /\ ~P a0 x)
-                                  \/ (P a0 x /\  ~P x a0))
-      ).
+                                  \/ (P a0 x /\  ~P x a0))).
   Proof.
     unfold vl; split; intros.
     destruct H as [f H].
@@ -534,12 +527,69 @@ Section Cand.
     rewrite max_r. rewrite max_r in H4.
     apply IHl1. omega. firstorder. omega. omega.
     omega. congruence. congruence. firstorder.
-    
 
+    (* In c l and In d l *)
+
+    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> f x < f y).
+    intros. apply H1.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l x H). apply H8.
+    firstorder.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l y H). apply H8.
+    firstorder.
+    apply Ht1.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l x H). apply H8.
+    firstorder.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l y H). apply H8.
+    firstorder. firstorder. firstorder.
+   
     
-    (* This proof is mostly followed by validity_after_remove_cand. *)
-    Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
-    Proof.
+    
+    destruct (Adec c a0).
+    rewrite e in H0. pose proof (H2 a0 H0).
+    firstorder.
+
+    destruct (Pdec a0 c).
+    destruct (in_dec Adec c l).
+    destruct (Adec d a0).
+    rewrite e in H3. pose proof (H2 a0 H3).
+    firstorder.
+    destruct (Pdec a0 d). destruct (in_dec Adec d l).
+    simpl in H4. apply H1; auto. omega.
+    firstorder. simpl in H4.
+ 
+    clear n. clear i. clear n0.
+    pose proof (H2 c H0). destruct H6. firstorder.
+    clear p. destruct H6.
+    pose proof (H2 d H3). destruct H8. destruct H8.
+    clear n1.
+    pose proof (H5 A l (l1 ++ l2) c H H0).
+    pose proof (H5 A l (l1 ++ l2) d H H3).
+    apply in_app_iff in H10. destruct H10.
+    pose proof (Ht2 c H10). firstorder.
+    apply in_app_iff in H11. destruct H11.
+    pose proof (Ht5 d H11 c H10). omega.
+
+
+    firstorder. firstorder. 
+    firstorder. simpl in H4.
+    destruct (Adec d a0).
+    rewrite e in H3. pose proof (H2 a0 H3). firstorder.
+    destruct (Pdec a0 d). destruct (in_dec Adec d l).
+    simpl in H4. firstorder.
+    firstorder. destruct (in_dec Adec d l).
+    simpl in H4. firstorder. firstorder.
+    (* proof finished  :) *)
+  Qed.
+  
+       
+    
+  (* This proof is mostly followed by validity_after_remove_cand. *)
+  Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
+  Proof.
 
       induction l.
       left. unfold vl. eexists.
