@@ -128,9 +128,12 @@ Section Cand.
     omega. omega.
   Qed.
   
- 
-    
-    
+  Lemma bounded_by_uppervalue :
+    forall (f : A -> nat) (l1 l2 : list A) (a : A) (Hin : In a l2)
+           (Hl : forall (x : A), In x l1 -> forall (y : A), In y l2 -> f x < f y),
+      listmax f l1 < f a. 
+  Proof.
+  Admitted.
   
   Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
@@ -478,10 +481,61 @@ Section Cand.
     pose proof (listmax_upperbound l1 d f H8). omega.
     firstorder. firstorder. firstorder.
 
+    (* In c l and d = a0 *)
+    rewrite <- H3 in H4. rewrite <- H3.
+    destruct (Adec c a0).
+    rewrite e in H0.
+    pose proof (H2 a0 H0). firstorder.
+    destruct (Pdec a0 c).
+    destruct (in_dec Adec c l).
+    destruct (Adec a0 a0). simpl in H4.
+    rewrite <- Heqf1 in H4. rewrite <- Heql1 in H4.
+    apply lt_S_n in H4.
+    clear n. clear i. clear e.
+    pose proof (H2 c H0). destruct H6. firstorder.
+    destruct H6. clear p.
+    pose proof (H5 A _ _ c  H  H0). 
+    apply in_app_iff in H8. destruct H8.
+    firstorder.
+
+    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> f x < f y).
+    intros. apply H1.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l x H). apply H11.
+    firstorder.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l y H). apply H11.
+    firstorder.
+    apply Ht1.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l x H). apply H11.
+    firstorder.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l y H). apply H11.
+    firstorder. firstorder. firstorder.
+    apply Nat.lt_succ_l in H4.
+
+    clear H. clear H5. clear  Ht2. clear Heql1.
+    assert (Ht6 : listmax f l1 < f c).
+    induction l1. inversion H4.
+    assert (Hm : {f a >= listmax f l1} + {f a < listmax f l1}).
+    pose proof (lt_eq_lt_dec (f a) (listmax f l1)) as H11.
+    destruct H11 as [[H11 | H11] | H11]. right. auto.
+    left. omega. left. omega.
+
+    assert (Ht7 : listmax f (a :: l1) = max (f a) (listmax f l1)).
+    simpl. destruct l1. simpl.
+    rewrite Max.max_0_r. auto. auto.
+
+    rewrite Ht7. rewrite Ht7 in H4. clear Ht7.
+    destruct Hm. SearchAbout (max _ _ = _).
+    rewrite max_l. pose proof (Ht5 a (in_eq a l1) c H8). omega.
+    omega.
+    rewrite max_r. rewrite max_r in H4.
+    apply IHl1. omega. firstorder. omega. omega.
+    omega. congruence. congruence. firstorder.
     
-   
-    
-    
+
     
     (* This proof is mostly followed by validity_after_remove_cand. *)
     Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
