@@ -97,16 +97,39 @@ Section Cand.
     | h :: t => max (f h) (listmax f t)
     end.
 
-  (*
+ 
   Lemma listmax_upperbound :
-    forall (l : list A) (H : l <> nil)
-           (s : nat) (f : A -> nat),
-      listmax (map f l) < s <-> forall (x:A), In x l /\ f x < s.
+    forall (l : list A) (d : A) (f : A -> nat) (Hin : In d l),
+      f d <= listmax f l.
   Proof.
-  Admitted. *)
+    induction l.
+    intros. inversion Hin.
 
+    intros d f Hin.
+    assert (Hm : {f a >= listmax f l} + {f a < listmax f l}).
+    pose proof (lt_eq_lt_dec (f a) (listmax f l)) as H1.
+    destruct H1 as [[H1 | H1] | H1]. right. auto.
+    left. omega. left. omega.
 
+    assert (Ht : listmax f (a :: l) = max (f a) (listmax f l)).
+    simpl. destruct l. simpl. SearchAbout (max _ 0 = _).
+    rewrite Max.max_0_r. auto. auto.
 
+    rewrite Ht. clear Ht.
+    destruct Hin. destruct Hm. rewrite H.
+    apply Max.le_max_l.
+    rewrite H. apply Max.le_max_l.
+    destruct Hm.
+
+    pose proof (IHl d f H).
+    rewrite Max.max_l. omega. omega.
+    rewrite Max.max_r.
+    pose proof (IHl d f H).
+    omega. omega.
+  Qed.
+  
+ 
+    
     
   
   Lemma validity_after_remove_cand :
@@ -292,13 +315,13 @@ Section Cand.
  
     (* remove unnecessary assumption *)
     clear e. clear p. clear i. clear n.
-    pose proof Permutation_in.
+    pose proof Permutation_in. 
     pose proof (H5 A l (l1 ++ l2) d H H3).
     apply in_app_iff in H6. destruct H6.
     pose proof (Ht2 d H6). firstorder.
     rewrite <- Heqf1.
     rewrite <- Heql1.
-
+    
     assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> f x < f y).
     intros. apply H1.
     apply Permutation_sym in H.
@@ -314,7 +337,7 @@ Section Cand.
     apply Permutation_sym in H.
     pose proof (H5 A (l1 ++ l2) l y H). apply H9.
     firstorder. firstorder. firstorder.
-   
+    
     clear H. clear H5. clear Heql1. clear Ht2.
     induction l1. simpl. omega.
     simpl. destruct l1.
@@ -402,6 +425,83 @@ Section Cand.
     simpl. pose proof (proj1 (H1 c d H0 H3) H4). firstorder.
     congruence. simpl. firstorder.
 
+    pose proof Permutation_in.
+    
+    
+  
+
+    
+
+    
+    (* other side of proof *)
+    destruct H0, H3. 
+    (* c = a0 and d = a0 *)
+    rewrite <- H0 in H4.
+    rewrite <- H3 in H4. omega.
+   
+    (* c = a0 and In d l *)
+    rewrite <- H0 in H4.
+    destruct (Adec a0 a0).
+    destruct (Adec d a0). omega.
+    destruct (Pdec a0 d).
+    destruct (in_dec Adec d l).
+    simpl in H4. apply lt_S_n in H4.
+    clear e. clear n. clear i.
+    rewrite <- Heqf1 in H4.
+    rewrite <- Heql1 in H4.
+    rewrite <- H0. assumption.
+    congruence. simpl in H4.
+    clear e. clear n.
+    pose proof (H2 d H3). destruct H6.
+    destruct H6. clear n0.
+    pose proof (H5 A _ _ d H H3).
+    apply in_app_iff in H8. destruct H8.
+
+
+    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> f x < f y).
+    intros. apply H1.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l x H). apply H11.
+    firstorder.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l y H). apply H11.
+    firstorder.
+    apply Ht1.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l x H). apply H11.
+    firstorder.
+    apply Permutation_sym in H.
+    pose proof (H5 A (l1 ++ l2) l y H). apply H11.
+    firstorder. firstorder. firstorder.
+
+    rewrite <- Heqf1 in H4. rewrite <- Heql1 in H4.
+    pose proof 
+        
+    clear Ht5. clear H5. clear H. clear Ht2. clear Heql1.
+    assert (Ht6: f d < S (listmax f l1)).
+
+
+    
+    intros. induction l1.
+    inversion H8.
+    admit.
+
+
+    clear Heql1.
+    induction l1.  inversion H8.
+    simpl in H4. 
+    destruct l1. destruct H8. rewrite H in H4.
+    omega. inversion H.
+    destruct H8. rewrite <- H in H4.
+    
+    
+    
+ 
+    pose proof (Ht3 d H8). firstorder.
+    firstorder.
+    admit. congruence.
+    
+    
     
     (* This proof is mostly followed by validity_after_remove_cand. *)
     Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
