@@ -475,31 +475,11 @@ Section Cand.
     firstorder. firstorder. firstorder.
 
     rewrite <- Heqf1 in H4. rewrite <- Heql1 in H4.
-    pose proof 
-        
-    clear Ht5. clear H5. clear H. clear Ht2. clear Heql1.
-    assert (Ht6: f d < S (listmax f l1)).
-
+    pose proof (listmax_upperbound l1 d f H8). omega.
+    firstorder. firstorder. firstorder.
 
     
-    intros. induction l1.
-    inversion H8.
-    admit.
-
-
-    clear Heql1.
-    induction l1.  inversion H8.
-    simpl in H4. 
-    destruct l1. destruct H8. rewrite H in H4.
-    omega. inversion H.
-    destruct H8. rewrite <- H in H4.
-    
-    
-    
- 
-    pose proof (Ht3 d H8). firstorder.
-    firstorder.
-    admit. congruence.
+   
     
     
     
