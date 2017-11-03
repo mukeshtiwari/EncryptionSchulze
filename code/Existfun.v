@@ -135,8 +135,8 @@ Section Cand.
     forall (l : list A) (a0 : A),
       vl (a0 :: l) <->
       vl l /\ ~P a0 a0 /\
-      (forall (c d e : A), In c l -> In d l -> In e l ->  P c d -> P d e -> P c e) /\
-      (forall c e, In c l -> In e l -> P c a0 -> P a0 e -> P c e) /\
+      (forall (c d e : A), In c (a0 :: l) -> In d (a0 :: l) -> In e (a0 :: l) ->
+                           P c d -> P d e -> P c e) /\
       ((exists (a0' : A), In a0' l /\ forall (x : A), In x l -> (P a0 x <-> P a0' x) /\
                                                                 (P x a0 <-> P x a0')) \/
        (forall (x : A), In x l -> (P x a0 /\ ~P a0 x)
@@ -150,14 +150,10 @@ Section Cand.
     split. unfold not. intros. pose proof (proj1 (H a0 a0 (in_eq a0 l) (in_eq a0 l)) H0).
     omega.
 
-    split. intros. SearchAbout (In _ _).
-    pose proof (H c d (in_cons _ _ _ H0) (in_cons _ _ _ H1)).
-    pose proof (H d e (in_cons _ _ _ H1) (in_cons _ _ _ H2)).
+    split. intros. 
+    pose proof (H c d H0 H1).
+    pose proof (H d e H1 H2).
     firstorder.
-    split.  intros.
-    pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
-    pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
-    firstorder. 
 
     assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
 
@@ -207,7 +203,7 @@ Section Cand.
  
     (* finally finished the first half. feeling great :) *)
 
-    destruct H as [[f H1] [Ht [Hcd [Ht1 [[a [H2 H3]] | H2]]]]].
+    destruct H as [[f H1] [Ht [Ht1 [[a [H2 H3]] | H2]]]].
     (* From H3, I know that f a = f a0  so I am going to supply same function *)
 
     exists (fun c => if Adec c a0 then f a else f c). intros c d H4 H5. destruct H4, H5.
@@ -332,12 +328,12 @@ Section Cand.
     apply Permutation_sym in H.
     pose proof (H5 A (l1 ++ l2) l y H). apply H9.
     firstorder.
-    apply Ht1.
+    apply Ht1 with a0.
     apply Permutation_sym in H.
-    pose proof (H5 A (l1 ++ l2) l x H). apply H9.
-    firstorder. auto.
+    pose proof (H5 A (l1 ++ l2) l x H).  apply in_cons. apply H9.
+    firstorder. firstorder. 
     apply Permutation_sym in H.
-    pose proof (H5 A (l1 ++ l2) l y H). apply H9.
+    pose proof (H5 A (l1 ++ l2) l y H). apply in_cons.  apply H9.
     firstorder. firstorder. firstorder.
 
     clear H. clear H5. clear Heql1. clear Ht2.
@@ -413,7 +409,7 @@ Section Cand.
     destruct H5. destruct H6. firstorder.
     firstorder.
     destruct H5. destruct H6.
-    pose proof (Ht1 d c H3 H0 H6 H5).
+    pose proof (Ht1 d a0 c (in_cons _ _ _ H3) (in_eq a0 l)  (in_cons _ _ _ H0) H6 H5).
     pose proof (proj1 (H1 c d H0 H3) H4).
     pose proof (proj1 (H1 d c H3 H0) H9).
     omega.
@@ -490,12 +486,12 @@ Section Cand.
     apply Permutation_sym in H.
     pose proof (H5 A (l1 ++ l2) l y H). apply H11.
     firstorder.
-    apply Ht1.
+    apply Ht1 with a0.
     apply Permutation_sym in H.
-    pose proof (H5 A (l1 ++ l2) l x H). apply H11.
-    firstorder.
+    pose proof (H5 A (l1 ++ l2) l x H). apply in_cons. apply H11.
+    firstorder. firstorder. 
     apply Permutation_sym in H.
-    pose proof (H5 A (l1 ++ l2) l y H). apply H11.
+    pose proof (H5 A (l1 ++ l2) l y H). apply in_cons. apply H11.
     firstorder. firstorder. firstorder.
     apply Nat.lt_succ_l in H4. 
 
@@ -529,12 +525,12 @@ Section Cand.
     apply Permutation_sym in H.
     pose proof (H5 A (l1 ++ l2) l y H). apply H8.
     firstorder.
-    apply Ht1.
+    apply Ht1 with a0.
     apply Permutation_sym in H.
-    pose proof (H5 A (l1 ++ l2) l x H). apply H8.
-    firstorder.
+    pose proof (H5 A (l1 ++ l2) l x H). apply in_cons. apply H8.
+    firstorder. firstorder.
     apply Permutation_sym in H.
-    pose proof (H5 A (l1 ++ l2) l y H). apply H8.
+    pose proof (H5 A (l1 ++ l2) l y H). apply in_cons. apply H8.
     firstorder. firstorder. firstorder.
 
 
@@ -563,23 +559,30 @@ Section Cand.
     pose proof (Ht2 c H10). firstorder.
     apply in_app_iff in H11. destruct H11.
     pose proof (Ht5 d H11 c H10). omega.
-
-
+    Admitted.
+  (*
     firstorder. firstorder.
     firstorder. simpl in H4.
     destruct (Adec d a0).
     rewrite e in H3. pose proof (H2 a0 H3). firstorder.
     destruct (Pdec a0 d). destruct (in_dec Adec d l).
-    simpl in H4. firstorder.
+    simpl in H4. apply H1. auto. auto.
+    apply Ht5.  pose proof (H5 _ _ _ c H H0).
+    firstorder.
     firstorder. destruct (in_dec Adec d l).
     simpl in H4. firstorder. firstorder.
     (* proof finished  :) *)
   Qed. 
-
+   *)
+  
+  (* Hold this for moment *)
+  
   Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
       vl (a0 :: l) <->
       vl l /\ ~P a0 a0 /\
+      (forall (c d e : A), In c (a0 :: l) -> In d (a0 :: l) -> In e (a0 :: l) ->
+                           P c d -> P d e -> P c e) /\
       (forall (c e : A), In c l -> In e l ->  P c a0 -> P a0 e -> P c e) /\
       ((exists (a0' : A), In a0' l /\ forall (x : A), In x l -> (P a0 x <-> P a0' x) /\
                                                                 (P x a0 <-> P x a0')) \/
@@ -594,7 +597,11 @@ Section Cand.
 
     split. unfold not. intros. pose proof (proj1 (H a0 a0 (in_eq a0 l) (in_eq a0 l)) H0).
     omega.
-
+    split. intros.
+    pose proof (H c d H0 H1).
+    pose proof (H d e H1 H2).
+    firstorder.
+    
     split. intros.
     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
@@ -648,7 +655,7 @@ Section Cand.
  
     (* finally finished the first half. feeling great :) *)
 
-    destruct H as [[f H1] [Ht [Ht1 [[a [H2 H3]] | H2]]]].
+    destruct H as [[f H1] [Ht [Hcd [Ht1 [[a [H2 H3]] | H2]]]]].
     (* From H3, I know that f a = f a0  so I am going to supply same function *)
 
     exists (fun c => if Adec c a0 then f a else f c). intros c d H4 H5. destruct H4, H5.
@@ -1031,25 +1038,24 @@ Section Cand.
     simpl in H4. firstorder. firstorder.
     (* proof finished  :) *)
   Qed.
-
-
+   
+ 
   Lemma transitive_dec :
-    forall (a : A) (l : list A) (Hp : ~P a a)
+    forall (a : A) (l : list A)  (Hp : ~P a a)
            (H : exists (f : A -> nat), forall c d, In c l -> In d l -> P c d <-> f c < f d)
            (Ht : forall c d e, In c l -> In d l -> In e l -> P c d -> P d e -> P c e),  
       {forall c d, In c l -> In d l -> P c a -> P a d -> P c d} +
       {~(forall c d, In c l -> In d l -> P c a -> P a d -> P c d)}.
   Proof.
-    intros.
- 
+    intros. 
     induction l.
     left. intros. inversion H0.
-    destruct IHl. firstorder.
-    firstorder.
-
-    left. destruct H as [f H]. firstorder. 
+    destruct IHl. firstorder. firstorder. 
+    
+    left. 
+    intros.  destruct H0, H1.
     Admitted.
-   
+    
   (* This proof is mostly followed by validity_after_remove_cand. *)
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
   Proof.
@@ -1060,18 +1066,33 @@ Section Cand.
 
     destruct IHl.
     unfold vl in v. 
-    (* l := a :: l *)
-    pose proof (validity_after_remove_cand l a). destruct H as [H1 H2].
+    (* l := a :: l *) unfold vl.
+    pose proof (validity_after_remove_cand_more_assumption l a). destruct H as [H1 H2].
     pose proof (Pdec a a).
     destruct H. (* P a a we can not construct valid ballot *)
 
     right. firstorder.
-    (* How to decide if P is transitive or not 
-       if we can not establish the fact that 
-       forall c e, In c l -> In e l -> P c a -> P a e -> P c e *)
-    pose proof (transitive_dec a l n v). 
-    
-    
+    assert (forall c d e, In c l -> In d l -> In e l -> P c d -> P d e -> P c e).
+    intros. destruct v as [f Hf].
+    pose proof (Hf c d H H0).
+    pose proof (Hf d e H0 H3).
+    firstorder. 
+
+    assert (Ht : forall c e, In c l -> In e l -> P c a -> P a e -> P c e).
+    intros. destruct v as [f Hf].
+     
+    assert (((exists a0' : A,
+                 In a0' l /\
+                 (forall x : A, In x l -> (P a x <-> P a0' x) /\ (P x a <-> P x a0'))) \/
+             (forall x : A, In x l -> P x a /\ ~ P a x \/ P a x /\ ~ P x a))).
+    assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
+    destruct v as [f Hf].
+    pose proof (in_dec Hnat (f a) (map f l)).  clear Hnat.
+    destruct H0.
+    apply in_map_iff in i. destruct i as [x [Hl Hr]].
+
+    left. exists x. split. assumption.
+    intros x0 Hx. split. split; intros.
     
    
     
