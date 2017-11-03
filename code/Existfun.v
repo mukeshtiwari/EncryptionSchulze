@@ -130,7 +130,7 @@ Section Cand.
 
 
   (* I can not prove this lemma in reverse direction *)
-  
+  (*
   Lemma validity_after_remove_cand_more_assumption :
     forall (l : list A) (a0 : A),
       vl (a0 :: l) <->
@@ -560,7 +560,7 @@ Section Cand.
     apply in_app_iff in H11. destruct H11.
     pose proof (Ht5 d H11 c H10). omega.
     Admitted.
-  (*
+
     firstorder. firstorder.
     firstorder. simpl in H4.
     destruct (Adec d a0).
@@ -1059,21 +1059,22 @@ Section Cand.
   (* This proof is mostly followed by validity_after_remove_cand. *)
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
   Proof.
-     
+      
     induction l.
     left. unfold vl. eexists.
     intros c d Hc Hd; inversion Hc.
 
     destruct IHl.
     unfold vl in v. 
-    (* l := a :: l *) unfold vl.
-    pose proof (validity_after_remove_cand_more_assumption l a). destruct H as [H1 H2].
+    (* l := a :: l *) 
+    pose proof (validity_after_remove_cand l a). 
     pose proof (Pdec a a).
-    destruct H. (* P a a we can not construct valid ballot *)
+    destruct H0. (* P a a we can not construct valid ballot *)
 
     right. firstorder.
-    assert (forall c d e, In c l -> In d l -> In e l -> P c d -> P d e -> P c e).
-    intros. destruct v as [f Hf].
+    assert (forall c d e, In c (a :: l) -> In d (a :: l) -> In e (a :: l) ->
+                          P c d -> P d e -> P c e).
+    intros. destruct v as [f Hf]. Check in_inv.
     pose proof (Hf c d H H0).
     pose proof (Hf d e H0 H3).
     firstorder. 
