@@ -72,8 +72,22 @@ Proof with auto.
   apply H. simpl. right. auto.
 Qed.
 
+Theorem transitive_dec :
+  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
+         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (l : list A),
+    {forall x y z, In x l -> In y l -> In z l -> P x y -> P y z -> P x z} +
+    {~(forall x y z, In x l -> In y l -> In z l -> P x y -> P y z -> P x z)}.
+Proof.
+  intros A Hcd P Hp.
+  induction l.
+  left; firstorder.
 
+  destruct IHl.
+  firstorder.
+  Admitted.
 
+  
+  
 Section Cand.
 
   Variable A : Type.
@@ -1039,75 +1053,40 @@ Section Cand.
     (* proof finished  :) *)
   Qed.
    
- 
-  Lemma transitive_dec :
-    forall (a : A) (l : list A)  (Hp : ~P a a)
-           (H : exists (f : A -> nat), forall c d, In c l -> In d l -> P c d <-> f c < f d)
-           (Ht : forall c d e, In c l -> In d l -> In e l -> P c d -> P d e -> P c e),  
-      {forall c d, In c l -> In d l -> P c a -> P a d -> P c d} +
-      {~(forall c d, In c l -> In d l -> P c a -> P a d -> P c d)}.
-  Proof.
-    intros. 
-    induction l.
-    left. intros. inversion H0.
-    destruct IHl. firstorder. firstorder. 
-    
-    left. 
-    intros.  destruct H0, H1.
-    Admitted.
     
   (* This proof is mostly followed by validity_after_remove_cand. *)
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
   Proof.
-      
+
+    intros l.
     induction l.
     left. unfold vl. eexists.
     intros c d Hc Hd; inversion Hc.
 
     destruct IHl.
-    unfold vl in v. 
-    (* l := a :: l *) 
-    pose proof (validity_after_remove_cand l a). 
+    pose proof (validity_after_remove_cand l a).
     pose proof (Pdec a a).
-    destruct H0. (* P a a we can not construct valid ballot *)
-
-    right. firstorder.
-    assert (forall c d e, In c (a :: l) -> In d (a :: l) -> In e (a :: l) ->
-                          P c d -> P d e -> P c e).
-    intros. destruct v as [f Hf]. Check in_inv.
-    pose proof (Hf c d H H0).
-    pose proof (Hf d e H0 H3).
-    firstorder. 
-
-    assert (Ht : forall c e, In c l -> In e l -> P c a -> P a e -> P c e).
-    intros. destruct v as [f Hf].
-     
-    assert (((exists a0' : A,
-                 In a0' l /\
-                 (forall x : A, In x l -> (P a x <-> P a0' x) /\ (P x a <-> P x a0'))) \/
-             (forall x : A, In x l -> P x a /\ ~ P a x \/ P a x /\ ~ P x a))).
-    assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
-    destruct v as [f Hf].
-    pose proof (in_dec Hnat (f a) (map f l)).  clear Hnat.
     destruct H0.
-    apply in_map_iff in i. destruct i as [x [Hl Hr]].
-
-    left. exists x. split. assumption.
-    intros x0 Hx. split. split; intros.
+    right. firstorder.
+    pose proof (transitive_dec A Adec P Pdec (a :: l)).
+    destruct H0.
     
+
+
+
+
+
+
+    
+    right. unfold vl.
+    unfold not. intros. apply n0.
+    intros. destruct H0 as [f Hv]. clear n0.
+    pose proof (proj1 (Hv x y H1 H2) H4).
+    pose proof (proj1 (Hv y z H2 H3) H5).
+    apply Hv. auto. auto. omega.
+    
+    right. firstorder.
    
-    
- 
-    
-    
-    (* if ~vl l then adding candidate would also not make it valid
-       got for right *)
-
-    right. unfold not. intros.
-    destruct n. firstorder.
-  Admitted.
-
-
 
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
