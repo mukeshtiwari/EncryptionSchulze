@@ -8,8 +8,8 @@ Require Import Bool.Sumbool.
 Require Import Bool.Bool.
 Require Import Coq.Logic.ConstructiveEpsilon.
 Require Import Permutation.
-(* Require Import Coq.ZArith.ZArith.
- Require Import ListLemma. *)
+(* Require Import Coq.ZArith.ZArith. 
+Require Import ListLemma.*) 
 Import ListNotations.
 Require Import
         Program Morphisms Relations RelationClasses Permutation.
@@ -1064,13 +1064,26 @@ Section Cand.
     intros a l Hv.
   Admitted. 
 
+  (* This Lemma is from ListLemma. Move all the lemma into ListLemma.v later *)
+  Lemma not_equal_elem : forall (A : Type) (a x : A) (l : list A),
+      In a l -> ~ In x l -> x <> a.
+  Proof.
+    intros A0 a x l H1 H2.
+    induction l. inversion H1.
+    specialize (proj1 (not_in_cons x a0 l) H2); intros.
+    simpl in H1. destruct H as [H3 H4]. destruct H1.
+    subst. assumption. apply IHl. assumption. assumption.
+  Qed.
+  
   Lemma not_in_list : forall (a : A) (l : list A) (f : A -> nat),
       ~In (f a) (map f l) -> (forall x, In x l -> f a <> f x).  
   Proof.
-  Admitted.
+    intros a l f Hnin x Hx.
+    pose proof (in_map f l x Hx).
+    pose proof (not_equal_elem _ (f x) (f a) (map f l)  H Hnin).
+    auto.
+  Qed.
   
-    
-    
     (* This proof is mostly followed by validity_after_remove_cand. *)
   Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
   Proof. 
