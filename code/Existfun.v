@@ -82,9 +82,7 @@ Proof.
   induction l.
   left; firstorder.
 
-  destruct IHl.
-  firstorder.
-  Admitted.
+  destruct IHl. Admitted.
 
   
   
@@ -629,7 +627,7 @@ Section Cand.
     (* I know the exitence of element which is in l and equal to f a0 *)
     left. exists a. split. assumption.
     intros x Hx. split. split; intros.
-
+    
     pose proof (H a0 x (in_eq a0 l) (or_intror Hx)).
     firstorder.
 
@@ -1070,10 +1068,30 @@ Section Cand.
     right. firstorder.
     pose proof (transitive_dec A Adec P Pdec (a :: l)).
     destruct H0.
+    assert (Ht : (exists a0' : A, In a0' l /\
+                                  (forall x : A, In x l -> (P a x <-> P a0' x) /\
+                                                           (P x a <-> P x a0')))
+                 \/
+                 (forall x : A, In x l -> P x a /\ ~ P a x \/ P a x /\ ~ P x a)).
+
+    unfold vl in v. destruct v as [f Hf].
+
+    assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
+ 
+    pose proof (in_dec Hnat (f a) (map f l)). clear Hnat.
+    destruct H0.
+    apply in_map_iff in i.
+    destruct i as [x [Hx Hin]].
+    left. exists x. split.   auto.
+    intros. split. split; intros.
     
-
-
-
+    
+    
+    
+    left. apply H.  split. auto.
+    split. auto. split. auto.
+    split. auto. intros. firstorder.
+    auto.
 
 
 
