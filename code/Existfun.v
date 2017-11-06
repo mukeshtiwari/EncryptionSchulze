@@ -617,7 +617,7 @@ Section Cand.
     split. intros.
     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
-    firstorder.
+    firstorder. 
 
     assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
 
@@ -1050,51 +1050,95 @@ Section Cand.
     simpl in H4. firstorder. firstorder.
     (* proof finished  :) *)
   Qed.
-   
-    
-  (* This proof is mostly followed by validity_after_remove_cand. *)
-  Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
+
+  Definition phi a l :=
+    ((exists a0' : A, In a0' l /\
+                      (forall x : A, In x l -> (P a x <-> P a0' x) /\
+                                               (P x a <-> P x a0')))
+     \/
+     (forall x : A, In x l -> P x a /\ ~ P a x \/ P a x /\ ~ P x a)).
+                       
+  Lemma phi_decidable :
+    forall a l, vl l -> {phi a l} + {~(phi a l)}. 
   Proof.
+    intros a l Hv.
+  Admitted. 
 
-    intros l.
+  Lemma not_in_list : forall (a : A) (l : list A) (f : A -> nat),
+      ~In (f a) (map f l) -> (forall x, In x l -> f a <> f x).  
+  Proof.
+  Admitted.
+  
+    
+    
+    (* This proof is mostly followed by validity_after_remove_cand. *)
+  Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
+  Proof. 
+    
+    intros l. 
     induction l.
-    left. unfold vl. eexists.
-    intros c d Hc Hd; inversion Hc.
-
+    left. unfold vl.
+    exists (fun x => 0).
+    intros c d Hc Hd; inversion Hc. 
+ 
     destruct IHl.
     pose proof (validity_after_remove_cand l a).
     pose proof (Pdec a a).
     destruct H0.
     right. firstorder.
     pose proof (transitive_dec A Adec P Pdec (a :: l)).
-    destruct H0.
-    assert (Ht : (exists a0' : A, In a0' l /\
-                                  (forall x : A, In x l -> (P a x <-> P a0' x) /\
-                                                           (P x a <-> P x a0')))
-                 \/
-                 (forall x : A, In x l -> P x a /\ ~ P a x \/ P a x /\ ~ P x a)).
+    destruct H0. 
 
-    unfold vl in v. destruct v as [f Hf].
-
-    assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
- 
-    pose proof (in_dec Hnat (f a) (map f l)). clear Hnat.
-    destruct H0.
-    apply in_map_iff in i.
-    destruct i as [x [Hx Hin]].
-    left. exists x. split.   auto.
-    intros. split. split; intros.
-    
-    
+    pose proof (phi_decidable a l v). 
+    destruct H0. unfold phi in p0.
     
     
     left. apply H.  split. auto.
     split. auto. split. auto.
-    split. auto. intros. firstorder.
-    auto.
+    split. auto. intros.
+    pose proof (p c a e (or_intror H0) (in_eq a l) (or_intror H1) H2 H3).
+    auto. assumption.
+  
+    right. unfold phi in n0.
+    unfold vl. unfold not.
+    intros. apply n0. clear n0.
+    destruct H0 as [f Hv].
 
+    assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
+    
+    pose proof (in_dec Hnat (f a) (map f l)).  clear Hnat.
+    destruct H0.
+    apply in_map_iff in i. destruct i as [x [Hl Hr]].
 
+    left.  exists x. split. auto.
+    intros. split. split; intros. 
+    pose proof (Hv a x0 (in_eq a l) (or_intror H0)).
+    pose proof ((proj1 H2) H1). rewrite <- Hl in H3.
+    pose proof (proj2 (Hv x x0 (or_intror Hr) (or_intror H0)) H3).
+    auto. 
+    pose proof (Hv x x0 (or_intror Hr) (or_intror H0)).
+    pose proof (proj1 H2 H1).
+    rewrite Hl in H3.
+    pose proof (proj2 (Hv a x0 (in_eq a l) (or_intror H0)) H3). auto.
 
+    split; intros.
+    pose proof (Hv x0 a (or_intror H0) (in_eq a l)).
+    firstorder.
+
+    pose proof (Hv x0 x (or_intror H0) (or_intror Hr)).
+    firstorder. 
+
+    (* go right *)
+    right. intros x Hx.
+    remember a as a0.
+    destruct (lt_eq_lt_dec (f a0) (f x)) as [[H1 | H1] | H1].
+    pose proof (Hv a0 x (in_eq a0 l) (or_intror Hx)).
+    right. split. firstorder. firstorder.
+    (* this case is not possible because f a0 in not in the list *)
+    pose proof (not_in_list a0 l f n0 x Hx). omega.
+
+    pose proof (Hv x a0 (or_intror Hx) (in_eq a0 l)).
+    firstorder.
     
     right. unfold vl.
     unfold not. intros. apply n0.
@@ -1104,7 +1148,8 @@ Section Cand.
     apply Hv. auto. auto. omega.
     
     right. firstorder.
-   
+  Qed.
+  
 
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
