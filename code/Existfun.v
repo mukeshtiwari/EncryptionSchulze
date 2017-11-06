@@ -1185,76 +1185,14 @@ Section Cand.
   Proof.
     unfold finite, valid.
     intros H. destruct H as [l Hin].
-
-
-
-
+    pose proof (vl_or_notvl l).
+    pose proof (from_vl_to_valid l Hin).
+    destruct H.
+    left. pose proof (proj2 H0 v). assumption.
+    right. unfold not. intros.
+    apply n. clear n.
+    pose proof (proj1 H0 H). assumption.
+  Qed.
+  
 End Cand.
 
-Check decidable_valid.
-
-
-
-
-
-Lemma validity_after_remove_cand :
-  forall (P : A -> A -> Prop) (l : list A) (Hpdec : forall c d, P c d \/ ~P c d),
-    valid P l <->
-    exists (c : A), forall (d : A), In c l /\ In d l /\  (equal_rank P c d \/ (P c d \/ c = d \/ P d c))
-                                    /\ valid P (remove A_dec d l).
-Proof.
-  unfold valid, equal_rank.
-  split; intros.
-  destruct H as [f H].
-
-  (* induction on l *)
-  induction l.
-  (* admit the empty case for the moment *)
-  admit.
-  (* a :: l and assume c = a *)
-  exists a. intros d.
-  (* Either d is a or d is inside the list *)
-  destruct (A_dec a d).
-  split. apply in_eq.
-  split. firstorder.
-  split. (* At this point we have a = d in assumption and
-      ~ P a d /\ ~ P d a \/ P a d \/ a = d \/ P d a in goal.
-    I think a = d should mean that either they are equal_rank or a = d and
-    this should be used to discharge the goal *)
-  right. firstorder.
-  exists f.  split; intros. rewrite e in Hc, Hd.
-  pose proof (H c d0). simpl in *. firstorder.
-  rewrite e in Hc, Hd.
-  pose proof (H c d0). simpl in *. firstorder.
-
-  (* a <> d *)
-  split. apply in_eq.
-  split. pose proof (H a d (in_eq a l)). firstorder.
-  split.  admit.
-  (* At this point we a <> d in assumption and
-       ~ P a d /\ ~ P d a \/ P a d \/ a = d \/ P d a in goal.
-      I think a <> d should mean that either P a d or P d a and this
-      should discharge the assumption
-   *)
-  exists f. split; intros. simpl in Hc, Hd. destruct (A_dec d a).
-  symmetry in e. pose proof (n e). inversion H1.
-  simpl in *. destruct Hc, Hd.  firstorder.
-  pose proof (H c d0). firstorder.
-  pose proof (H c d0). firstorder.
-  pose proof (H c d0). firstorder.
-  pose proof (H c d0). firstorder.
-
-  (* reverse direction *)
-  destruct H as [x H]. Check fold_left.
-  pose proof (H x). destruct H0 as [H1 [H2 [H3 [f H4]]]].
-
-  induction l. firstorder.
-
-  (* either a = c or a <> c *)
-
-
-  Lemma dec_now : forall (P : A -> A -> Prop),
-      (forall c d, P c d \/ ~P c d) ->
-      {valid P} + {~valid P}.
-  Proof.
-    intros P H. unfold valid.
