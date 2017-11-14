@@ -91,7 +91,7 @@ Proof.
   intros A Hcd P Hp.
   induction l.
   left; firstorder.
-
+  
   destruct IHl. Admitted.
 
   
@@ -182,7 +182,7 @@ Section Cand.
     split. intros.
     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
-    firstorder. 
+    firstorder.
 
     assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
 
@@ -194,7 +194,8 @@ Section Cand.
     intros x Hx. split. split; intros.
     
     pose proof (H a0 x (in_eq a0 l) (or_intror Hx)).
-    firstorder.
+    pose proof (proj1 H1 H0). rewrite <- Hl in H2.
+    apply H. apply in_cons. auto. apply in_cons. auto. auto.
 
     pose proof (H a x (or_intror Hr) (or_intror Hx)).
     firstorder.
@@ -453,13 +454,6 @@ Section Cand.
     congruence. simpl. firstorder.
 
     pose proof Permutation_in.
-
-
-
-
-
- 
-
     (* other side of proof *)
     destruct H0, H3.
     (* c = a0 and d = a0 *)
@@ -600,22 +594,123 @@ Section Cand.
     (* proof finished  :) *)
   Qed.
 
-  Definition phi a l :=
-    ((exists a0' : A, In a0' l /\
-                      (forall x : A, In x l -> (P a x <-> P a0' x) /\
-                                               (P x a <-> P x a0')))
-     \/
-     (forall x : A, In x l -> P x a /\ ~ P a x \/ P a x /\ ~ P x a)).
+  Definition phi_one a l :=
+    forall x : A, In x l -> P x a /\ ~ P a x \/ P a x /\ ~ P x a.
+
+  Definition phi_two a l0 l1  := 
+    exists a0' : A, In a0' l0 /\
+                    (forall x : A, In x l1 -> (P a x <-> P a0' x) /\
+                                              (P x a <-> P x a0')).
+  Lemma phi_one_helper :
+    forall x a, { P x a /\ ~ P a x \/ P a x /\ ~ P x a} + {~( P x a /\ ~ P a x \/ P a x /\ ~ P x a)}.
+  Proof.
+    intros x a.
+    destruct (Pdec x a).
+    destruct (Pdec a x).
+    right. unfold not. intros.
+    destruct H as [H | H].
+    destruct H. apply H0. assumption.
+    destruct H. apply H0. assumption.
+    left. left. firstorder.
+    destruct (Pdec a x).
+    left. right. intuition.
+    right.  unfold not. intros.
+    destruct H as [[H1 H2] | [H1 H2]].
+    apply n. assumption.
+    apply n0. assumption.
+  Qed.
+
+  Lemma phi_two_helper : forall (a x a0' : A),
+      ((P a x <-> P a0' x) /\ (P x a <-> P x a0')) +
+      ~((P a x <-> P a0' x) /\ (P x a <-> P x a0')).
+  Proof.
+    intros a x a0'.
+    destruct (Pdec a x), (Pdec a0' x), (Pdec x a), (Pdec x a0'); intuition.
+  Qed.
+
+  Lemma phi_two_inhanced : forall a l a0',
+      (forall x : A, In x l -> (P a x <-> P a0' x) /\
+                               (P x a <-> P x a0')) +
+      ~(forall x : A, In x l -> (P a x <-> P a0' x) /\
+                                (P x a <-> P x a0')).
+  Proof.
+    intros a l a0'.
+    induction l.
+    left. intros. inversion  H.
+    destruct IHl.
+    destruct (phi_two_helper a a0 a0').
+    left. intros. destruct H. subst. assumption.
+    apply a1. auto.
+    right. unfold not in *. intros.
+    apply n. apply H. simpl. left. auto.
+    right. unfold not in *.
+    intros. apply n. intros.
+    apply H. simpl. right. auto.
+  Qed.
+  
+
+  Lemma phi_one_dec :
+    forall a l, {phi_one a l} + {~(phi_one a l)}.
+  Proof.
+    intros a l.
+    induction l.
+    left. unfold phi_one. intros. inversion H.
+    destruct IHl.
+    unfold phi_one in *.
+    destruct (phi_one_helper a0 a).
+    left. intros. destruct H. subst. assumption.
+    apply p. assumption.
+    right. unfold not. intros.
+    apply n. apply H. simpl. left. auto.
+    right. unfold not in *. intros.
+    apply n. unfold phi_one in *.
+    intros. apply H. simpl. right. auto.
+  Qed.
+
+  Lemma phi_two_dec : forall a l1 l2,
+      {phi_two a l1 l2} + {~phi_two a l1 l2}.
+  Proof.
+    intros a l1 l2.
+    induction l1.
+    right. unfold not. intros. unfold phi_two in *.
+    destruct H. destruct H. inversion H.
+
+    destruct IHl1.  unfold phi_two in *.
+    destruct (phi_two_inhanced a l2 a0).
+    left.   exists a0.
+    split. simpl. left. auto.
+    assumption. 
+    left. destruct p. exists x.
+    destruct H. split. simpl. right. auto.
+    assumption.
+
+    destruct (phi_two_inhanced a l2 a0).
+    left. exists a0. split. simpl. auto.
+    assumption.
+    right. unfold not in *. intros.
+    unfold phi_two in H. destruct H. destruct H.
+    destruct H. subst. apply n0. assumption.
+    apply n. unfold phi_two. exists x. split.
+    auto. assumption.
+  Qed.
+  
+    
+  Definition phi a l := phi_two a l l \/ phi_one a l.
+ 
                        
   Lemma phi_decidable :
-    forall a l, vl l -> {phi a l} + {~(phi a l)}. 
+    forall a l, {phi a l} + {~(phi a l)}. 
   Proof.
-    intros a l Hv.
-    unfold vl in Hv.
-    Admitted.
-    
+
+    intros a l.
+    unfold phi.
+    destruct (phi_two_dec a l l), (phi_one_dec a l); intuition.
+  Qed.
+  
+  
     
 
+    
     
   (* This Lemma is from ListLemma. Move all the lemma into ListLemma.v later *)
  
@@ -647,7 +742,7 @@ Section Cand.
     pose proof (transitive_dec A Adec P Pdec (a :: l)).
     destruct H0. 
 
-    pose proof (phi_decidable a l v). 
+    pose proof (phi_decidable a l). 
     destruct H0. unfold phi in p0.
     
     
