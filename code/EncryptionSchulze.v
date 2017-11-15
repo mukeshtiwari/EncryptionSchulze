@@ -9,8 +9,14 @@ Require Import Bool.Bool.
 Require Import Coq.Logic.ConstructiveEpsilon.
 Require Import Coq.ZArith.ZArith.
 Require Import ListLemma.
+Require Import Existfun.
 Import ListNotations.
 Open Scope Z.
+
+Notation "'existsT' x .. y , p" :=
+  (sigT (fun x => .. (sigT (fun y => p)) ..))
+    (at level 200, x binder, right associativity,
+     format "'[' 'existsT' '/ ' x .. y , '/ ' p ']'") : type_scope.
 
 Section Encryption.
 
@@ -714,116 +720,11 @@ Section Encryption.
     | hdecrypt: (cand -> cand -> Z) -> HState
     | winners: (cand -> bool) -> HState.
 
-
-    (*
-    Definition Reflexive (R : cand -> cand -> Prop) := forall c, R c c.
-    
-    Definition Transitive (R : cand -> cand -> Prop) :=
-      forall c d e, R c d -> R d e -> R c e.
-
-    Definition Total (R : cand -> cand -> Prop) :=
-      forall c d, R c d \/ R d c.
-
-    Definition TPO (R : cand -> cand -> Prop) :=
-      Reflexive R /\ Transitive R /\ Total R.
-
-    
-    Definition valid (b : ballot) :=
-      exists (R : cand -> cand -> Prop),
-        TPO R /\
-        (forall c d, b c d = 1%nat <-> R c d /\ ~R d c) /\
-        (forall c d, b c d = 0%nat \/ b c d = 1%nat).
-
-    
-    (* 
-    Definition eql (c d : cand) (R : cand -> cand -> Prop) :=  R c d /\ R d c.
-
-    Definition best (c : cand) (R : cand -> cand -> Prop) :=
-      forall (d : cand), 
-        ~eql c d R -> R c d.
-
-    Definition good_rel (R : cand -> cand -> Prop) (l : list cand) := 
-      exists (c : cand), In c l /\ best c R. *)
-
-    (* Try to find the definition of Rel which follows all the 
-       properties specified in valid ballot. This definition 
-       of Rel working for everything except the last *)
-    
-    Definition Rel (b : ballot) (c d : cand) :=
-      (b c d = 1%nat) \/ (b c d = 0%nat /\ b d c = 0%nat).
-
-    
-    Lemma proof_rel_valid : forall b, TPO (Rel b) <-> valid b.
-    Proof.
-      split; intros. unfold valid.
-      exists (Rel b). split. auto.
-      split. split; intros.
-      unfold TPO, Rel in *.
-      destruct H as [H1 [H2 H3]].
-      split. auto.
-      unfold not. intros.
-      destruct H as [H | [H4 H5]].
-      unfold Reflexive, Transitive, Total in *.
-      
-      
-      
-      split; intros.
-      unfold valid, TPO, Rel in *.
-      destruct H as [R [[H1 [H2 H3]] [H4 H5]]].
-      split. unfold Reflexive.
-      intros. unfold Reflexive, Transitive, Total in *.
-      destruct (H4 c c) as [H6 H7].
-      destruct (H5 c c) as [H8 | H9].
-      right. omega. omega.
-      split. unfold Reflexive, Transitive, Total in *.
-      intros c d e H6 H7.
-      destruct H6 as [H6 | [H6 H8]].
-      destruct H7 as [H7 | [H9 J10]].
-      destruct (H4 c d) as [H8 H9].
-      specialize (H8 H6).
-      destruct (H4 d e) as [H10 H11].
-      specialize (H10 H7).
-      left. apply H4. split.
-      apply H2 with d. firstorder.
-      firstorder. firstorder.
-      
-     *)
-
-    (* Two candiadate are equal if P c d and P d c holds *)
-    Definition eqr (c d : cand) (P : cand -> cand -> Prop) :=  P c d /\ P d c.
-
-    (* Proposition P is valid over set s if there is function f such that
-       forall c d, P c d if and only if (f c < f d) *)
-    Definition valid (P : cand -> cand -> Prop) (s : list cand) :=
-      exists (f : cand -> nat), forall c d,
-          P c d <-> (f c < f d)%nat.
-
- 
-
-    Lemma val_decidablity :
-      forall (n : nat) (s : list cand),
-        length s = n -> forall (P : cand -> cand -> Prop),
-          valid P s <->
-          exists c, In c s ->
-               forall d, ~eqr c d P -> P c d /\
-                                 (forall c', eqr c c' P -> valid P (remove dec_cand c' s)).
-    Proof.
-      
-      
-                                 
-    Theorem ballot_valid_dec : forall b, {valid b} + {~valid b}.
-    Proof.
-     
-
     
 
     Definition ence x :=  (x  + key + 10, 10).
 
-    (* 
-     enc : Z -> Z -> Ciphertext
-     enc x k = c (* k is ephemeral key used during the encryption of x to produce c *)
-     *)
-
+   
     
     
     (* We are using simplest encryption method + *)
