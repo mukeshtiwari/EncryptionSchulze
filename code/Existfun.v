@@ -8,167 +8,18 @@ Require Import Bool.Sumbool.
 Require Import Bool.Bool.
 Require Import Coq.Logic.ConstructiveEpsilon.
 Require Import Permutation.
-(* Require Import Coq.ZArith.ZArith.
-Require Import ListLemma. *)
+Require Import Coq.ZArith.ZArith.
+Require Import ListLemma.
 Import ListNotations.
-Require Import
-        Program Morphisms Relations RelationClasses Permutation.
+
+(* Require Import
+        Program Morphisms Relations RelationClasses Permutation. *)
 
 
 Notation "'existsT' x .. y , p" :=
   (sigT (fun x => .. (sigT (fun y => p)) ..))
     (at level 200, x binder, right associativity,
      format "'[' 'existsT' '/ ' x .. y , '/ ' p ']'") : type_scope.
-
-
-Lemma filter_empty : forall (A : Type) (l : list A) (f : A -> bool),
-    filter f l = [] <->
-    (forall x, In x l -> f x = false).
-Proof.
-  intros A. induction l.
-  split; intros. inversion H0. reflexivity.
-  split; intros. destruct H0. simpl in H.
-  destruct (f a) eqn : Ht. inversion H.
-  rewrite <- H0. assumption.
-  simpl in H. destruct (f a). inversion H.
-  pose proof (proj1 (IHl f) H x H0). assumption.
-  simpl. destruct (f a) eqn: Ht.
-  pose proof (H a (in_eq a l)). congruence.
-  pose proof (IHl f). destruct H0.
-  apply H1. intros. firstorder.
-Qed.
-
-
-Lemma complementary_filter_perm A (p: A -> bool) (l: list A):
-  Permutation l (filter p l ++ filter (compose negb p) l).
-Proof with auto.
-  induction l...
-  simpl.
-  unfold compose.
-  destruct (p a); simpl...
-  apply Permutation_cons_app...
-Qed.
-
-Lemma complementary_filter_In : forall
-    (A : Type) (l : list A) (f : A -> bool) (g : A -> bool)
-    (H : forall x, In x l -> f x = negb (g x)),
-    Permutation l (filter f l ++ filter g l).
-Proof with auto.
-  intros A l f g H.
-  induction l...
-  simpl.
-  destruct (f a) eqn : Ht; simpl...
-  pose proof (H a (in_eq a l)).
-  rewrite Ht in H0.
-  SearchAbout ( negb _ = true). symmetry in H0.
-  apply negb_true_iff in H0.
-  rewrite H0. apply perm_skip. apply IHl.
-  intros. apply H. simpl. right. auto.
-  pose proof (H a (in_eq a l)).
-  rewrite Ht in H0. symmetry in H0. apply negb_false_iff in H0.
-  rewrite H0.
-  apply Permutation_cons_app...
-  apply IHl. intros.
-  apply H. simpl. right. auto.
-Qed.
-
-Lemma not_equal_elem : forall (A : Type) (a x : A) (l : list A),
-    In a l -> ~ In x l -> x <> a.
-Proof.
-  intros A a x l H1 H2.
-  induction l. inversion H1.
-  specialize (proj1 (not_in_cons x a0 l) H2); intros.
-  simpl in H1. destruct H as [H3 H4]. destruct H1.
-  subst. assumption. apply IHl. assumption. assumption.
-Qed.
-
-Theorem transitive_dec_first :
-  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
-         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x y z : A),
-    {P x y -> P y z -> P x z} +
-    {~(P x y -> P y z -> P x z)}. 
-Proof.
-  intros.
-  destruct (Hp x y), (Hp y z), (Hp x z); intuition.
-Qed.
-
-
-
-Theorem transitive_dec_second :
-  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
-         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x y: A) (l : list A),
-    {forall z, In z l -> P x y -> P y z -> P x z} +
-    {~(forall z, In z l -> P x y -> P y z -> P x z)}. 
-Proof.
-  intros.
-  induction l.
-  left; intuition.
-  destruct IHl.
-  pose proof (transitive_dec_first A Hcd P Hp x y a).
-  destruct H.
-  left. intros. destruct H. subst. auto.
-  intuition.
-  right. unfold not. intros. apply n. intros.
-  intuition.
-  pose proof (transitive_dec_first A Hcd P Hp x y a).
-  destruct H.
-  right. unfold not. intros. apply n.
-  intuition.
-  right. intuition.
-Qed.
-  
-Theorem transitive_dec_third :
-  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
-         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x : A) (l1 l2 : list A),
-    {forall y z, In y l1 -> In z l2 -> P x y -> P y z -> P x z} +
-    {~(forall y z, In y l1 -> In z l2 -> P x y -> P y z -> P x z)}.
-Proof.
-  intros.
-  induction l1.
-  left; intuition.
-
-  destruct IHl1.  
-  pose proof (transitive_dec_second A Hcd P Hp x a l2).
-  destruct H.
-  left. intros. destruct H.
-  subst. intuition. apply p with y; intuition.
-  right. unfold not. intros. apply n.  intros.
-  apply H with a; intuition.
-  pose proof (transitive_dec_second A Hcd P Hp x a l2).
-  destruct H.
-  right. unfold not. intros. apply n. intros. apply H with y; intuition.
-  right. unfold not. intros. apply n. intros. apply H with y; intuition.
-Qed.
-
-Theorem transitive_dec_fourth :
-  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
-         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (l1 l2 l3 : list A),
-    {forall x y z, In x l1 -> In y l2 -> In z l3 -> P x y -> P y z -> P x z} +
-    {~(forall x y z, In x l1 -> In y l2 -> In z l3 -> P x y -> P y z -> P x z)}.
-Proof.
-  intros.
-  induction l1.
-  left; intuition.
-
-  destruct IHl1.
-  pose proof (transitive_dec_third A Hcd P Hp a l2 l3).
-  destruct H.
-  left. intros. destruct H. subst. apply p0 with y; intuition.
-  apply p with y; intuition.
-  right. unfold not. intros. apply n. intros.
-  apply H with y; intuition.
-  right. unfold not. intros. apply n. intros.
-  apply H with y; intuition.
-Qed.
-
-Theorem transitive_dec:
-  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
-         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (l : list A),
-    {forall x y z, In x l -> In y l -> In z l -> P x y -> P y z -> P x z} +
-    {~(forall x y z, In x l -> In y l -> In z l -> P x y -> P y z -> P x z)}.
-Proof.
-  intros. pose proof (transitive_dec_fourth A Hcd P Hp l l l). auto.
-Qed.
 
 Section Cand.
 
@@ -196,13 +47,13 @@ Section Cand.
 
   Lemma listmax_upperbound :
     forall (l : list A) (d : A) (f : A -> nat) (Hin : In d l),
-      f d <= listmax f l.
+      (f d <= listmax f l)%nat.
   Proof.
     induction l.
     intros. inversion Hin.
 
     intros d f Hin.
-    assert (Hm : {f a >= listmax f l} + {f a < listmax f l}).
+    assert (Hm : {(f a >= listmax f l)%nat} + {(f a < listmax f l)%nat}).
     pose proof (lt_eq_lt_dec (f a) (listmax f l)) as H1.
     destruct H1 as [[H1 | H1] | H1]. right. auto.
     left. omega. left. omega.
@@ -424,7 +275,7 @@ Section Cand.
     rewrite <- Heqf1.
     rewrite <- Heql1.
 
-    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> f x < f y).
+    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
     intros. apply H1.
     apply Permutation_sym in H.
     pose proof (H5 A (l1 ++ l2) l x H). apply H9.
@@ -574,7 +425,7 @@ Section Cand.
     apply in_app_iff in H8. destruct H8.
     firstorder.
     
-    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> f x < f y).
+    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
     intros. apply H1.
     apply Permutation_sym in H.
     pose proof (H5 A (l1 ++ l2) l x H). apply H11.
@@ -592,9 +443,9 @@ Section Cand.
     apply Nat.lt_succ_l in H4. 
 
     clear H. clear H5. clear  Ht2. clear Heql1.
-    assert (Ht6 : listmax f l1 < f c).
+    assert (Ht6 : (listmax f l1 < f c)%nat).
     induction l1. inversion H4.
-    assert (Hm : {f a >= listmax f l1} + {f a < listmax f l1}).
+    assert (Hm : {(f a >= listmax f l1)%nat} + {(f a < listmax f l1)%nat}).
     pose proof (lt_eq_lt_dec (f a) (listmax f l1)) as H11.
     destruct H11 as [[H11 | H11] | H11]. right. auto.
     left. omega. left. omega.
@@ -613,7 +464,7 @@ Section Cand.
 
     (* In c l and In d l *)
 
-    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> f x < f y).
+    assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
     intros. apply H1.
     apply Permutation_sym in H.
     pose proof (H5 A (l1 ++ l2) l x H). apply H8.
@@ -799,7 +650,7 @@ Section Cand.
     intros l. 
     induction l.
     left. unfold vl.
-    exists (fun x => 0).
+    exists (fun x => 0%nat).
     intros c d Hc Hd; inversion Hc. 
  
     destruct IHl.
