@@ -82,20 +82,94 @@ Proof.
   subst. assumption. apply IHl. assumption. assumption.
 Qed.
 
-Theorem transitive_dec :
+Theorem transitive_dec_first :
+  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
+         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x y z : A),
+    {P x y -> P y z -> P x z} +
+    {~(P x y -> P y z -> P x z)}. 
+Proof.
+  intros.
+  destruct (Hp x y), (Hp y z), (Hp x z); intuition.
+Qed.
+
+
+
+Theorem transitive_dec_second :
+  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
+         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x y: A) (l : list A),
+    {forall z, In z l -> P x y -> P y z -> P x z} +
+    {~(forall z, In z l -> P x y -> P y z -> P x z)}. 
+Proof.
+  intros.
+  induction l.
+  left; intuition.
+  destruct IHl.
+  pose proof (transitive_dec_first A Hcd P Hp x y a).
+  destruct H.
+  left. intros. destruct H. subst. auto.
+  intuition.
+  right. unfold not. intros. apply n. intros.
+  intuition.
+  pose proof (transitive_dec_first A Hcd P Hp x y a).
+  destruct H.
+  right. unfold not. intros. apply n.
+  intuition.
+  right. intuition.
+Qed.
+  
+Theorem transitive_dec_third :
+  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
+         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x : A) (l1 l2 : list A),
+    {forall y z, In y l1 -> In z l2 -> P x y -> P y z -> P x z} +
+    {~(forall y z, In y l1 -> In z l2 -> P x y -> P y z -> P x z)}.
+Proof.
+  intros.
+  induction l1.
+  left; intuition.
+
+  destruct IHl1.  
+  pose proof (transitive_dec_second A Hcd P Hp x a l2).
+  destruct H.
+  left. intros. destruct H.
+  subst. intuition. apply p with y; intuition.
+  right. unfold not. intros. apply n.  intros.
+  apply H with a; intuition.
+  pose proof (transitive_dec_second A Hcd P Hp x a l2).
+  destruct H.
+  right. unfold not. intros. apply n. intros. apply H with y; intuition.
+  right. unfold not. intros. apply n. intros. apply H with y; intuition.
+Qed.
+
+Theorem transitive_dec_fourth :
+  forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
+         (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (l1 l2 l3 : list A),
+    {forall x y z, In x l1 -> In y l2 -> In z l3 -> P x y -> P y z -> P x z} +
+    {~(forall x y z, In x l1 -> In y l2 -> In z l3 -> P x y -> P y z -> P x z)}.
+Proof.
+  intros.
+  induction l1.
+  left; intuition.
+
+  destruct IHl1.
+  pose proof (transitive_dec_third A Hcd P Hp a l2 l3).
+  destruct H.
+  left. intros. destruct H. subst. apply p0 with y; intuition.
+  apply p with y; intuition.
+  right. unfold not. intros. apply n. intros.
+  apply H with y; intuition.
+  right. unfold not. intros. apply n. intros.
+  apply H with y; intuition.
+Qed.
+
+Theorem transitive_dec:
   forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
          (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (l : list A),
     {forall x y z, In x l -> In y l -> In z l -> P x y -> P y z -> P x z} +
     {~(forall x y z, In x l -> In y l -> In z l -> P x y -> P y z -> P x z)}.
 Proof.
-  intros A Hcd P Hp.
-  induction l.
-  left; firstorder.
-  
-  destruct IHl. Admitted.
+  intros. pose proof (transitive_dec_fourth A Hcd P Hp l l l). auto.
+Qed.
 
-  
-  
 Section Cand.
 
   Variable A : Type.
@@ -708,12 +782,6 @@ Section Cand.
   Qed.
   
   
-    
-
-    
-    
-  (* This Lemma is from ListLemma. Move all the lemma into ListLemma.v later *)
- 
   
   Lemma not_in_list : forall (a : A) (l : list A) (f : A -> nat),
       ~In (f a) (map f l) -> (forall x, In x l -> f a <> f x).  
