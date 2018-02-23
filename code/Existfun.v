@@ -721,10 +721,14 @@ Section Cand.
     
     right. firstorder.
   Qed.
-  
+
+ 
 
   Definition valid := exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f d)%nat.
 
+ 
+
+  
   Lemma from_vl_to_valid : forall (l : list A), ((forall a : A, In a l) -> valid <-> vl l).
   Proof.
     intros l Ha. split; intros.
@@ -739,6 +743,7 @@ Section Cand.
     apply H; auto.
   Qed.
 
+  
 
   Lemma decidable_valid : finite -> {valid} + {~valid}.
   Proof.
@@ -752,6 +757,47 @@ Section Cand.
     apply n. clear n.
     pose proof (proj1 H0 H). assumption.
   Qed.
-  
+
+  Definition perm (sig : A -> A) (c d : A) := P (sig c) (sig d).
 End Cand.
+
+
+
+Lemma validity_perm :
+  forall (A : Type) (P : A -> A -> Prop)
+         (Adec : forall (c d : A), {c = d} + {c <> d})
+         (Pdec : forall c d, {P c d} + {~P c d}) (sig : A -> A), 
+    valid A P -> valid A (perm A P sig).
+Proof.
+  intros A P Adec Pdec sig.
+  unfold valid. intros.
+  destruct H as [f H].
+  unfold perm. exists (fun c => f (sig c)).
+  intros. split; intros;  apply H; auto.
+Qed.
+
+
+Lemma not_validity_perm :
+   forall (A : Type) (P : A -> A -> Prop)
+          (Adec : forall (c d : A), {c = d} + {c <> d})
+          (Pdec : forall c d, {P c d} + {~P c d}) (sig : A -> A)
+          (sig_inv : A -> A) (Hsig : forall x : A, sig (sig_inv x) = x /\ sig_inv (sig x) = x), 
+     ~valid A P -> ~valid A (perm A P sig).
+Proof.
+  intros A P Adec Pdec sig.
+  intros. unfold not in *.
+  intros. apply H. unfold valid in *.
+  unfold perm in H0. destruct H0 as [g H0].
+
+  (* Here  I need to give inverse of sig function to so that 
+     I have sig (sig_inverse a) = a *)
+  exists (fun c => g (sig_inv c)). intros.
+  split; intros. apply H0.
+  destruct (Hsig c).  rewrite H2.
+  destruct (Hsig d).  rewrite H4.
+  auto.
+  pose proof (H0 (sig_inv c) (sig_inv d)). destruct H2.
+  pose proof (H3 H1). destruct (Hsig c). destruct (Hsig d).
+  rewrite H5 in H4. rewrite H7 in H4. auto.
+Qed.
 
