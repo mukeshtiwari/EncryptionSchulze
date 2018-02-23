@@ -762,14 +762,15 @@ Section Cand.
 End Cand.
 
 
-
+Require Import Coq.Logic.FinFun. 
 Lemma validity_perm :
   forall (A : Type) (P : A -> A -> Prop)
          (Adec : forall (c d : A), {c = d} + {c <> d})
-         (Pdec : forall c d, {P c d} + {~P c d}) (sig : A -> A), 
+         (Pdec : forall c d, {P c d} + {~P c d})
+         (sig : A -> A) (Hsig : Bijective sig), 
     valid A P -> valid A (perm A P sig).
 Proof.
-  intros A P Adec Pdec sig.
+  intros A P Adec Pdec sig Hsig.
   unfold valid. intros.
   destruct H as [f H].
   unfold perm. exists (fun c => f (sig c)).
@@ -781,23 +782,59 @@ Lemma not_validity_perm :
    forall (A : Type) (P : A -> A -> Prop)
           (Adec : forall (c d : A), {c = d} + {c <> d})
           (Pdec : forall c d, {P c d} + {~P c d}) (sig : A -> A)
-          (sig_inv : A -> A) (Hsig : forall x : A, sig (sig_inv x) = x /\ sig_inv (sig x) = x), 
+          (Hsig : Bijective sig), 
      ~valid A P -> ~valid A (perm A P sig).
 Proof.
-  intros A P Adec Pdec sig.
+  intros A P Adec Pdec sig Hsig.
   intros. unfold not in *.
   intros. apply H. unfold valid in *.
   unfold perm in H0. destruct H0 as [g H0].
+  unfold Bijective in Hsig.
+  destruct Hsig as [sig_inv [Hsigx Hsigy]].
 
   (* Here  I need to give inverse of sig function to so that 
      I have sig (sig_inverse a) = a *)
   exists (fun c => g (sig_inv c)). intros.
   split; intros. apply H0.
-  destruct (Hsig c).  rewrite H2.
-  destruct (Hsig d).  rewrite H4.
-  auto.
+  pose proof (Hsigy c).  rewrite H2.
+  pose proof (Hsigy d).  rewrite H3. auto.
   pose proof (H0 (sig_inv c) (sig_inv d)). destruct H2.
-  pose proof (H3 H1). destruct (Hsig c). destruct (Hsig d).
-  rewrite H5 in H4. rewrite H7 in H4. auto.
+  pose proof (H3 H1). pose proof (Hsigy c). pose proof (Hsigy d).
+  rewrite H5 in H4. rewrite H6 in H4. auto.
 Qed.
+
+
+Lemma perm_presv_validity :
+  forall (A : Type) (P : A -> A -> Prop)
+         (Adec : forall (c d : A), {c = d} + {c <> d})
+         (Pdec : forall c d, {P c d} + {~P c d}) (sig : A -> A)
+         (Hsig : Bijective sig), 
+    valid A P <-> valid A (perm A P sig).
+Proof.
+  intros. split; intros.
+  apply validity_perm; auto.
+  unfold valid, perm in *.
+  destruct H as [f H]. destruct Hsig as [g [Hx Hy]].
+  exists (fun c => f (g c)).
+  split; intros. apply H. pose proof (Hy c). pose proof (Hy d).
+  rewrite H1. rewrite H2. auto.
+  destruct (H (g c) (g d)). pose proof (H2 H0).
+  pose proof (Hy c). pose proof (Hy d). rewrite H4 in H3.
+  rewrite H5 in H3. auto.
+Qed.
+
+
+Lemma not_perm_persv_validity :
+  forall (A : Type) (P : A -> A -> Prop)
+         (Adec : forall (c d : A), {c = d} + {c <> d})
+         (Pdec : forall c d, {P c d} + {~P c d}) (sig : A -> A)
+         (Hsig : Bijective sig),
+    ~valid A P <-> ~valid A (perm A P sig).
+Proof.
+  intros. split; intros.
+  apply not_validity_perm; auto.
+  unfold not in *. intros. apply H.
+  apply validity_perm; auto.
+Qed.
+
 
