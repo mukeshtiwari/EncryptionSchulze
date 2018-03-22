@@ -716,7 +716,7 @@ Section Encryption.
     Axiom plaintext : Type.
     Axiom ciphertext : Type. *)
 
-    Definition plaintext := nat.
+    Definition plaintext := Z.
     Definition ciphertext := (Z * Z)%type. (* Cipher text is pair (c1, c2) *)
 
     Definition t : ciphertext := (1, 2).
@@ -731,7 +731,7 @@ Section Encryption.
     
     Inductive HState: Type :=
     | hpartial: (list eballot * list eballot)  -> (cand -> cand -> ciphertext) -> HState 
-    | hdecrypt: (cand -> cand -> Z) -> HState
+    | hdecrypt: (cand -> cand -> plaintext) -> HState
     | winners: (cand -> bool) -> HState.
 
     Definition Kpub := Z.
@@ -763,49 +763,63 @@ Section Encryption.
        zero_knowlege_dec m (c_1, c_2) = true *)
     
     Variable zero_knowledge_dec : plaintext -> ciphertext -> bool.
-      
+
+    Check decidable_valid.
+    Check (valid cand).
+
+    (* This function is takes u, v and val where permute u = (v, val) 
+       and return true or false *)
+    Variable certify_permuted_ballots : eballot -> eballot -> Z -> bool.
+    
     Inductive HCount (bs : list eballot) : HState -> Type :=
+      (* start of counting *)
     | ax us (m : cand -> cand -> ciphertext) :
         us = bs (* We start from uncounted ballots *) ->
-        (forall c d, zero_knowledge_dec O (m c d) = true) ->
+        (forall c d, zero_knowledge_dec 0 (m c d) = true) ->
         (* Honest decryption proof that m is encryption of zero matrix *)
-        HCount bs (hpartial (us, []) m).
-        
+        HCount bs (hpartial (us, []) m)
+     (* Valid Ballot *)  
+    | cvalid u v b zkp us m nm inbs :
+        HCount bs (hpartial (u :: us, inbs) m) ->
+        (* add the validity of ballot b *)
+        (* permute u = (v, zkp) and ceritify_permuted_ballots u v zkp = true *)
+        (forall c d, (fst (permute u)) c d = v c d /\
+                     (snd (permute u)) = zkp /\
+                     certify_permuted_ballots u v zkp = true /\
+                     zero_knowledge_dec (b c d) (v c d) = true) -> 
+        (* Proof that new margin is encrypted sum *)
+        (forall c d, nm c d = add_eballots m u c d) ->
+        HCount bs (hpartial (us, inbs) nm)                    
+    | cinvalid u v b zkp us m inbs :
+        HCount bs (hpartial (us, inbs) m) ->
+        (* invalid ballot b *)
+        (* with adequate proof about b being honest u -> v -> b *)
+        (forall c d, (fst (permute u)) c d = v c d /\
+                     (snd (permute u)) = zkp /\
+                     certify_permuted_ballots u v zkp = true /\
+                     zero_knowledge_dec (b c d) (v c d) = true) ->
+        HCount bs (hpartial (us, u :: inbs) m)
+     (* Decrypt the margin function at this point with proof that it is 
+        honest decryption *)          
+    | cderypt inbs m dm :
+         HCount bs (hpartial ([], inbs) m) ->
+         (* proof of honest decryption *)
+         (forall c d, zero_knowledge_dec (dm c d) (m c d) = true) ->
+         HCount bs (hdecrypt dm)
+     (* Compute the winner *)           
+    | fin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
+        HCount bs (hdecrypt dm) -> 
+        (forall c, w c = true <-> (exists x, d c = inl x)) ->
+        (forall c, w c = false <-> (exists x, d c = inr x)) ->
+        HCount bs (winners w).           
+               
 
     
   End ECount.
 
   Check HCount.
     
-    Inductive HCount (bs : list eballot) : HState -> Type :=
-    | ax us (m : cand -> cand -> Z) (ev : cand -> cand -> Z): 
-         us = bs -> (forall c d, enc 0 (ev c d) = m c d) -> HCount bs (hpartial (us, []) m)
-    | cvalid u us m nm inbs (v : cand -> cand -> Z) (p : Zkp u v) (b : cand -> cand -> Z)
-         (ev : cand -> cand -> Z) :
-         HCount bs (hpartial (u :: us, inbs) m) -> 
-         ((*check_zkp u v p *) true = true) -> 
-         (forall c d, enc (b c d) (ev c d) = v c d) ->
-         (*valid b -> *)
-         (forall c d, nm c d = m c d + u c d) ->
-         HCount bs (hpartial (us, inbs) nm)
-  
-    | cinvalid u us m inbs (v : cand -> cand -> Z) (p : Zkp u v) (b : cand -> cand -> Z)
-               (ev : cand -> cand -> Z) : HCount bs (hpartial (u :: us, inbs) m) ->
-        ( (*check_zkp u v p*) true = true) -> 
-        (forall c d, enc (b c d) (ev c d) = v c d) -> 
-        (* invalid b  -> *) 
-        HCount bs (hpartial (us, u :: inbs) m)
-
-    | cderypt inbs m ev dm : HCount bs (hpartial ([], inbs) m) -> 
-         (forall c d, enc (m c d) (ev c d) = dm c d) ->
-         HCount bs (hdecrypt dm)
-
-    | fin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
-        HCount bs (hdecrypt dm) -> 
-        (forall c, w c = true <-> (exists x, d c = inl x)) ->
-        (forall c, w c = false <-> (exists x, d c = inr x)) ->
-        HCount bs (winners w).
-
+ 
 
 
                                     
