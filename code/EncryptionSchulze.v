@@ -26,6 +26,8 @@ Section Encryption.
   Hypothesis dec_cand : forall n m : cand, {n = m} + {n <> m}.
   Hypothesis cand_not_nil : cand_all <> nil.
 
+  
+
   Section Evote.
     (** Section 2: Specification of Schulze Vote Counting **)
 
@@ -704,35 +706,76 @@ Section Encryption.
     
   End Evote.
 
+  
 
+    
+  
   Section ECount.
 
-    Axiom ciphertext : Type.
-    Variable key : Z.
-    
-    Definition ballot := cand -> cand -> nat.
-    Definition eballot := cand -> cand -> Z. (* Here Ciphertext is encrypted natural *)
-    (* assume for the moment that Ciphertext is Z *)
+    (* 
+    Axiom plaintext : Type.
+    Axiom ciphertext : Type. *)
+
+    Definition plaintext := nat.
+    Definition ciphertext := (Z * Z)%type. (* Cipher text is pair (c1, c2) *)
+
+    Definition t : ciphertext := (1, 2).
 
     
+    (* ballot is plain text value *)
+    Definition ballot := cand -> cand -> plaintext.
+    (* eballot is encrypted value *)
+    Definition eballot := cand -> cand -> ciphertext.
+
+    
+    
     Inductive HState: Type :=
-    | hpartial: (list eballot * list eballot)  -> (cand -> cand -> Z) -> HState 
+    | hpartial: (list eballot * list eballot)  -> (cand -> cand -> ciphertext) -> HState 
     | hdecrypt: (cand -> cand -> Z) -> HState
     | winners: (cand -> bool) -> HState.
 
-    
+    Definition Kpub := Z.
+    Definition Kpriv := Z.
+    (* This function will be realized by Elgamal Encryption. 
+       Enc_Pk (m, r) = (g^r, m * h^r) *)
+    Variable enc : Kpub -> plaintext ->  ciphertext.
 
-    Definition ence x :=  (x  + key + 10, 10).
+    (* This function will be realized by Elgamal Decryption 
+       which takes encrypted message (c1, c2), private key
+       and outputs the plaintext message *)
+    Variable dec : Kpriv -> ciphertext -> plaintext.
 
-   
-    
-    
-    (* We are using simplest encryption method + *)
-    Definition enc x k := x + k + key.
+    (* This function takes encrypted ballot and returns 
+       permuted encrypted ballot with zero knowledge proof. 
+       For the moment, zero knowledge proof is assumed to 
+       be of type Z *) 
+    Variable permute : eballot ->  eballot * Z.
 
-    (* Define it in terms of Inductive data type *)
-    Variable Zkp : (cand -> cand -> Z) -> (cand -> cand -> Z) -> Type.
+    (* This function takes encrypted margin function and encrypted ballot
+       and add them as matrix addition *)
+    Variable add_eballots : (cand -> cand -> ciphertext) ->
+                            eballot -> (cand -> cand -> ciphertext).
+
+    (* This function show that ciphertext (c_1, c_2) is indeed the 
+       the encryption of message m under zero knowledge proof. See the mail 
+       exchange between Dirk and Thomas Witnessing correct encryption 
+       https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/crypto/proofsystem/classes/EqualityPreimageProofSystem.java 
+       zero_knowlege_dec m (c_1, c_2) = true *)
     
+    Variable zero_knowledge_dec : plaintext -> ciphertext -> bool.
+      
+    Inductive HCount (bs : list eballot) : HState -> Type :=
+    | ax us (m : cand -> cand -> ciphertext) :
+        us = bs (* We start from uncounted ballots *) ->
+        (forall c d, zero_knowledge_dec O (m c d) = true) ->
+        (* Honest decryption proof that m is encryption of zero matrix *)
+        HCount bs (hpartial (us, []) m).
+        
+
+    
+  End ECount.
+
+  Check HCount.
     
     Inductive HCount (bs : list eballot) : HState -> Type :=
     | ax us (m : cand -> cand -> Z) (ev : cand -> cand -> Z): 
@@ -740,7 +783,7 @@ Section Encryption.
     | cvalid u us m nm inbs (v : cand -> cand -> Z) (p : Zkp u v) (b : cand -> cand -> Z)
          (ev : cand -> cand -> Z) :
          HCount bs (hpartial (u :: us, inbs) m) -> 
-         ((*check_zkp u v (p : Zkp u v) *) true = true) -> 
+         ((*check_zkp u v p *) true = true) -> 
          (forall c d, enc (b c d) (ev c d) = v c d) ->
          (*valid b -> *)
          (forall c d, nm c d = m c d + u c d) ->
@@ -766,7 +809,7 @@ Section Encryption.
 
 
                                     
-  End ECount.
+  
 
   
 End Encryption.
