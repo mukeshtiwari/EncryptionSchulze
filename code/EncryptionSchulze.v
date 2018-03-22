@@ -734,16 +734,21 @@ Section Encryption.
     | hdecrypt: (cand -> cand -> plaintext) -> HState
     | winners: (cand -> bool) -> HState.
 
+    Variable KPub : Type.
+    Variable KPri : Type.
+
+    (*
     Definition Kpub := Z.
-    Definition Kpriv := Z.
+    Definition Kpriv := Z. *)
+    
     (* This function will be realized by Elgamal Encryption. 
        Enc_Pk (m, r) = (g^r, m * h^r) *)
-    Variable enc : Kpub -> plaintext ->  ciphertext.
+    Variable enc : KPub -> plaintext ->  ciphertext.
 
     (* This function will be realized by Elgamal Decryption 
        which takes encrypted message (c1, c2), private key
        and outputs the plaintext message *)
-    Variable dec : Kpriv -> ciphertext -> plaintext.
+    Variable dec : KPri -> ciphertext -> plaintext.
 
     (* This function takes encrypted ballot and returns 
        permuted encrypted ballot with zero knowledge proof. 
