@@ -713,15 +713,15 @@ Section Encryption.
   Section ECount.
 
     (*
-    Axiom Plaintext : Type.
-    Axiom Ciphertext : Type. *)
+    Axiom plaintext : Type.
+    Axiom ciphertext : Type. *)
 
     
-   
+    
     Definition plaintext := Z.
     Definition ciphertext := (Z * Z)%type. (* Cipher text is pair (c1, c2) *)
 
-    Definition t : ciphertext := (1, 2).
+    (* Definition t : ciphertext := (1, 2). *)
 
 
     (* ballot is plain text value *)
@@ -785,57 +785,62 @@ Section Encryption.
        logic mentioned in Coq, we are keeping data structures in inductive data type in terms of 
        zero knowledge proof which would there after extraction and could be plugged 
        into other functions to verify the correctness *)
+
+    (* Try to prove as much as possible in Coq *)
+    Check wins_type.
     Inductive HCount (bs : list eballot) : HState -> Type :=
     (* start of counting *)
     | ax us (m : cand -> cand -> ciphertext) (zkpdecm : Z)
          (* for the moment we are assuming it as integer, but it is zero knowledge proof 
             about m zero encrypted matrix *) :
         us = bs (* We start from uncounted ballots *) ->
-        (forall c d, zero_knowledge_dec 0 (m c d) zkpdecm = true) ->
-        (* This is useless, because this statement is not proved in coq, but 
+        (* (forall c d, zero_knowledge_dec 0 (m c d) zkpdecm = true) ->
+           This is useless, because this statement is not proved in coq, but 
            will run at execution of extracted code, and should return true if 
            m is encrypted zero matrix. It helps to keep track about the
            Honest decryption proof that m is encryption of zero matrix *)
         HCount bs (hpartial (us, []) m)
     (* Valid Ballot *)
-    | cvalid u v b zkppermuv zkpdecv us m nm inbs :
+    | cvalid u (v : eballot) b (zkppermuv : Z) (zkpdecv : Z) us m nm inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
-        valid cand (fun c d => b c d = 1) ->
+        valid cand (fun c d => b c d = 1) -> 
         (* b is honest decryption of v proved under zero knowledge proof 
-           data structure which is Z for the moment *)
-              (* permute u = (v, zkp) and ceritify_permuted_ballots u v zkp = true *)
+           data structure which is Z for the moment
+           permute u = (v, zkp) and ceritify_permuted_ballots u v zkp = true
         (forall c d, (fst (permute u)) c d = v c d /\
                      (snd (permute u)) = zkppermuv /\
                      certify_permuted_ballots u v zkppermuv = true /\ 
-                     zero_knowledge_dec (b c d) (v c d) zkpdecv= true) ->
-        (* Proof that new margin is encrypted sum *)
-        (forall c d, nm c d = add_eballots m u c d) ->
+                     zero_knowledge_dec (b c d) (v c d) zkpdecv= true) -> *)
+        (* Proof that new margin is encrypted sum 
+        (forall c d, nm c d = add_eballots m u c d) -> *)
         HCount bs (hpartial (us, inbs) nm)
     (* Invalid ballot *)
-    | cinvalid u v b zkppermuv zkpdecv us m inbs :
+    | cinvalid u (v : eballot) b (zkppermuv : Z) (zkpdecv : Z) us m inbs :
         HCount bs (hpartial (us, inbs) m) ->
-        ~valid cand (fun c d => b c d = 1) ->
-        (forall c d, zero_knowledge_dec (b c d) (v c d) zkpdecv = true) ->
-        (* with adequate proof about b being honest u -> v -> b *)
+        ~valid cand (fun c d => b c d = 1) -> 
+        (* with adequate proof about b being honest u -> v -> b  
         (forall c d, (fst (permute u)) c d = v c d /\
                      (snd (permute u)) = zkppermuv /\
                      certify_permuted_ballots u v zkppermuv = true /\
-                     zero_knowledge_dec (b c d) (v c d) zkpdecv= true) ->
-        HCount bs (hpartial (us, u :: inbs) m)
+                     zero_knowledge_dec (b c d) (v c d) zkpdecv= true) -> *)
+        HCount bs (hpartial (us, u :: inbs) m) 
     (* Decrypt the margin function at this point with proof that it is
         honest decryption *)
-    | cderypt inbs m dm zkpdecm :
+    | cderypt inbs m dm (zkpdecm : Z):
         HCount bs (hpartial ([], inbs) m) ->
-        (* proof of honest decryption *)
-        (forall c d, zero_knowledge_dec (dm c d) (m c d) zkpdecm = true) ->
+        (* proof of honest decryption 
+        (forall c d, zero_knowledge_dec (dm c d) (m c d) zkpdecm = true) -> *)
         HCount bs (hdecrypt dm)
     (* Compute the winner *)
     | fin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
         HCount bs (hdecrypt dm) ->
         (forall c, w c = true <-> (exists x, d c = inl x)) ->
         (forall c, w c = false <-> (exists x, d c = inr x)) ->
-        HCount bs (winners w).
+        HCount bs (winners w). 
 
+
+
+    
   End ECount.
 
 
