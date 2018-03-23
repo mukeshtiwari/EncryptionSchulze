@@ -26,7 +26,7 @@ Section Encryption.
   Hypothesis dec_cand : forall n m : cand, {n = m} + {n <> m}.
   Hypothesis cand_not_nil : cand_all <> nil.
 
-  
+
 
   Section Evote.
     (** Section 2: Specification of Schulze Vote Counting **)
@@ -105,13 +105,13 @@ Section Encryption.
     Lemma mp_log : forall (k : Z) (x : cand * cand) (p : cand * cand -> bool),
         (forallb (fun m => orb (marg_lt k (fst x, m)) (p (m, snd x))) cand_all) = true ->
         forall b, p (b, snd x) = true \/ marg (fst x) b < k.
-    Proof. 
+    Proof.
       intros k x p H b.
       assert (Hin : In b cand_all) by  apply cand_fin.
       pose proof (proj1 (forallb_forall _ cand_all) H b Hin) as Hp. simpl in Hp.
       apply orb_true_iff in Hp; destruct Hp as [Hpl | Hpr]; destruct x as (a, c); simpl in *.
       + right; apply Zlt_is_lt_bool; auto.
-      + left;auto.      
+      + left;auto.
     Qed.
 
     (* all elements (x, y) in a k-coclosed set can only be joined by a path of strenght < k *)
@@ -119,7 +119,7 @@ Section Encryption.
           Path s x y -> f (x, y) = true -> s < k.
     Proof.
       intros k f Hcc x s y p. induction p.
-      
+
       (* unit path *)
       + intros Hin; specialize (Hcc (c, d) Hin); apply andb_true_iff in Hcc;
           destruct Hcc as [Hccl Hccr]; apply Zlt_is_lt_bool in Hccl; simpl in Hccl;  omega.
@@ -132,18 +132,18 @@ Section Encryption.
         specialize (Hmp d). destruct Hmp; [intuition | omega].
     Qed.
 
-    
-    Definition listify (m : cand -> cand -> Z) :=
-      map (fun s => (fst s, snd s, m (fst s) (snd s))) (all_pairs cand_all). 
 
-   
-    
+    Definition listify (m : cand -> cand -> Z) :=
+      map (fun s => (fst s, snd s, m (fst s) (snd s))) (all_pairs cand_all).
+
+
+
     Lemma in_pairs : forall a b, In a cand_all -> In b cand_all -> In (a, b) (all_pairs cand_all).
     Proof.
       intros a b H1 H2. apply all_pairsin; auto.
     Qed.
-                      
-    
+
+
     Fixpoint linear_search (c d : cand) l :=
       match l with
       | [] => marg c d
@@ -154,7 +154,7 @@ Section Encryption.
         end
       end.
 
-    
+
     Theorem equivalent_m : forall c d m, linear_search c d (listify m) = m c d.
     Proof.
       unfold listify. intros c d m.
@@ -174,17 +174,17 @@ Section Encryption.
         specialize (n H1). inversion n.
         apply IHl. auto.
     Qed.
-    
-      
 
-    
+
+
+
     Fixpoint M_old (n : nat) (c d : cand) : Z :=
       match n with
       | 0%nat => marg c d
       | S n' =>
         Z.max (M_old n' c d) (maxlist (map (fun x : cand => Z.min (marg c x) (M_old n' x d)) cand_all))
       end.
-    
+
     (* M is the iterated margin function and maps a pair of candidates c, d to the
        strength of the strongest path of length at most (n + 1) *)
 
@@ -204,8 +204,8 @@ Section Encryption.
       let l := MM n in
       fun c d => linear_search c d l.
 
- 
-    Lemma M_M_new_equal : forall n c d , M n c d = M_old n c d. 
+
+    Lemma M_M_new_equal : forall n c d , M n c d = M_old n c d.
     Proof.
       induction n. unfold M. simpl. intros c d. rewrite equivalent_m. auto.
       intros c d.  unfold M in *. simpl. rewrite equivalent_m.
@@ -217,8 +217,8 @@ Section Encryption.
       rewrite H. apply f_equal. auto.
       rewrite Ht. rewrite IHn. auto.
     Qed.
-    
-    
+
+
     (* partial correctness of iterated margin function: if the strength M n c d
        of the strongest path of length <= n+1 between c and d is at least s, then
        c and d can be joined by a type-level path of this strength *)
@@ -229,15 +229,15 @@ Section Encryption.
       intros s c d H. unfold M in *. simpl in H. rewrite equivalent_m in H.
       unfold Z.max in H.
       destruct (linear_search c d (MM n)
-        ?= maxlist (map (fun x : cand => Z.min (marg c x) (linear_search x d (MM n))) cand_all)).
+                              ?= maxlist (map (fun x : cand => Z.min (marg c x) (linear_search x d (MM n))) cand_all)).
       apply IHn. auto.
       apply max_of_nonempty_list_type in H. destruct H as [x [H1 H2]].
       apply z_min_lb in H2. destruct H2.
       specialize (IHn _ _ _ H0). specialize (consT _ _ _ _ H IHn); auto.
       apply cand_not_nil.  apply dec_cand. apply IHn. assumption.
     Defined.
-      
-    
+
+
     (* as type level paths induce prop-level paths, the same as above also holds for prop-level
        paths *)
     Lemma iterated_marg_path : forall (n : nat) (s : Z) (c d : cand),
@@ -289,7 +289,7 @@ Section Encryption.
       specialize (H1 H). subst. simpl in *. unfold M in *. simpl. rewrite equivalent_m. auto.
       intros. simpl in *. destruct l. simpl in *.
       unfold M in *. simpl.
- 
+
       rewrite equivalent_m. apply z_max_lb.
       left. apply IHk with []. simpl. omega. simpl. auto.
       simpl in *. apply z_min_lb in H0. destruct H0.
@@ -308,7 +308,7 @@ Section Encryption.
       split. generalize dependent s. generalize dependent d.
       generalize dependent c. induction k. simpl. intros. exists []. simpl. intuition.
       unfold M in *. simpl in H. rewrite equivalent_m in H. auto.
-      
+
       simpl. intros. unfold M in *. simpl in H.
 
       rewrite equivalent_m in H.  pose proof (proj1 (z_max_lb (M k c d) _ s) H).
@@ -434,7 +434,7 @@ Section Encryption.
       pose proof
            (proj1 (forallb_forall
                      (fun d : cand => M (length cand_all) d c <=?
-                                   M (length cand_all) c d) cand_all) H).
+                                      M (length cand_all) c d) cand_all) H).
       pose proof (H0 d (cand_fin d)). simpl in H1.
       apply Zle_bool_imp_le. assumption.
       unfold c_wins. apply forallb_forall. intros x Hin.
@@ -473,8 +473,8 @@ Section Encryption.
                                                   M (length cand_all) d c <= M (length cand_all) c d) ->
                                               wins_type c.
     Proof.
-     (* rewrite it using refine tactic *)
-      
+      (* rewrite it using refine tactic *)
+
       intros H d. specialize (H d).
       remember (M (length cand_all) c d) as s eqn:Heqs.
       apply Z.eq_le_incl in Heqs.
@@ -490,7 +490,7 @@ Section Encryption.
           apply Z.leb_le in Hx. apply andb_true_iff.
           split.
           * apply Z.ltb_lt. simpl in *.
-            clear Heqs. clear Heqr.  
+            clear Heqs. clear Heqr.
             induction (length cand_all); simpl in Hx. unfold M in Hx. simpl in Hx.
             rewrite equivalent_m in Hx.
             intuition.
@@ -511,8 +511,8 @@ Section Encryption.
             apply  path_iterated_marg in C. destruct C as [n C].
             pose proof (iterated_marg_fp x z n). omega.
     Defined.
-    
-     
+
+
 
     (* the type level winning condition can be reconstruced from *)
     (* propositional knowledge of winning *)
@@ -557,26 +557,26 @@ Section Encryption.
         | [] =>
           fun H : exists a : A, In a [] /\ P a =>
             (fun Hf : False => (fun X : existsT a : A,P a => X)
-                          match Hf return
-                                (existsT a : A,P a) with end)
+                                 match Hf return
+                                       (existsT a : A,P a) with end)
               match H with
               | ex_intro _ a (conj Ha _) => (fun H1 : False => H1) match Ha return False with end
               end
         | h :: t => fun H =>
-                     match (Pdec h) with
-                     | left e => existT _ h e
-                     | right r =>
-                       F t
-                         match H with
-                         | ex_intro _ a (conj (or_introl e) Hpa) =>
-                           (fun rr : ~ P a => False_ind (exists a1 : A, In a1 t /\ P a1) (rr Hpa))
-                             (eq_ind h (fun hh : A => ~ P hh) r a e)
-                         | ex_intro _ a (conj (or_intror rr as Hin) Hpa as a0) =>
-                           ex_intro _ a (conj rr Hpa)
-                         end
-                     end
+                      match (Pdec h) with
+                      | left e => existT _ h e
+                      | right r =>
+                        F t
+                          match H with
+                          | ex_intro _ a (conj (or_introl e) Hpa) =>
+                            (fun rr : ~ P a => False_ind (exists a1 : A, In a1 t /\ P a1) (rr Hpa))
+                              (eq_ind h (fun hh : A => ~ P hh) r a e)
+                          | ex_intro _ a (conj (or_intror rr as Hin) Hpa as a0) =>
+                            ex_intro _ a (conj rr Hpa)
+                          end
+                      end
         end.
-    
+
     (* reification of candidates given propositional existence *)
     Corollary reify_opponent (c: cand):
       (exists  d, M  (length cand_all) c d < M (length cand_all) d c) ->
@@ -604,9 +604,9 @@ Section Encryption.
                       then fun Pt => left Pt
                       else fun Pf => right (fun H => Pf H)) P)).
     Defined.
-    
-    
-    
+
+
+
     (* reconstructon of the losing condition type-level losing from interated
        margin function *)
     Lemma iterated_marg_loses_type (c : cand) :
@@ -677,7 +677,7 @@ Section Encryption.
       apply forallb_false_type in c_wins_val.
       destruct c_wins_val as [d [H1 H2]]. apply Z.leb_gt in H2. exists d. auto.
     Defined.
-    
+
     (* aligning c_wins with type level evidence *)
     Lemma c_wins_true_type:
       forall c : cand, c_wins c = true <-> (exists x : wins_type c, wins_loses_type_dec c = inl x).
@@ -703,57 +703,60 @@ Section Encryption.
       apply c_wins_false. apply loses_prop_iterated_marg. auto.
     Qed.
 
-    
+
   End Evote.
 
-  
 
-    
-  
+
+
+
   Section ECount.
 
-    (* 
-    Axiom plaintext : Type.
-    Axiom ciphertext : Type. *)
+    (*
+    Axiom Plaintext : Type.
+    Axiom Ciphertext : Type. *)
 
+    
+   
     Definition plaintext := Z.
     Definition ciphertext := (Z * Z)%type. (* Cipher text is pair (c1, c2) *)
 
     Definition t : ciphertext := (1, 2).
 
-    
+
     (* ballot is plain text value *)
     Definition ballot := cand -> cand -> plaintext.
     (* eballot is encrypted value *)
     Definition eballot := cand -> cand -> ciphertext.
 
-    
-    
+
+
     Inductive HState: Type :=
-    | hpartial: (list eballot * list eballot)  -> (cand -> cand -> ciphertext) -> HState 
+    | hpartial: (list eballot * list eballot)  -> (cand -> cand -> ciphertext) -> HState
     | hdecrypt: (cand -> cand -> plaintext) -> HState
     | winners: (cand -> bool) -> HState.
 
+    
     Variable KPub : Type.
     Variable KPri : Type.
 
     (*
     Definition Kpub := Z.
     Definition Kpriv := Z. *)
-    
-    (* This function will be realized by Elgamal Encryption. 
+
+    (* This function will be realized by Elgamal Encryption.
        Enc_Pk (m, r) = (g^r, m * h^r) *)
     Variable enc : KPub -> plaintext ->  ciphertext.
 
-    (* This function will be realized by Elgamal Decryption 
+    (* This function will be realized by Elgamal Decryption
        which takes encrypted message (c1, c2), private key
        and outputs the plaintext message *)
     Variable dec : KPri -> ciphertext -> plaintext.
 
-    (* This function takes encrypted ballot and returns 
-       permuted encrypted ballot with zero knowledge proof. 
-       For the moment, zero knowledge proof is assumed to 
-       be of type Z *) 
+    (* This function takes encrypted ballot and returns
+       permuted encrypted ballot with zero knowledge proof.
+       For the moment, zero knowledge proof is assumed to
+       be of type Z *)
     Variable permute : eballot ->  eballot * Z.
 
     (* This function takes encrypted margin function and encrypted ballot
@@ -761,77 +764,87 @@ Section Encryption.
     Variable add_eballots : (cand -> cand -> ciphertext) ->
                             eballot -> (cand -> cand -> ciphertext).
 
-    (* This function show that ciphertext (c_1, c_2) is indeed the 
-       the encryption of message m under zero knowledge proof. See the mail 
-       exchange between Dirk and Thomas Witnessing correct encryption 
-       https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/crypto/proofsystem/classes/EqualityPreimageProofSystem.java 
+    (* This function show that ciphertext (c_1, c_2) is indeed the
+       the encryption of message m under zero knowledge proof. See the mail
+       exchange between Dirk and Thomas Witnessing correct encryption
+       https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/crypto/proofsystem/classes/EqualityPreimageProofSystem.java
        zero_knowlege_dec m (c_1, c_2) = true *)
+
+    Variable zero_knowledge_dec : plaintext -> ciphertext -> Z -> bool.
+
     
-    Variable zero_knowledge_dec : plaintext -> ciphertext -> bool.
 
-    Check decidable_valid.
-    Check (valid cand).
-
-    (* This function is takes u, v and val where permute u = (v, val) 
+    (* This function is takes u, v and val where permute u = (v, val)
        and return true or false *)
     Variable certify_permuted_ballots : eballot -> eballot -> Z -> bool.
-    
+
+    (* Note that all the assertions would be erased after code extractions
+       so keeping them is kind of useless becaue we are not proving them, 
+       but using a Java library, unicrypt, to plug the needed implementation.
+       So in order to convince the user that it computes according to 
+       logic mentioned in Coq, we are keeping data structures in inductive data type in terms of 
+       zero knowledge proof which would there after extraction and could be plugged 
+       into other functions to verify the correctness *)
     Inductive HCount (bs : list eballot) : HState -> Type :=
-      (* start of counting *)
-    | ax us (m : cand -> cand -> ciphertext) :
+    (* start of counting *)
+    | ax us (m : cand -> cand -> ciphertext) (zkp : Z)
+         (* for the moment we are assuming it as integer, but it is zero knowledge proof 
+            about m zero encrypted matrix *) :
         us = bs (* We start from uncounted ballots *) ->
-        (forall c d, zero_knowledge_dec 0 (m c d) = true) ->
-        (* Honest decryption proof that m is encryption of zero matrix *)
+        (forall c d, zero_knowledge_dec 0 (m c d) zkp = true) ->
+        (* This is useless, because this statement is not proved in coq, but 
+           will run at execution of extracted code, and should return true if 
+           m is encrypted zero matrix. It helps to keep track about the
+           Honest decryption proof that m is encryption of zero matrix *)
         HCount bs (hpartial (us, []) m)
-     (* Valid Ballot *)  
+    (* Valid Ballot *)
     | cvalid u v b zkp us m nm inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
-        (* add the validity of ballot b *)
-        (* permute u = (v, zkp) and ceritify_permuted_ballots u v zkp = true *)
-        (forall c d, (fst (permute u)) c d = v c d /\
-                     (snd (permute u)) = zkp /\
-                     certify_permuted_ballots u v zkp = true /\
-                     zero_knowledge_dec (b c d) (v c d) = true) -> 
+        valid cand (fun c d => b c d = 1) ->
+              (* permute u = (v, zkp) and ceritify_permuted_ballots u v zkp = true *)
+              (forall c d, (fst (permute u)) c d = v c d /\
+                           (snd (permute u)) = zkp /\
+                           certify_permuted_ballots u v zkp = true /\
+                           zero_knowledge_dec (b c d) (v c d) = true) ->
         (* Proof that new margin is encrypted sum *)
         (forall c d, nm c d = add_eballots m u c d) ->
-        HCount bs (hpartial (us, inbs) nm)                    
+        HCount bs (hpartial (us, inbs) nm)
     | cinvalid u v b zkp us m inbs :
         HCount bs (hpartial (us, inbs) m) ->
-        (* invalid ballot b *)
+        ~valid cand (fun c d => b c d = 1) ->
         (* with adequate proof about b being honest u -> v -> b *)
         (forall c d, (fst (permute u)) c d = v c d /\
                      (snd (permute u)) = zkp /\
                      certify_permuted_ballots u v zkp = true /\
                      zero_knowledge_dec (b c d) (v c d) = true) ->
         HCount bs (hpartial (us, u :: inbs) m)
-     (* Decrypt the margin function at this point with proof that it is 
-        honest decryption *)          
+    (* Decrypt the margin function at this point with proof that it is
+        honest decryption *)
     | cderypt inbs m dm :
-         HCount bs (hpartial ([], inbs) m) ->
-         (* proof of honest decryption *)
-         (forall c d, zero_knowledge_dec (dm c d) (m c d) = true) ->
-         HCount bs (hdecrypt dm)
-     (* Compute the winner *)           
+        HCount bs (hpartial ([], inbs) m) ->
+        (* proof of honest decryption *)
+        (forall c d, zero_knowledge_dec (dm c d) (m c d) = true) ->
+        HCount bs (hdecrypt dm)
+    (* Compute the winner *)
     | fin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
-        HCount bs (hdecrypt dm) -> 
+        HCount bs (hdecrypt dm) ->
         (forall c, w c = true <-> (exists x, d c = inl x)) ->
         (forall c, w c = false <-> (exists x, d c = inr x)) ->
-        HCount bs (winners w).           
-               
+        HCount bs (winners w).
 
-    
   End ECount.
 
+
+
+
+
   Check HCount.
-    
- 
 
 
-                                    
-  
 
-  
+
+
+
+
+
 End Encryption.
-
-
-    
