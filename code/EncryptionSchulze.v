@@ -839,8 +839,22 @@ Section Encryption.
         HCount bs (winners w). 
 
 
+    Lemma ballot_valid_dec :
+      forall b : ballot, {valid cand (fun c d => b c d = 1)} +
+                         {~(valid cand (fun c d => b c d = 1))}.
+    Proof.  
+      intros b.
+      pose proof (decidable_valid cand (fun c d => b c d = 1) dec_cand).
+      simpl in X. assert (Ht : forall c d : cand, {b c d = 1} + {b c d <> 1}).
+      intros c d. pose proof (Z.eq_dec (b c d) 1). auto.      
+      pose proof (X Ht). unfold finite in X0. apply X0.
+      exists cand_all. assumption.
+    Defined.
 
     
+    
+
+      
   End ECount.
 
 
