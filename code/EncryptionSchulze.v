@@ -746,12 +746,12 @@ Section Encryption.
 
     (* This function will be realized by Elgamal Encryption.
        Enc_Pk (m, r) = (g^r, m * h^r) *)
-    Variable enc : KPub -> plaintext ->  ciphertext.
+    Variable enc : KPub -> ballot ->  eballot.
 
     (* This function will be realized by Elgamal Decryption
        which takes encrypted message (c1, c2), private key
        and outputs the plaintext message *)
-    Variable dec : KPri -> ciphertext -> plaintext.
+    Variable dec : KPri -> eballot -> ballot.
 
     (* This function takes encrypted ballot and returns
        permuted encrypted ballot with zero knowledge proof.
@@ -816,7 +816,7 @@ Section Encryption.
         HCount bs (hpartial (us, inbs) nm)
     (* Invalid ballot *)
     | cinvalid u (v : eballot) b (zkppermuv : Z) (zkpdecv : Z) us m inbs :
-        HCount bs (hpartial (us, inbs) m) ->
+        HCount bs (hpartial (u :: us, inbs) m) ->
         ~valid cand (fun c d => b c d = 1) -> 
         (* with adequate proof about b being honest u -> v -> b  
         (forall c d, (fst (permute u)) c d = v c d /\
@@ -850,10 +850,44 @@ Section Encryption.
       pose proof (X Ht). unfold finite in X0. apply X0.
       exists cand_all. assumption.
     Defined.
-
     
+    Axiom kpriv : KPri.
+    Axiom kpub : KPub.
     
+    Lemma partial_count_all_counted bs : forall ts inbs m,
+        HCount bs (hpartial (ts, inbs) m) -> existsT i nm, (HCount bs (hpartial ([], i) nm)).
+    Proof.
+      refine (fix F ts {struct ts} :=
+                match ts with
+                | [] => fun inbs m Hc =>
+                          existT _ inbs (existT _ m Hc)
+                | u :: us =>
+                  fun inbs m Hc => _
+                end).
+      (* We permuate the ballot u using permute function which gives 
+         permuted ballot v and zero knowledge proof of this permutation *)
+      destruct (permute u) as [v zkppermuv].
+      (* decrypte the permuted ballot v and prove its validity *)
+      remember (dec kpriv v) as b.
+      (* Decide the validity of ballot b. *)
+      destruct (ballot_valid_dec b). remember (add_eballots m u) as w.
+      (* valid ballot so add it to encrypted marging m so far *)
+      pose proof (F us inbs w (cvalid bs u v b
+                                      zkppermuv (* zero knowledge proof of v being perm of u *)
+                                      0 (* dummy zero knowledge proof that b is indeed correct 
+                                 decryption of v *)
+                                      us m w inbs Hc v0)).  
+      destruct X as [i [ns Ht]].
+      exists i. exists ns. assumption.
 
+      (* ballot not valid *) 
+      pose proof (F us (u :: inbs) m
+                    (cinvalid bs u v b
+                              zkppermuv
+                              0 us m inbs Hc n)).
+      destruct X as [i [ns Ht]].
+      exists i. exists ns. assumption.
+    Defined. 
       
   End ECount.
 
