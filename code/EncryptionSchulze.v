@@ -888,14 +888,21 @@ Section Encryption.
       destruct X as [i [ns Ht]].
       exists i. exists ns. assumption.
     Defined. 
-      
+
+    
+    Lemma  all_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
+    Proof.
+      pose proof (partial_count_all_counted bs bs [] (enc kpub (fun _ _ => 0))).
+      pose (ax bs bs (enc kpub (fun _ _ => 0))
+               0 (* Zero knowledge proof of m is zero encrypted matrix *)
+               eq_refl).
+      destruct (X h) as [i [m Hs]].
+      exists i. exists m. assumption.
+    Defined.
+    
   End ECount.
 
 
-
-
-
-  Check HCount.
 
 
 
