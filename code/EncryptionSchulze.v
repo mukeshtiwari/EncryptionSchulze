@@ -716,7 +716,7 @@ Section Encryption.
     Axiom plaintext : Type.
     Axiom ciphertext : Type. *)
 
-    
+     
     
     Definition plaintext := Z.
     Definition ciphertext := (Z * Z)%type. (* Cipher text is pair (c1, c2) *)
@@ -851,8 +851,8 @@ Section Encryption.
       exists cand_all. assumption.
     Defined.
     
-    Axiom kpriv : KPri.
-    Axiom kpub : KPub.
+    Variable kpriv : KPri.
+    Variable kpub : KPub.
     
     Lemma partial_count_all_counted bs : forall ts inbs m,
         HCount bs (hpartial (ts, inbs) m) -> existsT i nm, (HCount bs (hpartial ([], i) nm)).
@@ -923,3 +923,75 @@ Section Encryption.
   End ECount.
 
 End Encryption.
+
+Section Candidate.
+
+  Inductive cand := A | B.
+  Definition cand_all := [A; B].
+
+  Lemma cand_finite : forall c, In c cand_all.
+  Proof.
+    unfold cand_all; intro a; repeat induction a || (unfold In; tauto).
+  Qed.
+
+  Lemma  cand_eq_dec : forall c d : cand, {c = d} + {c <> d}.
+  Proof.
+    intros a b;
+      repeat induction a; 
+      repeat (induction b) || (right; discriminate) ||(left; trivial).
+  Defined.
+
+  Lemma cand_not_empty : cand_all <> nil.
+  Proof. unfold cand_all. intros H. inversion H.
+  Qed.
+
+  
+  Inductive KPub : Type :=
+  | pubkey : Z -> KPub.
+
+  Inductive KPriv : Type :=
+  | prikey : Z -> KPriv.  
+
+  Check schulze_winners.
+  
+  Definition b1 : ballot cand :=
+    fun c d => match c, d with
+               | A, A => 0
+               | A, B => 1
+               | B, B => 0
+               | B, A => 0
+               end.
+
+
+  Definition e1 : eballot cand :=
+    fun c d => match c, d with
+               | A, A => (0, 0)
+               | A, B => (1, 0)
+               | B, B => (0, 0)
+               | B, A => (0, 0)
+               end.
+  
+  
+  Definition enc  (v : KPub) (b : ballot cand) := e1.
+  Definition dec  (v : KPriv) (e : eballot cand) := b1.
+
+  Definition dummy_fun (e : eballot cand) := (e, 0).
+  Definition add_enc_marging (m : cand -> cand -> ciphertext) (e : eballot cand) :=
+    fun c d : cand => match (m c d), (e c d) with
+                      | (f, _), (s, _) => (f + s, 0)
+                      end.
+  
+  Definition Schulze_all :=
+    (schulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty KPub KPriv
+                     enc dec dummy_fun add_enc_marging (prikey 0) (pubkey 0)).
+
+  Check Schulze_all.
+  Definition bs := [e1; e1; e1; e1; e1].
+
+  Definition schulze_win := Schulze_all bs.
+End Candidate.
+
+
+Definition schulze_winners_pf := schulze_win.
+
+
