@@ -826,7 +826,7 @@ Section Encryption.
         HCount bs (hpartial (us, u :: inbs) m) 
     (* Decrypt the margin function at this point with proof that it is
         honest decryption *)
-    | cderypt inbs m dm (zkpdecm : Z):
+    | cdecrypt inbs m dm (zkpdecm : Z):
         HCount bs (hpartial ([], inbs) m) ->
         (* proof of honest decryption 
         (forall c d, zero_knowledge_dec (dm c d) (m c d) zkpdecm = true) -> *)
@@ -899,16 +899,27 @@ Section Encryption.
       destruct (X h) as [i [m Hs]].
       exists i. exists m. assumption.
     Defined.
+
+
+    Lemma decrypt_margin (bs : list eballot) : existsT m, HCount bs (hdecrypt m).
+    Proof.
+      destruct (all_ballots_counted bs) as [i [encm p]].
+      pose proof (cdecrypt bs i encm (dec kpriv encm)
+                          0 (* Zero knowledge proof of decryption of encm *)).
+      pose proof (X p). exists (dec kpriv encm). assumption.
+    Defined.
+
+   
+    Lemma schulze_winners (bs : list eballot) :
+      existsT (f : cand -> bool), HCount bs (winners f).
+    Proof.
+      destruct (decrypt_margin bs) as [dm H].
+      exists (c_wins dm).
+      pose proof (fin bs dm (c_wins dm) (wins_loses_type_dec dm)).
+      pose proof (X H (c_wins_true_type dm) (c_wins_false_type dm)).
+      auto.
+    Defined.
     
   End ECount.
-
-
-
-
-
-
-
-
-
 
 End Encryption.
