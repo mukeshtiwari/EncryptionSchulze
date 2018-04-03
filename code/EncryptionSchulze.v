@@ -719,9 +719,7 @@ Section Encryption.
      
     
     Definition plaintext := Z.
-    Definition ciphertext := (Z * Z)%type. (* Cipher text is pair (c1, c2) *)
-
-    (* Definition t : ciphertext := (1, 2). *)
+    Definition ciphertext := (Z * Z)%type. (* Cipher text is pair (c1, c2). Elgamal encryption *)
 
 
     (* ballot is plain text value *)
@@ -729,40 +727,47 @@ Section Encryption.
     (* eballot is encrypted value *)
     Definition eballot := cand -> cand -> ciphertext.
 
-
+    
 
     Inductive HState: Type :=
     | hpartial: (list eballot * list eballot)  -> (cand -> cand -> ciphertext) -> HState
     | hdecrypt: (cand -> cand -> plaintext) -> HState
     | winners: (cand -> bool) -> HState.
 
-    
-    Variable KPub : Type.
-    Variable KPri : Type.
+    (* Public key and private key are integers *)
+    Definition Pubkey := Z.
+    Definition Prikey := Z.
 
+    (* private and public key *)
+    Variable privatekey : Prikey.
+    Variable publickey : Pubkey.
+    
     (*
-    Definition Kpub := Z.
-    Definition Kpriv := Z. *)
+    Variable KPub : Type.
+    Variable KPri : Type. *)
+
 
     (* This function will be realized by Elgamal Encryption.
        Enc_Pk (m, r) = (g^r, m * h^r) *)
-    Variable enc : KPub -> ballot ->  eballot.
+    Variable encrypt_ballot : Pubkey -> ballot ->  eballot.
 
     (* This function will be realized by Elgamal Decryption
        which takes encrypted message (c1, c2), private key
        and outputs the plaintext message *)
-    Variable dec : KPri -> eballot -> ballot.
+    Variable decrypt_ballot : Prikey -> eballot -> ballot.
 
     (* This function takes encrypted ballot and returns
        permuted encrypted ballot with zero knowledge proof.
        For the moment, zero knowledge proof is assumed to
        be of type Z *)
-    Variable permute : eballot ->  eballot * Z.
+    Variable permute_encrypted_ballot : eballot ->  eballot * Z.
 
     (* This function takes encrypted margin function and encrypted ballot
-       and add them as matrix addition *)
-    Variable add_eballots : (cand -> cand -> ciphertext) ->
-                            eballot -> (cand -> cand -> ciphertext).
+       and multiply them pointwise. 
+       https://nvotes.com/multiplicative-vs-additive-homomorphic-elgamal/ *)
+    Variable homomorphic_add_eballots :
+      (cand -> cand -> ciphertext) ->
+      eballot -> (cand -> cand -> ciphertext).
 
     (* This function show that ciphertext (c_1, c_2) is indeed the
        the encryption of message m under zero knowledge proof. See the mail
@@ -770,7 +775,7 @@ Section Encryption.
        https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/crypto/proofsystem/classes/EqualityPreimageProofSystem.java
        zero_knowlege_dec m (c_1, c_2) = true *)
 
-    Variable zero_knowledge_dec : plaintext -> ciphertext -> Z -> bool.
+    Variable zero_knowledge_decryption : plaintext -> ciphertext -> Z -> bool.
 
     
 
@@ -786,15 +791,14 @@ Section Encryption.
        zero knowledge proof which would there after extraction and could be plugged 
        into other functions to verify the correctness *)
 
-    (* Try to prove as much as possible in Coq *)
-    Check wins_type.
+    
     Inductive HCount (bs : list eballot) : HState -> Type :=
     (* start of counting *)
     | ax us (m : cand -> cand -> ciphertext) (zkpdecm : Z)
          (* for the moment we are assuming it as integer, but it is zero knowledge proof 
             about m zero encrypted matrix *) :
         us = bs (* We start from uncounted ballots *) ->
-        (* (forall c d, zero_knowledge_dec 0 (m c d) zkpdecm = true) ->
+        (* (forall c d, zero_knowledge_decryption 0 (m c d) zkpdecm = true) ->
            This is useless, because this statement is not proved in coq, but 
            will run at execution of extracted code, and should return true if 
            m is encrypted zero matrix. It helps to keep track about the
@@ -804,21 +808,30 @@ Section Encryption.
     | cvalid u (v : eballot) b (zkppermuv : Z) (zkpdecv : Z) us m nm inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
         valid cand (fun c d => b c d = 1) -> 
-        (* b is honest decryption of v proved under zero knowledge proof 
-           data structure which is Z for the moment
-           permute u = (v, zkp) and ceritify_permuted_ballots u v zkp = true
+        (* u -> v -> b.
+           b is honest decryption of v proved under zero knowledge proof, zkpdecv, 
+           data structure which is Z for the moment. 
+           zkppermuv is zero knowledge proof data structure about v being permutation
+           of u. b is valid ballot and using the lemma perm_presv_validity, it follows 
+           to decryption of u.
+           permute_encrypted_ballot u = (v, zkp) and ceritify_permuted_ballots u v zkp = true 
         (forall c d, (fst (permute u)) c d = v c d /\
                      (snd (permute u)) = zkppermuv /\
                      certify_permuted_ballots u v zkppermuv = true /\ 
                      zero_knowledge_dec (b c d) (v c d) zkpdecv= true) -> *)
         (* Proof that new margin is encrypted sum 
-        (forall c d, nm c d = add_eballots m u c d) -> *)
+        (forall c d, nm c d = homomorphic_add_eballots m u c d) -> *)
         HCount bs (hpartial (us, inbs) nm)
     (* Invalid ballot *)
     | cinvalid u (v : eballot) b (zkppermuv : Z) (zkpdecv : Z) us m inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
         ~valid cand (fun c d => b c d = 1) -> 
-        (* with adequate proof about b being honest u -> v -> b  
+        (* u -> v -> b.
+           b is honest decryption of v proved under zero knowledge proof, zkpdecv, 
+           data structure which is Z for the moment. 
+           zkppermuv is zero knowledge proof data structure about v being permutation
+           of u. b is invalid ballot and using the lemma not_perm_persv_validity, it follows
+           to decryption of u.
         (forall c d, (fst (permute u)) c d = v c d /\
                      (snd (permute u)) = zkppermuv /\
                      certify_permuted_ballots u v zkppermuv = true /\
@@ -828,7 +841,8 @@ Section Encryption.
         honest decryption *)
     | cdecrypt inbs m dm (zkpdecm : Z):
         HCount bs (hpartial ([], inbs) m) ->
-        (* proof of honest decryption 
+        (* proof of honest decryption. zkpdecm is zero knowledge proof datastructure 
+           which proves that dm is decryption of m under zero knowledge proof. 
         (forall c d, zero_knowledge_dec (dm c d) (m c d) zkpdecm = true) -> *)
         HCount bs (hdecrypt dm)
     (* Compute the winner *)
@@ -839,6 +853,7 @@ Section Encryption.
         HCount bs (winners w). 
 
 
+    (* Each ballot is either valid or not valid *)
     Lemma ballot_valid_dec :
       forall b : ballot, {valid cand (fun c d => b c d = 1)} +
                          {~(valid cand (fun c d => b c d = 1))}.
@@ -851,8 +866,9 @@ Section Encryption.
       exists cand_all. assumption.
     Defined.
     
-    Variable kpriv : KPri.
-    Variable kpub : KPub.
+
+    (* every partial state of vote tallying can be progressed to a state where
+       the margin function is fully constructed, i.e. all ballots are counted *)
     
     Lemma partial_count_all_counted bs : forall ts inbs m,
         HCount bs (hpartial (ts, inbs) m) -> existsT i nm, (HCount bs (hpartial ([], i) nm)).
@@ -866,50 +882,58 @@ Section Encryption.
                 end).
       (* We permuate the ballot u using permute function which gives 
          permuted ballot v and zero knowledge proof of this permutation *)
-      destruct (permute u) as [v zkppermuv].
+      destruct (permute_encrypted_ballot u) as [v zkppermuv].
       (* decrypte the permuted ballot v and prove its validity *)
-      remember (dec kpriv v) as b.
+      remember (decrypt_ballot privatekey v) as b.
       (* Decide the validity of ballot b. *)
-      destruct (ballot_valid_dec b). remember (add_eballots m u) as w.
+      destruct (ballot_valid_dec b). remember (homomorphic_add_eballots m u) as nm.
       (* valid ballot so add it to encrypted marging m so far *)
-      pose proof (F us inbs w (cvalid bs u v b
+      pose proof (F us inbs nm (cvalid bs u v b
                                       zkppermuv (* zero knowledge proof of v being perm of u *)
                                       0 (* dummy zero knowledge proof that b is indeed correct 
                                  decryption of v *)
-                                      us m w inbs Hc v0)).  
+                                      us m nm inbs Hc v0)).  
       destruct X as [i [ns Ht]].
       exists i. exists ns. assumption.
 
       (* ballot not valid *) 
       pose proof (F us (u :: inbs) m
                     (cinvalid bs u v b
-                              zkppermuv
-                              0 us m inbs Hc n)).
+                              zkppermuv (* zero knowledge proof of v being perm of u *)
+                              0 (* dummy zero knowledge proof that b is indeed correct 
+                                   decryption of v *)
+                              us m inbs Hc n)).
       destruct X as [i [ns Ht]].
       exists i. exists ns. assumption.
     Defined. 
 
-    
+    (* for every list of incoming ballots, we can progress the count to a state where all
+     ballots are processed *)
+
     Lemma  all_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
-      pose proof (partial_count_all_counted bs bs [] (enc kpub (fun _ _ => 0))).
-      pose (ax bs bs (enc kpub (fun _ _ => 0))
-               0 (* Zero knowledge proof of m is zero encrypted matrix *)
+      pose proof (partial_count_all_counted bs bs [] (encrypt_ballot publickey (fun _ _ => 0))).
+      pose (ax bs bs (encrypt_ballot publickey (fun _ _ => 0))
+               0 (* Dummy Zero knowledge proof of m is zero encrypted matrix *)
                eq_refl).
       destruct (X h) as [i [m Hs]].
       exists i. exists m. assumption.
     Defined.
 
-
+    
+    (* We decrypt the encrypted margin to run the computation *)
     Lemma decrypt_margin (bs : list eballot) : existsT m, HCount bs (hdecrypt m).
     Proof.
       destruct (all_ballots_counted bs) as [i [encm p]].
-      pose proof (cdecrypt bs i encm (dec kpriv encm)
-                          0 (* Zero knowledge proof of decryption of encm *)).
-      pose proof (X p). exists (dec kpriv encm). assumption.
+      pose proof (cdecrypt bs i encm (decrypt_ballot privatekey encm)
+                          0 (* Dummy Zero knowledge proof of decryption of encm *)).
+      pose proof (X p).
+      (* decryption of encrypted margin *)
+      exists (decrypt_ballot privatekey encm). assumption.
     Defined.
 
-   
+   (* The main theorem: for every list of ballots, we can find a boolean function that decides
+     winners, together with evidences of the correctness of this determination *)
     Lemma schulze_winners (bs : list eballot) :
       existsT (f : cand -> bool), HCount bs (winners f).
     Proof.
@@ -945,12 +969,13 @@ Section Candidate.
   Proof. unfold cand_all. intros H. inversion H.
   Qed.
 
-  
+  Check schulze_winners.
+  (*
   Inductive KPub : Type :=
   | pubkey : Z -> KPub.
 
   Inductive KPriv : Type :=
-  | prikey : Z -> KPriv.  
+  | prikey : Z -> KPriv. *) 
 
   Check schulze_winners.
   
@@ -972,8 +997,8 @@ Section Candidate.
                end.
   
   
-  Definition enc  (v : KPub) (b : ballot cand) := e1.
-  Definition dec  (v : KPriv) (e : eballot cand) := b1.
+  Definition enc  (v : Pubkey) (b : ballot cand) := e1.
+  Definition dec  (v : Prikey) (e : eballot cand) := b1.
 
   Definition dummy_fun (e : eballot cand) := (e, 0).
   Definition add_enc_marging (m : cand -> cand -> ciphertext) (e : eballot cand) :=
@@ -982,8 +1007,9 @@ Section Candidate.
                       end.
   
   Definition Schulze_all :=
-    (schulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty KPub KPriv
-                     enc dec dummy_fun add_enc_marging (prikey 0) (pubkey 0)).
+    (schulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty 0 0
+    enc dec dummy_fun add_enc_marging).
+  
 
   Check Schulze_all.
   Definition bs := [e1; e1; e1; e1; e1].
