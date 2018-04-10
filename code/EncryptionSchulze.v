@@ -950,8 +950,8 @@ End Encryption.
 
 Section Candidate.
 
-  Inductive cand := A | B.
-  Definition cand_all := [A; B].
+  Inductive cand := A | B | C.
+  Definition cand_all := [A; B; C].
 
   Lemma cand_finite : forall c, In c cand_all.
   Proof.
@@ -969,13 +969,12 @@ Section Candidate.
   Proof. unfold cand_all. intros H. inversion H.
   Qed.
 
-  Check schulze_winners.
   (*
   Inductive KPub : Type :=
   | pubkey : Z -> KPub.
 
   Inductive KPriv : Type :=
-  | prikey : Z -> KPriv. *) 
+  | prikey : Z -> KPriv. 
 
   Check schulze_winners.
   
@@ -1014,10 +1013,12 @@ Section Candidate.
   Check Schulze_all.
   Definition bs := [e1; e1; e1; e1; e1].
 
-  Definition schulze_win := Schulze_all bs.
+  Definition schulze_win := Schulze_all bs. *)
+  
 End Candidate.
 
+Definition schulze_winners_pf :=
+  schulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
 
-Definition schulze_winners_pf := schulze_win.
 
 
