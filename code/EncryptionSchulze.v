@@ -739,49 +739,50 @@ Section Encryption.
     Definition Prikey := Z.
 
     (* private and public key *)
-    Variable privatekey : Prikey.
-    Variable publickey : Pubkey.
+    Axiom privatekey : Prikey.
+    Axiom publickey : Pubkey.
+
     
-    (*
+      (*
     Variable KPub : Type.
     Variable KPri : Type. *)
 
 
     (* This function will be realized by Elgamal Encryption.
        Enc_Pk (m, r) = (g^r, m * h^r) *)
-    Variable encrypt_ballot : Pubkey -> ballot ->  eballot.
+    Axiom encrypt_ballot : Pubkey -> ballot ->  eballot.
 
     (* This function will be realized by Elgamal Decryption
        which takes encrypted message (c1, c2), private key
        and outputs the plaintext message *)
-    Variable decrypt_ballot : Prikey -> eballot -> ballot.
+    Axiom decrypt_ballot : Prikey -> eballot -> ballot.
 
     (* This function takes encrypted ballot and returns
        permuted encrypted ballot with zero knowledge proof.
        For the moment, zero knowledge proof is assumed to
        be of type Z *)
-    Variable permute_encrypted_ballot : eballot ->  eballot * Z.
+    Axiom permute_encrypted_ballot : eballot ->  eballot * Z.
 
     (* This function takes encrypted margin function and encrypted ballot
        and multiply them pointwise. 
        https://nvotes.com/multiplicative-vs-additive-homomorphic-elgamal/ *)
-    Variable homomorphic_add_eballots :
+    Axiom homomorphic_add_eballots :
       (cand -> cand -> ciphertext) ->
       eballot -> (cand -> cand -> ciphertext).
 
     (* This function show that ciphertext (c_1, c_2) is indeed the
        the encryption of message m under zero knowledge proof. See the mail
-       exchange between Dirk and Thomas Witnessing correct encryption
+       exchange between Dirk and Thomas Witnessing correct encryption.
        https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/crypto/proofsystem/classes/EqualityPreimageProofSystem.java
-       zero_knowlege_dec m (c_1, c_2) = true *)
+       zero_knowlege_decryption m (c_1, c_2) = true *)
 
-    Variable zero_knowledge_decryption : plaintext -> ciphertext -> Z -> bool.
+    Axiom zero_knowledge_decryption : plaintext -> ciphertext -> Z -> bool.
 
     
 
-    (* This function is takes u, v and val where permute u = (v, val)
+    (* This function is takes u, v and val where permute_encypted_ballot u = (v, val)
        and return true or false *)
-    Variable certify_permuted_ballots : eballot -> eballot -> Z -> bool.
+    Axiom certify_permuted_ballots : eballot -> eballot -> Z -> bool.
 
     (* Note that all the assertions would be erased after code extractions
        so keeping them is kind of useless becaue we are not proving them, 
@@ -815,10 +816,10 @@ Section Encryption.
            of u. b is valid ballot and using the lemma perm_presv_validity, it follows 
            to decryption of u.
            permute_encrypted_ballot u = (v, zkp) and ceritify_permuted_ballots u v zkp = true 
-        (forall c d, (fst (permute u)) c d = v c d /\
-                     (snd (permute u)) = zkppermuv /\
+        (forall c d, (fst (permute_encrypted_ballot u)) c d = v c d /\
+                     (snd (permute_encrypted_ballot u)) = zkppermuv /\
                      certify_permuted_ballots u v zkppermuv = true /\ 
-                     zero_knowledge_dec (b c d) (v c d) zkpdecv= true) -> *)
+                     zero_knowledge_decryption (b c d) (v c d) zkpdecv= true) -> *)
         (* Proof that new margin is encrypted sum 
         (forall c d, nm c d = homomorphic_add_eballots m u c d) -> *)
         HCount bs (hpartial (us, inbs) nm)
@@ -832,10 +833,10 @@ Section Encryption.
            zkppermuv is zero knowledge proof data structure about v being permutation
            of u. b is invalid ballot and using the lemma not_perm_persv_validity, it follows
            to decryption of u.
-        (forall c d, (fst (permute u)) c d = v c d /\
-                     (snd (permute u)) = zkppermuv /\
+        (forall c d, (fst (permute_encrypted_ballot u)) c d = v c d /\
+                     (snd (permute_encrypted_ballot u)) = zkppermuv /\
                      certify_permuted_ballots u v zkppermuv = true /\
-                     zero_knowledge_dec (b c d) (v c d) zkpdecv= true) -> *)
+                     zero_knowledge_decryption (b c d) (v c d) zkpdecv= true) -> *)
         HCount bs (hpartial (us, u :: inbs) m) 
     (* Decrypt the margin function at this point with proof that it is
         honest decryption *)
@@ -843,7 +844,7 @@ Section Encryption.
         HCount bs (hpartial ([], inbs) m) ->
         (* proof of honest decryption. zkpdecm is zero knowledge proof datastructure 
            which proves that dm is decryption of m under zero knowledge proof. 
-        (forall c d, zero_knowledge_dec (dm c d) (m c d) zkpdecm = true) -> *)
+        (forall c d, zero_knowledge_decryption (dm c d) (m c d) zkpdecm = true) -> *)
         HCount bs (hdecrypt dm)
     (* Compute the winner *)
     | fin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
@@ -880,7 +881,7 @@ Section Encryption.
                 | u :: us =>
                   fun inbs m Hc => _
                 end).
-      (* We permuate the ballot u using permute function which gives 
+      (* We permuate the ballot u using permute_encrypted_ballot function which gives 
          permuted ballot v and zero knowledge proof of this permutation *)
       destruct (permute_encrypted_ballot u) as [v zkppermuv].
       (* decrypte the permuted ballot v and prove its validity *)
@@ -1019,6 +1020,5 @@ End Candidate.
 
 Definition schulze_winners_pf :=
   schulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
-
 
 
