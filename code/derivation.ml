@@ -36,7 +36,7 @@ let show_cand = function
   | Lib.A -> "A"
   | Lib.B -> "B"
   | Lib.C -> "C"
-  | Lib.D -> "D"
+  (*| Lib.D -> "D"
   | Lib.E -> "E"
   | Lib.F -> "F"
   | Lib.G -> "G"
@@ -53,7 +53,7 @@ let show_cand = function
   | Lib.U -> "U"
   | Lib.V -> "V"
   | Lib.X -> "X"
-  (*| Lib.Y -> "Y"
+  | Lib.Y -> "Y"
   | Lib.Z -> "Z"*)
 
 let compare x y =
@@ -86,25 +86,37 @@ let show_coclosed f l =
           (List.filter (fun (x, y) -> compare_truth (f (Lib.Pair (x, y))) Lib.True)
                        (cross_prod_orig l))) ^ "]"
                           
-let show_help f c = show_cand c ^ show_nat (f c)
+let show_help f c d = show_cand c ^ show_cand d ^ show_z (f c d)
   
 let show_ballot f =
-  String.concat " " (List.map (fun c -> show_help f c) (ocamllist Lib.cand_all))
-                
+  String.concat " " (List.map (fun (c, d) -> show_help f c d) (cross_prod_orig (ocamllist Lib.cand_all)))
+
+let show_enc_pair (Lib.Pair (f, s)) = 
+        "(" ^ show_z f ^ ", " ^ show_z s ^ ")"
+
+let show_enc_help f c d = show_cand c ^ show_cand d ^ show_enc_pair (f c d)
+
+let show_enc_ballot f = 
+    String.concat " " (List.map (fun (c, d) -> show_enc_help f c d) (cross_prod_orig (ocamllist Lib.cand_all)))
+
+let show_enc_marg m = show_enc_ballot m 
+
+
 let bool_b = function
   | Nil -> true
   | _ -> false
 
 let show_list_inv_ballot = function
   | Nil ->"[]"
-  | Cons (b, Nil) -> "[" ^ show_ballot b ^ "]"
-  | Cons (b, _) -> "[" ^ show_ballot b ^ ",..]"
+  | Cons (b, Nil) -> "[" ^ show_enc_ballot b ^ "]"
+  | Cons (b, _) -> "[" ^ show_enc_ballot b ^ ",..]"
 
 let rec cross_prod = function
   | [] -> []
   | h :: t -> List.map (fun x -> (h, x)) t @ cross_prod t
                                                      
 let show_pair c1 c2 n = show_cand c1 ^ show_cand c2 ^ ":" ^ show_z n                                           
+
 let show_marg m =
   "[" ^ String.concat
           " "
@@ -145,27 +157,36 @@ let rec add_string = function
                             
 let underline s = s ^ "\n" ^ add_string (String.length s) ^ "\n"
 
-(*
-let rec show_count = function
-  | Lib.Ax (_, _) -> ""
-  | Lib.Cvalid (u, us, m, nm, inbs, c) ->
-     show_count c ^ underline (
-       "V: [" ^ show_ballot u ^ (if bool_b us then "]" else ",..]")  ^
-         ", I:  " ^ show_list_inv_ballot inbs  ^ ", M: " ^ show_marg m ) 
-  | Lib.Cinvalid (u, us, m, inbs, c)  ->
-     show_count c ^ underline (
-       "V: [" ^ show_ballot u ^
-         (if bool_b us then "]" else ",..]") ^ ", I: " ^ show_list_inv_ballot inbs ^ 
-           ", M: " ^ show_marg m )
-  | Lib.Fin (m, ls, p, f, c) ->
-     show_count c ^ underline (
-       "V: [], I: " ^ show_list_inv_ballot ls ^ ", M: " ^ show_marg m )
-     ^ String.concat "\n" (List.map (fun x -> show_cand f x) (ocamllist Lib.cand_all))
-     ^ "\n" *)
 
+let rec show_count = function
+  | Lib.Ax (_, _, v) -> "Zero knowledge proof of m being zero encrypted matrix " ^ show_z v
+  | Lib.Cvalid (u, v, b, zkppermuv, zkpdecv, us, m, nm, inbs, c) ->
+     show_count c ^ underline (
+       "V: [" ^ show_enc_ballot u ^ (if bool_b us then "]" else ",..]")  ^
+         ", I:  " ^ show_list_inv_ballot inbs  ^ ", M: " ^ show_enc_marg m ^ "Permuted ballot: " ^ show_enc_ballot v ^
+       " Decryption of permuted ballot " ^ show_ballot b ^ " zero knowledge proof of permutations " ^ show_z zkppermuv ^ 
+       " zero knowledge proof of decryption " ^ show_z zkpdecv) 
+  | Lib.Cinvalid (u, v, b, zkppermuv, zkpdecv, us, m, inbs, c)  ->
+     show_count c ^ underline (
+       "V: [" ^ show_enc_ballot u ^
+         (if bool_b us then "]" else ",..]") ^ ", I: " ^ show_list_inv_ballot inbs ^ 
+           ", M: " ^ show_enc_marg m ^ " Permuted ballot: " ^ show_enc_ballot v ^ 
+         " Decryption of permuted ballot " ^ show_ballot b ^ "zero knowledge proof of permutation " ^ show_z zkppermuv ^
+         " zero knowledge proof of decryption " ^ show_z zkpdecv)
+  | Lib.Cdecrypt (inbs, m, dm, zkpdecm, c) -> 
+     show_count c ^ underline (
+             "Encrypted margin " ^ show_enc_marg m ^ " Decrypted margin " ^ show_marg dm ^ " zero knowledge proof of decryption " ^ 
+             show_z zkpdecm)
+  | Lib.Fin (m, p, f, c) ->
+     show_count c ^ underline (
+       "M: " ^ show_marg m )
+     ^ String.concat "\n" (List.map (fun x -> show_cand f x) (ocamllist Lib.cand_all))
+     ^ "\n"
+
+(*
 let show_count l =
   let rec show_count_aux acc = function 
-  | Lib.Ax (_, _) -> acc
+  | Lib.Ax (_, _) -> acc 
   | Lib.Cvalid (u, us, m, nm, inbs, c) ->
      show_count_aux (underline (
        "V: [" ^ show_ballot u ^ (if bool_b us then "]" else ",..]")  ^
@@ -180,4 +201,4 @@ let show_count l =
        "V: [], I: " ^ show_list_inv_ballot ls ^ ", M: " ^ show_marg m )
      ^ String.concat "\n" (List.map (fun x -> show_cand f x) (ocamllist Lib.cand_all))
      ^ "\n") :: acc) c
-  in show_count_aux [] l 
+  in show_count_aux [] l *)
