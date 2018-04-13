@@ -8,7 +8,7 @@
 %token EOF
 
 
-%start <(char * int) list list> prog
+%start <(char * char * (int * int)) list list> prog
 
 %%
 
@@ -19,4 +19,4 @@ prog:
 stmtone:
  | vs = separated_nonempty_list (SEMI, stmt) {vs};
 
-stmt: LPAREN; s = CAND; COMMA; n = INT; RPAREN {(s, n)}
+stmt: LPAREN; s = CAND; COMMA; t = CAND; COMMA; LPAREN; n = INT; COMMA; m = INT; RPAREN; RPAREN {(s, t, (n, m))}
