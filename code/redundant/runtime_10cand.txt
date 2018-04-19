@@ -1,0 +1,21 @@
+Runtime statistics with 10 candiates
+
+Counting 100 ballots ..
+  0:15.29
+Counting 1000 ballots ..
+  0:15.63
+Counting 10000 ballots ..
+  0:16.88
+Counting 100000 ballots ..
+  0:28.42
+Counting 250000 ballots ..
+  0:43.93
+Counting 500000 ballots ..
+  1:13.87
+Counting 1000000 ballots ..
+  2:33.33
+Counting 2000000 ballots ..
+  Fatal error: out of memory.
+Command exited with non-zero status 2
+3:20.65
+

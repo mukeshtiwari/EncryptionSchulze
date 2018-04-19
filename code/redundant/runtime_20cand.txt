@@ -1,0 +1,17 @@
+Runtime for 20 candidates
+
+Counting 100 ballots ..
+  1:51:07
+Counting 1000 ballots ..
+  1:51:23
+Counting 10000 ballots ..
+  1:51:40
+Counting 100000 ballots ..
+  1:53:52
+Counting 250000 ballots ..
+  2:00:02
+Counting 500000 ballots ..
+  Fatal error: out of memory.
+Command exited with non-zero status 2
+7:03.17
+
