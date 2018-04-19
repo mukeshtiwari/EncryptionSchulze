@@ -734,9 +734,11 @@ Section Encryption.
     | hdecrypt: (cand -> cand -> plaintext) -> HState
     | winners: (cand -> bool) -> HState.
 
-    (* Public key and private key are integers *)
+    (* Public key and private key are integers 
     Definition Pubkey := Z.
-    Definition Prikey := Z.
+    Definition Prikey := Z.*)
+    Axiom Pubkey : Type.
+    Axiom Prikey : Type.
 
     (* private and public key *)
     Axiom privatekey : Prikey.
