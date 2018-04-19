@@ -1,3 +1,4 @@
+
 type __ = Obj.t
 let __ = let rec f _ = Obj.repr f in Obj.repr f
 
@@ -55,8 +56,7 @@ let compOpp = function
 | Lt -> Gt
 | Gt -> Lt
 
-type 'a sig0 =
-  'a
+type 'a sig0 = 'a
   (* singleton inductive, whose constructor was exist *)
 
 type ('a, 'p) sigT =
@@ -92,10 +92,9 @@ module Pos =
        | XI q -> compare_cont Lt p q
        | XO q -> compare_cont r p q
        | XH -> Gt)
-    | XH ->
-      (match y with
-       | XH -> r
-       | _ -> Lt)
+    | XH -> (match y with
+             | XH -> r
+             | _ -> Lt)
 
   (** val compare : positive -> positive -> comparison **)
 
@@ -104,20 +103,17 @@ module Pos =
 
   (** val eq_dec : positive -> positive -> sumbool **)
 
-  let rec eq_dec p y0 =
+  let rec eq_dec p x0 =
     match p with
-    | XI p0 ->
-      (match y0 with
-       | XI p1 -> eq_dec p0 p1
-       | _ -> Right)
-    | XO p0 ->
-      (match y0 with
-       | XO p1 -> eq_dec p0 p1
-       | _ -> Right)
-    | XH ->
-      (match y0 with
-       | XH -> Left
-       | _ -> Right)
+    | XI p0 -> (match x0 with
+                | XI p1 -> eq_dec p0 p1
+                | _ -> Right)
+    | XO p0 -> (match x0 with
+                | XO p1 -> eq_dec p0 p1
+                | _ -> Right)
+    | XH -> (match x0 with
+             | XH -> Left
+             | _ -> Right)
  end
 
 (** val map : ('a1 -> 'a2) -> 'a1 list -> 'a2 list **)
@@ -130,10 +126,9 @@ let rec map f = function
 
 let rec forallb f = function
 | Nil -> True
-| Cons (a, l0) ->
-  (match f a with
-   | True -> forallb f l0
-   | False -> False)
+| Cons (a, l0) -> (match f a with
+                   | True -> forallb f l0
+                   | False -> False)
 
 module Z =
  struct
@@ -141,15 +136,13 @@ module Z =
 
   let compare x y =
     match x with
-    | Z0 ->
-      (match y with
-       | Z0 -> Eq
-       | Zpos _ -> Lt
-       | Zneg _ -> Gt)
-    | Zpos x' ->
-      (match y with
-       | Zpos y' -> Pos.compare x' y'
-       | _ -> Gt)
+    | Z0 -> (match y with
+             | Z0 -> Eq
+             | Zpos _ -> Lt
+             | Zneg _ -> Gt)
+    | Zpos x' -> (match y with
+                  | Zpos y' -> Pos.compare x' y'
+                  | _ -> Gt)
     | Zneg x' ->
       (match y with
        | Zneg y' -> compOpp (Pos.compare x' y')
@@ -187,18 +180,15 @@ module Z =
 
   let eq_dec x y =
     match x with
-    | Z0 ->
-      (match y with
-       | Z0 -> Left
-       | _ -> Right)
-    | Zpos x0 ->
-      (match y with
-       | Zpos p0 -> Pos.eq_dec x0 p0
-       | _ -> Right)
-    | Zneg x0 ->
-      (match y with
-       | Zneg p0 -> Pos.eq_dec x0 p0
-       | _ -> Right)
+    | Z0 -> (match y with
+             | Z0 -> Left
+             | _ -> Right)
+    | Zpos x0 -> (match y with
+                  | Zpos p0 -> Pos.eq_dec x0 p0
+                  | _ -> Right)
+    | Zneg x0 -> (match y with
+                  | Zneg p0 -> Pos.eq_dec x0 p0
+                  | _ -> Right)
  end
 
 (** val bool_of_sumbool : sumbool -> bool **)
@@ -223,13 +213,13 @@ let z_ge_dec x y =
 
 (** val z_lt_ge_dec : z -> z -> sumbool **)
 
-let z_lt_ge_dec x y =
-  z_lt_dec x y
+let z_lt_ge_dec =
+  z_lt_dec
 
 (** val z_ge_lt_dec : z -> z -> sumbool **)
 
-let z_ge_lt_dec x y =
-  z_ge_dec x y
+let z_ge_lt_dec =
+  z_ge_dec
 
 (** val z_lt_ge_bool : z -> z -> bool **)
 
@@ -249,10 +239,9 @@ let rec all_pairs = function
 
 let rec maxlist = function
 | Nil -> Z0
-| Cons (h, t) ->
-  (match t with
-   | Nil -> h
-   | Cons (_, _) -> Z.max h (maxlist t))
+| Cons (h, t) -> (match t with
+                  | Nil -> h
+                  | Cons (_, _) -> Z.max h (maxlist t))
 
 (** val max_of_nonempty_list_type :
     'a1 list -> ('a1 -> 'a1 -> sumbool) -> z -> ('a1 -> z) -> ('a1, __) sigT **)
@@ -282,10 +271,9 @@ let transitive_dec_first _ hp x y z0 =
   let s = hp x y in
   (match s with
    | Left ->
-     let s0 = hp y z0 in
-     (match s0 with
-      | Left -> hp x z0
-      | Right -> Left)
+     let s0 = hp y z0 in (match s0 with
+                          | Left -> hp x z0
+                          | Right -> Left)
    | Right -> Left)
 
 (** val transitive_dec_second :
@@ -337,10 +325,9 @@ let phi_one_helper pdec x a =
   let s = pdec x a in
   (match s with
    | Left ->
-     let s0 = pdec a x in
-     (match s0 with
-      | Left -> Right
-      | Right -> Left)
+     let s0 = pdec a x in (match s0 with
+                           | Left -> Right
+                           | Right -> Left)
    | Right -> pdec a x)
 
 (** val phi_two_helper :
@@ -549,8 +536,7 @@ let rec iterated_marg_patht cand_all0 dec_cand marg n s c d =
        let h =
          max_of_nonempty_list_type cand_all0 dec_cand s (fun x ->
            Z.min (marg c x)
-             (linear_search dec_cand marg x d
-               (mM cand_all0 dec_cand marg n0)))
+             (linear_search dec_cand marg x d (mM cand_all0 dec_cand marg n0)))
        in
        let ExistT (x, _) = h in
        let iHn = iterated_marg_patht cand_all0 dec_cand marg n0 s x d in
@@ -638,39 +624,40 @@ type 'cand ballot = 'cand -> 'cand -> plaintext
 
 type 'cand eballot = 'cand -> 'cand -> ciphertext
 
-type pubkey = Pub of z * z (* AXIOM TO BE REALIZED *)
+type pubkey (* AXIOM TO BE REALIZED *)
 
-type prikey = z (* AXIOM TO BE REALIZED *)
+type prikey (* AXIOM TO BE REALIZED *)
 
 (** val privatekey : prikey **)
 
-let privatekey = Z0
-
+let privatekey =
+  failwith "AXIOM TO BE REALIZED"
 
 (** val publickey : pubkey **)
 
-let publickey = Pub (Z0, Z0)
+let publickey =
+  failwith "AXIOM TO BE REALIZED"
 
 (** val encrypt_ballot : pubkey -> 'a1 ballot -> 'a1 eballot **)
 
-let encrypt_ballot pubkey bal = 
-        fun c d -> Pair (bal c d, Z0)
+let encrypt_ballot =
+  failwith "AXIOM TO BE REALIZED"
 
 (** val decrypt_ballot : prikey -> 'a1 eballot -> 'a1 ballot **)
 
-let decrypt_ballot prikey ebal = 
-        fun c d -> match ebal c d with
-        | Pair (f, s) -> f
-        | _ -> failwith "error"
+let decrypt_ballot =
+  failwith "AXIOM TO BE REALIZED"
 
 (** val permute_encrypted_ballot : 'a1 eballot -> ('a1 eballot, z) prod **)
 
-let permute_encrypted_ballot ebal = Pair (ebal, Z0)
+let permute_encrypted_ballot =
+  failwith "AXIOM TO BE REALIZED"
 
 (** val homomorphic_add_eballots :
     ('a1 -> 'a1 -> ciphertext) -> 'a1 eballot -> 'a1 -> 'a1 -> ciphertext **)
 
-let homomorphic_add_eballots m ebl = ebl
+let homomorphic_add_eballots =
+  failwith "AXIOM TO BE REALIZED"
 
 type 'cand hCount =
 | Ax of 'cand eballot list * ('cand -> 'cand -> ciphertext) * z
@@ -734,8 +721,7 @@ let decrypt_margin cand_all0 dec_cand bs =
   let s = all_ballots_counted cand_all0 dec_cand bs in
   let ExistT (i, s0) = s in
   let ExistT (encm, p) = s0 in
-  let x = fun x -> Cdecrypt (i, encm, (decrypt_ballot privatekey encm), Z0,
-    x)
+  let x = fun x -> Cdecrypt (i, encm, (decrypt_ballot privatekey encm), Z0, x)
   in
   let x0 = x p in ExistT ((decrypt_ballot privatekey encm), x0)
 
@@ -764,18 +750,15 @@ let cand_all =
 
 let cand_eq_dec a b =
   match a with
-  | A ->
-    (match b with
-     | A -> Left
-     | _ -> Right)
-  | B ->
-    (match b with
-     | B -> Left
-     | _ -> Right)
-  | C ->
-    (match b with
-     | C -> Left
-     | _ -> Right)
+  | A -> (match b with
+          | A -> Left
+          | _ -> Right)
+  | B -> (match b with
+          | B -> Left
+          | _ -> Right)
+  | C -> (match b with
+          | C -> Left
+          | _ -> Right)
 
 (** val schulze_winners_pf :
     cand eballot list -> (cand -> bool, cand hCount) sigT **)

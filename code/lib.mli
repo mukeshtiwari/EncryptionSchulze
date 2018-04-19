@@ -1,3 +1,4 @@
+
 type __ = Obj.t
 
 type bool =
@@ -34,8 +35,7 @@ type comparison =
 
 val compOpp : comparison -> comparison
 
-type 'a sig0 =
-  'a
+type 'a sig0 = 'a
   (* singleton inductive, whose constructor was exist *)
 
 type ('a, 'p) sigT =
