@@ -3,11 +3,13 @@
 
 ListLemma.vo : ListLemma.v
 
-SchulzeSynthesis.vo : ListLemma.vo SchulzeSynthesis.v
+Existfun.vo : ListLemma.vo
 
-Extraction.vo : SchulzeSynthesis.vo Extraction.v
+EncryptionSchulze.vo : Existfun.vo EncryptionSchulze.v
 
-ExtractionNative.vo : SchulzeSynthesis.vo ExtractionNative.v
+Extraction.vo : EncryptionSchulze.vo Extraction.v
+
+ExtractionNative.vo : EncryptionSchulze.vo ExtractionNative.v
 
 lib.ml : Extraction.vo
 
