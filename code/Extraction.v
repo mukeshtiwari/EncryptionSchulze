@@ -4,7 +4,8 @@ Require Import EncryptionSchulze.
 Require Import Coq.Strings.String.
 Require Import ZArith.
 Require Import EqNat.
-Require Import Coq.extraction.ExtrOcamlZInt.
+Require Import Coq.extraction.ExtrOcamlZBigInt.
+
 (*
 Extraction Language Haskell.
 Extraction "lib.hs" schulze_winners_pf. *)

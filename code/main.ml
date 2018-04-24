@@ -2,8 +2,7 @@ open Lib
 open Parser
 open Lexer
 open Derivation
-
-       
+(*       
 let ocamlcoq l =
   let rec map_aux acc = function
     | [] -> acc Nil
@@ -17,7 +16,7 @@ let rec ocamlnat n =
   | 0 -> Z0
   | 1 -> Zpos XH
   | _ -> failwith "something else"
-
+*)
            
 let cc c =
   match c with
@@ -97,15 +96,14 @@ let map f l =
 
 let _ = 
   let e = Parser.prog Lexer.lexeme (Lexing.from_channel stdin) in
-  let w = map (fun x -> map (fun (a, b, (c, d)) -> (cc a, cc b, Lib.Pair (ocamlnat c, ocamlnat d))) x) e in
+  let w = map (fun x -> map (fun (a, b, (c, d)) -> (cc a, cc b,  (Big.of_int c, Big.of_int d))) x) e in
   let v = map (fun x -> balfun x) w in
-  match schulze_winners_pf (ocamlcoq v) with
+  match schulze_winners_pf v with
   | ExistT (f, y) ->
-                  (*
      List.iter (fun x -> Format.printf "%s" x) (show_count y)
-                    *)                            
-     List.iter (fun x -> Format.printf "%s\n"  (show_bool (f x))) [A; B; C]
-                                                  
+                    (*                
+     List.iter (fun x -> Format.printf "%s\n"  (string_of_bool (f x))) [A; B; C]
+          *)                                        
                
    
 

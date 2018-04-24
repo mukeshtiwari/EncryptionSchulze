@@ -768,10 +768,15 @@ Section Encryption.
     (* This function takes encrypted margin function and encrypted ballot
        and multiply them pointwise. 
        https://nvotes.com/multiplicative-vs-additive-homomorphic-elgamal/ *)
-    Axiom homomorphic_add_eballots :
-      (cand -> cand -> ciphertext) ->
-      eballot -> (cand -> cand -> ciphertext).
+    (* After Discussion with Thomas, I change it to Axiom because the multiplication
+       of two big integers would be very large so either I need to pass modulas here
+       or pass the data structure to Java. Second option is good 
+    Definition homomorphic_add_eballots (m : cand -> cand -> ciphertext)
+               (encbal : eballot)  : (cand -> cand -> ciphertext) :=
+     fun c d => (fst (m c d) * fst (encbal c d), snd (m c d) * snd (encbal c d)). *)
 
+    Axiom  homomorphic_add_eballots : (cand -> cand -> ciphertext) ->
+      eballot -> (cand -> cand -> ciphertext).
     (* This function show that ciphertext (c_1, c_2) is indeed the
        the encryption of message m under zero knowledge proof. See the mail
        exchange between Dirk and Thomas Witnessing correct encryption.
@@ -808,32 +813,40 @@ Section Encryption.
            Honest decryption proof that m is encryption of zero matrix *)
         HCount bs (hpartial (us, []) m)
     (* Valid Ballot *)
-    | cvalid u (v : eballot) b (zkppermuv : Z) (zkpdecv : Z) us m nm inbs :
+    | cvalid u (v : eballot) (w : eballot) b (zkppermuv : Z) (zkppermvw : Z)
+             (zkpdecw : Z) us m nm inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
         valid cand (fun c d => b c d = 1) -> 
-        (* u -> v -> b.
-           b is honest decryption of v proved under zero knowledge proof, zkpdecv, 
+        (* u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
+             -> (decryption of w) b.
+           b is honest decryption of w proved under zero knowledge proof, zkpdecw, 
            data structure which is Z for the moment. 
-           zkppermuv is zero knowledge proof data structure about v being permutation
-           of u. b is valid ballot and using the lemma perm_presv_validity, it follows 
+           zkppermuv is zero knowledge proof data structure about v being row permutation
+           of u. zkppermvw is zero knowledge proof data structre about w being column 
+           permutation of v. b is valid ballot and using the lemma perm_presv_validity, it follows 
            to decryption of u.
            permute_encrypted_ballot u = (v, zkp) and ceritify_permuted_ballots u v zkp = true 
         (forall c d, (fst (permute_encrypted_ballot u)) c d = v c d /\
                      (snd (permute_encrypted_ballot u)) = zkppermuv /\
                      certify_permuted_ballots u v zkppermuv = true /\ 
                      zero_knowledge_decryption (b c d) (v c d) zkpdecv= true) -> *)
-        (* Proof that new margin is encrypted sum 
+        (* Proof that new margin is encrypted sum. This statement is proved 
+           in Coq, but due to mod problem, we are taking it as Axiom
         (forall c d, nm c d = homomorphic_add_eballots m u c d) -> *)
         HCount bs (hpartial (us, inbs) nm)
     (* Invalid ballot *)
-    | cinvalid u (v : eballot) b (zkppermuv : Z) (zkpdecv : Z) us m inbs :
+    | cinvalid u (v : eballot) (w : eballot) b (zkppermuv : Z) (zkppermvw : Z)
+               (zkpdecw : Z) us m inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
         ~valid cand (fun c d => b c d = 1) -> 
-        (* u -> v -> b.
-           b is honest decryption of v proved under zero knowledge proof, zkpdecv, 
+        (*  u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
+             -> (decryption of w) b.
+           b is honest decryption of w proved under zero knowledge proof, zkpdecw, 
            data structure which is Z for the moment. 
-           zkppermuv is zero knowledge proof data structure about v being permutation
-           of u. b is invalid ballot and using the lemma not_perm_persv_validity, it follows
+           zkppermuv is zero knowledge proof data structure about v being row permutation
+           of u. zkppermvw is zero knowledge proof data structure about w being column 
+           permutation of v. 
+           b is invalid ballot and using the lemma not_perm_persv_validity, it follows
            to decryption of u.
         (forall c d, (fst (permute_encrypted_ballot u)) c d = v c d /\
                      (snd (permute_encrypted_ballot u)) = zkppermuv /\
@@ -886,23 +899,27 @@ Section Encryption.
       (* We permuate the ballot u using permute_encrypted_ballot function which gives 
          permuted ballot v and zero knowledge proof of this permutation *)
       destruct (permute_encrypted_ballot u) as [v zkppermuv].
-      (* decrypte the permuted ballot v and prove its validity *)
-      remember (decrypt_ballot privatekey v) as b.
-      (* Decide the validity of ballot b. *)
+      destruct (permute_encrypted_ballot v) as [w zkppermvw].
+      (* decrypte the permuted ballot w and prove its validity *)
+      remember (decrypt_ballot privatekey w) as b.
+      (* Decide the validity of ballot b. *) 
       destruct (ballot_valid_dec b). remember (homomorphic_add_eballots m u) as nm.
       (* valid ballot so add it to encrypted marging m so far *)
-      pose proof (F us inbs nm (cvalid bs u v b
-                                      zkppermuv (* zero knowledge proof of v being perm of u *)
-                                      0 (* dummy zero knowledge proof that b is indeed correct 
-                                 decryption of v *)
+      
+      pose proof (F us inbs nm (cvalid bs u v w b
+                                       zkppermuv (* zero knowledge proof of v being perm of u *)
+                                       zkppermvw (* zero knowledge proof of w being perm of v *)
+                                       0 (* dummy zero knowledge proof that b is indeed correct 
+                                            decryption of v *)
                                       us m nm inbs Hc v0)).  
       destruct X as [i [ns Ht]].
       exists i. exists ns. assumption.
 
       (* ballot not valid *) 
       pose proof (F us (u :: inbs) m
-                    (cinvalid bs u v b
+                    (cinvalid bs u v w b
                               zkppermuv (* zero knowledge proof of v being perm of u *)
+                              zkppermvw (* zero knowledge proof of w being perm of v *)
                               0 (* dummy zero knowledge proof that b is indeed correct 
                                    decryption of v *)
                               us m inbs Hc n)).

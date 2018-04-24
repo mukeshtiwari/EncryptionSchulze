@@ -32,8 +32,8 @@ clean:
 	rm -rf _build *.vo *.glob lib.ml lib.mli main.native main.byte 2>/dev/null || true
 
 MainNative : big.ml lib.ml lib.mli derivation.ml main.ml
-	ocamlbuild  -use-ocamlfind -r -use-menhir main.native	
+	ocamlbuild  -use-ocamlfind -r -use-menhir -package num main.native	
 
 MainByte: big.ml lib.ml lib.mli derivation.ml main.ml
-	ocamlbuild  -use-ocamlfind -r -use-menhir main.byte
+	ocamlbuild  -use-ocamlfind -r -use-menhir  -package num main.byte
 
