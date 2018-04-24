@@ -1,0 +1,342 @@
+<!--
+UniCrypt
+
+ UniCrypt(tm) : Cryptographical framework allowing the implementation of cryptographic protocols e.g. e-voting
+ Copyright (C) 2014 Bern University of Applied Sciences (BFH), Research Institute for
+ Security in the Information Society (RISIS), E-Voting Group (EVG)
+ Quellgasse 21, CH-2501 Biel, Switzerland
+
+ Licensed under Dual License consisting of:
+ 1. GNU Affero General Public License (AGPL) v3
+ and
+ 2. Commercial license
+
+
+ 1. This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+ 2. Licensees holding valid commercial licenses for UniCrypt may use this file in
+  accordance with the commercial license agreement provided with the
+  Software or, alternatively, in accordance with the terms contained in
+  a written agreement between you and Bern University of Applied Sciences (BFH), Research Institute for
+  Security in the Information Society (RISIS), E-Voting Group (EVG)
+  Quellgasse 21, CH-2501 Biel, Switzerland.
+
+
+  For further information contact <e-mail: unicrypt@bfh.ch>
+
+
+Redistributions of files must retain the above copyright notice.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>ch.bfh.unicrypt</groupId>
+	<artifactId>unicrypt</artifactId>
+	<version>2.3</version>
+	<packaging>jar</packaging>
+
+	<name>unicrypt</name>
+	<description>
+		Cryptographic framework allowing the implementation of
+		cryptographic protocols, e.g. e-voting.
+	</description>
+	<url>https://github.com/bfh-evg/unicrypt</url>
+
+	<licenses>
+		<license>
+			<name>GNU Affero General Public License (AGPL) v3</name>
+			<url>http://www.gnu.org/licenses/</url>
+		</license>
+		<license>
+			<name>Bern University of Applied Sciences (BFH), RISIS</name>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<id>rolfhaenni</id>
+			<name>Rolf Haenni</name>
+			<email>http://bit.ly/ZxrBoc</email>
+			<url>https://prof.ti.bfh.ch/hnr1</url>
+			<organization>Berner Fachhochschule / RISIS</organization>
+			<organizationUrl>http://www.ti.bfh.ch/risis</organizationUrl>
+			<roles>
+				<role>project leader</role>
+				<role>system designer</role>
+				<role>software architect</role>
+				<role>security advisor</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<id>knr1</id>
+			<name>Reto E. Koenig</name>
+			<email>http://bit.ly/14KclfR</email>
+			<url>https://prof.ti.bfh.ch/knr1</url>
+			<organization>Berner Fachhochschule / RISIS</organization>
+			<organizationUrl>http://www.ti.bfh.ch/risis</organizationUrl>
+			<roles>
+				<role>project leader</role>
+				<role>system designer</role>
+				<role>technology advisor</role>
+				<role>software developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<id>philoc</id>
+			<name>Philipp Locher</name>
+			<email>http://bit.ly/ZxrNDS</email>
+			<url>https://staff.ti.bfh.ch/lhp2</url>
+			<organization>Berner Fachhochschule / RISIS</organization>
+			<organizationUrl>http://www.ti.bfh.ch/risis</organizationUrl>
+			<roles>
+				<role>system designer</role>
+				<role>software developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<id>chrigulutz</id>
+			<name>Christian Lutz</name>
+			<email>http://bit.ly/1295TP4</email>
+			<organization>University Fribourg</organization>
+			<organizationUrl>http://www.unifr.ch</organizationUrl>
+			<roles>
+				<role>software developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<id>sevhau</id>
+			<name>Severin Hauser</name>
+			<email>http://bit.ly/10rj1tL</email>
+			<url>https://staff.ti.bfh.ch/hss3</url>
+			<organization>Berner Fachhochschule / RISIS</organization>
+			<organizationUrl>http://www.ti.bfh.ch/risis</organizationUrl>
+			<roles>
+				<role>software developer</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+		<developer>
+			<id>due1</id>
+			<name>Eric Dubuis</name>
+			<email>http://bit.ly/10risQL</email>
+			<url>https://prof.ti.bfh.ch/due1</url>
+			<organization>Berner Fachhochschule / RISIS</organization>
+			<organizationUrl>http://risis.ti.bfh.ch/</organizationUrl>
+			<roles>
+				<role>repository coordinator</role>
+			</roles>
+			<timezone>+1</timezone>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git@github.com/bfh-evg/unicrypt.git</connection>
+		<developerConnection>scm:git:git@github.com/bfh-evg/unicrypt.git</developerConnection>
+		<url>ghttps://github.com/bfh-evg/unicrypt</url>
+	</scm>
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jacoco</groupId>
+			<artifactId>org.jacoco.core</artifactId>
+			<version>0.7.7.201606060606</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.jnagmp</groupId>
+			<artifactId>jnagmp</artifactId>
+			<version>2.0.0</version>
+		</dependency>
+	</dependencies>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.5.1</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<!-- See: http://bit.ly/1hIKf5Z -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.0.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.10.4</version>
+				<configuration>
+					<!-- See: http://bit.ly/1EWR4gK -->
+					<additionalparam>-Xdoclint:none</additionalparam>
+				</configuration>
+				<executions>
+					<!-- See: http://bit.ly/1hIKf5Z -->
+					<execution>
+						<id>attach-javadoc</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.7.7.201606060606</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-site-plugin</artifactId>
+				<version>3.5.1</version>
+				<configuration>
+					<reportPlugins>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-project-info-reports-plugin</artifactId>
+							<version>2.9</version>
+							<configuration>
+								<dependencyDetailsEnabled>false</dependencyDetailsEnabled>
+								<dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+							</configuration>
+							<reports>
+								<report>index</report>
+								<report>dependencies</report>
+								<report>project-team</report>
+								<report>mailing-list</report>
+								<report>cim</report>
+								<report>issue-tracking</report>
+								<report>license</report>
+								<report>scm</report>
+								<report>summary</report>
+							</reports>
+						</plugin>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-javadoc-plugin</artifactId>
+							<version>2.10.4</version>
+							<configuration>
+								<!-- See: http://bit.ly/1EWR4gK -->
+								<additionalparam>-Xdoclint:none</additionalparam>
+							</configuration>
+						</plugin>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-surefire-report-plugin</artifactId>
+							<version>2.18.1</version>
+							<reportSets>
+								<reportSet>
+									<reports>
+										<report>report-only</report>
+										<report>failsafe-report-only</report>
+									</reports>
+								</reportSet>
+							</reportSets>
+						</plugin>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-jxr-plugin</artifactId>
+							<version>2.5</version>
+						</plugin>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-pmd-plugin</artifactId>
+							<version>3.7</version>
+							<configuration>
+								<rulesets>
+									<ruleset>${pom.basedir}/src/pmd/pmdRules.xml</ruleset>
+								</rulesets>
+								<linkXref>true</linkXref>
+								<sourceEncoding>utf-8</sourceEncoding>
+								<minimumTokens>200</minimumTokens>
+								<targetJdk>1.8</targetJdk>
+								<excludeRoots>
+									<excludeRoot>target/generated-sources</excludeRoot>
+								</excludeRoots>
+							</configuration>
+						</plugin>
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-checkstyle-plugin</artifactId>
+							<version>2.16</version>
+							<configuration>
+								<configLocation>${pom.basedir}/src/checkstyle/checkstyle-configuration.xml
+								</configLocation>
+								<headerLocation>${pom.basedir}/src/checkstyle/checkstyle-header.txt</headerLocation>
+							</configuration>
+							<reportSets>
+								<reportSet>
+									<reports>
+										<report>checkstyle</report>
+									</reports>
+								</reportSet>
+							</reportSets>
+						</plugin>
+						<plugin>
+							<groupId>org.codehaus.mojo</groupId>
+							<artifactId>findbugs-maven-plugin</artifactId>
+							<version>3.0.4</version>
+							<configuration>
+								<effort>Max</effort>
+								<threshold>medium</threshold>
+							</configuration>
+						</plugin>
+					</reportPlugins>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
