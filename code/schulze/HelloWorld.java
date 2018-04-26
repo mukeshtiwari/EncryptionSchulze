@@ -1,4 +1,4 @@
-package Schulze;
+package schulze;
 
 
 import java.math.BigInteger;

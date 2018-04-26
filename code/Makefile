@@ -29,7 +29,7 @@ benchByte : MainByte rand.pl
 
 
 clean:
-	rm -rf _build *.vo *.glob *.class lib.ml lib.mli main.native main.byte 2>/dev/null || true
+	rm -rf _build *.vo *.glob *.class lib.ml lib.mli main.native main.byte schulze/*.class 2>/dev/null || true
 
 MainNative : big.ml lib.ml lib.mli derivation.ml main.ml
 	ocamlbuild  -use-ocamlfind -r -use-menhir -package num main.native	
@@ -37,9 +37,9 @@ MainNative : big.ml lib.ml lib.mli derivation.ml main.ml
 MainByte: big.ml lib.ml lib.mli derivation.ml main.ml
 	ocamlbuild  -use-ocamlfind -r -use-menhir  -package num main.byte
 
-HelloWorld.class : HelloWorld.java 
-	javac -cp ".:./javacryptocode/jarfiles/unicrypt-2.3.jar:./javacryptocode/jarfiles/jnagmp-2.0.0.jar:./javacryptocode/jarfiles/jna-4.5.0.jar" -Xlint HelloWorld.java 
+HelloWorld.class : schulze/HelloWorld.java 
+	javac -cp ".:./javacryptocode/jarfiles/unicrypt-2.3.jar:./javacryptocode/jarfiles/jnagmp-2.0.0.jar:./javacryptocode/jarfiles/jna-4.5.0.jar" -Xlint schulze/HelloWorld.java 
 
-HelloWorld : HelloWorld.class
-	java -cp ".:./javacryptocode/jarfiles/unicrypt-2.3.jar:./javacryptocode/jarfiles/jnagmp-2.0.0.jar:./javacryptocode/jarfiles/jna-4.5.0.jar"  HelloWorld
+HelloWorld : schulze/HelloWorld.class
+	java -cp ".:./javacryptocode/jarfiles/unicrypt-2.3.jar:./javacryptocode/jarfiles/jnagmp-2.0.0.jar:./javacryptocode/jarfiles/jna-4.5.0.jar" schulze.HelloWorld
 
