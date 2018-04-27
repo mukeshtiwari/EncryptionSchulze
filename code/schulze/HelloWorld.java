@@ -40,7 +40,7 @@ import ch.bfh.unicrypt.crypto.keygenerator.interfaces.KeyPairGenerator;
 public class HelloWorld {
 	
 	//Simplification of java for OCaml
-	
+
 	private static class ElGamalCiphertext {
 		public ElGamalCiphertext(BigInteger c1, BigInteger c2){
 			this.c1 = c1;
@@ -149,6 +149,11 @@ public class HelloWorld {
 		
 		
 	}
+
+	public static BigInteger add_for(BigInteger n, BigInteger m)
+	{
+		return n.add(m);
+	}
 	
 	public static void main(String[] args) throws UniCryptException {
 		
@@ -179,7 +184,9 @@ public class HelloWorld {
 		System.out.println(ciphertext);
 		Element plaintext = elGamal.decrypt(privateKey, ciphertext);
 		System.out.println(plaintext);
-		
+
+		System.out.println(HelloWorld.groupOp(new BigInteger("1"), new BigInteger("1")));
+		System.out.println(HelloWorld.add_for(new BigInteger("1"), new BigInteger("1")));
 		
 		
 		
