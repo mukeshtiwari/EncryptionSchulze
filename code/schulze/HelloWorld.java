@@ -41,6 +41,8 @@ public class HelloWorld {
 	
 	//Simplification of java for OCaml
 	
+	//Begin data structures
+	
 	private static class ElGamalCiphertext {
 		public ElGamalCiphertext(BigInteger c1, BigInteger c2){
 			this.c1 = c1;
@@ -95,6 +97,33 @@ public class HelloWorld {
 		public List<Prefrence> prefrences;
 	}
 	
+	//End Data structures 
+	
+	public static BigInteger generateSK() {
+		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
+		Element generator = group.getDefaultGenerator();
+		ElGamalEncryptionScheme elGamal = 
+				ElGamalEncryptionScheme.getInstance(generator);
+		KeyPairGenerator kpg = elGamal.getKeyPairGenerator();
+		GStarModPrimeElement privateKey = kpg.generatePrivateKey();
+		return privateKey;
+	}
+	
+	public static BigInteger generatePK() {
+		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
+		Element generator = group.getDefaultGenerator();
+		ElGamalEncryptionScheme elGamal = 
+				ElGamalEncryptionScheme.getInstance(generator);
+		KeyPairGenerator kpg = elGamal.getKeyPairGenerator();
+		Element<BigInteger> publicKey = kpg.generatePublicKey(privateKey);
+		return publicKey;
+	}
+	
+	public static EncBallotMulti(EncBallot b1, EncBallot b2) {
+		return new EncBallot(IntStream.range(0, b1.prefrences.size()).mapToObj(i -> new EncPrefrence(b1.prefrences.get(i).prefered,
+				b1.prefrences.get(i).over, multiplyCiphertext(b1.prefrences.get(i).ciphertext,b2.prefrences.get(i).ciphertext)).collect(Collectors.toList()));
+	}
+	
 	private static BigInteger dLog(GStarModElement generator, Element<BigInteger> element) {
 		return BigInteger.valueOf(IntStream.iterate(0, i -> i++).filter(i -> generator.power(i).equals(element)).findFirst().getAsInt());
 	}
@@ -134,6 +163,18 @@ public class HelloWorld {
 		
 				)).collect(Collectors.toList()));
 	}
+	
+	public static Ballot decBallotZKP(EncBallot b, BigInteger privateKey) {
+		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
+		GStarModElement generator = group.getDefaultGenerator();
+		Element<BigInteger> privateKeyElem = group.getZModOrder().getElement(privateKey);
+		ElGamalEncryptionScheme elGamal = 
+				ElGamalEncryptionScheme.getInstance(generator);
+		return new Ballot(b.prefrences.stream().map(i -> new Prefrence(i.prefered, i.over, 
+			dLog(generator, elGamal.decrypt(privateKeyElem, ciphertextBigIntegerToElement(elGamal, i.ciphertext)))
+				)).collect(Collectors.toList()));
+		
+	}
 
 	public static EncBallot encBallot(Ballot b, BigInteger publicKey)
 	{
@@ -146,9 +187,41 @@ public class HelloWorld {
 		return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
 				new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
 				)).collect(Collectors.toList()));
+		}
+	
+	//TODO
+	public static EncBallotZKP encBallot(Ballot b, BigInteger publicKey)
+	{
+		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
+		GStarModElement generator = group.getDefaultGenerator();
+		Element<BigInteger> publicKeyElem = group.getElement(publicKey);
+		ElGamalEncryptionScheme elGamal = 
+				ElGamalEncryptionScheme.getInstance(generator);
 		
-		
+		return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
+				new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
+				)).collect(Collectors.toList()));
 	}
+	
+	//TODO
+		public static EncBallotZKPOfPlaintext encBallot(Ballot b, BigInteger publicKey)
+		{
+			GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
+			GStarModElement generator = group.getDefaultGenerator();
+			Element<BigInteger> publicKeyElem = group.getElement(publicKey);
+			ElGamalEncryptionScheme elGamal = 
+					ElGamalEncryptionScheme.getInstance(generator);
+			ElGamalEncryptionValidityProofSystem getInstance
+			return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
+					new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
+					)).collect(Collectors.toList()));
+		}
+		
+	//Todo
+	//Row Permute with ZKP
+		
+	//Todo
+	//Column Permute with ZKP
 	
 	public static void main(String[] args) throws UniCryptException {
 		
