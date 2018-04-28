@@ -12,6 +12,9 @@ import java.util.stream.IntStream;
 import ch.bfh.unicrypt.UniCryptException;
 import ch.bfh.unicrypt.crypto.mixer.classes.IdentityMixer;
 import ch.bfh.unicrypt.crypto.mixer.classes.ReEncryptionMixer;
+import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.classes.FiatShamirSigmaChallengeGenerator;
+import ch.bfh.unicrypt.crypto.proofsystem.challengegenerator.interfaces.SigmaChallengeGenerator;
+import ch.bfh.unicrypt.crypto.proofsystem.classes.EqualityPreimageProofSystem;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.PermutationCommitmentProofSystem;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.ReEncryptionShuffleProofSystem;
 import ch.bfh.unicrypt.crypto.schemes.commitment.classes.PermutationCommitmentScheme;
@@ -31,9 +34,9 @@ import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
 import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModElement;
 import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModPrime;
 import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModSafePrime;
-import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
-import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModSafePrime;
-import ch.bfh.unicrypt.crypto.schemes.encryption.classes.ElGamalEncryptionScheme;
+import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
+import ch.bfh.unicrypt.math.function.classes.PowerFunction;
+import ch.bfh.unicrypt.math.function.interfaces.Function;
 import ch.bfh.unicrypt.crypto.encoder.classes.ZModPrimeToGStarModSafePrime;
 import ch.bfh.unicrypt.crypto.keygenerator.interfaces.KeyPairGenerator;
 
@@ -43,7 +46,7 @@ public class HelloWorld {
 	
 	//Begin data structures
 	
-	private static class ElGamalCiphertext {
+	private static class ElGamalCiphertext {	//An ElGamal Ciphertext is represented as two BigIntegers
 		public ElGamalCiphertext(BigInteger c1, BigInteger c2){
 			this.c1 = c1;
 			this.c2 = c2;
@@ -59,29 +62,49 @@ public class HelloWorld {
 		public BigInteger c2;
 	}
 	
-	private static class EncPrefrence {
-		public EncPrefrence(String prefered, String over, ElGamalCiphertext ciphertext) {
-			this.prefered = prefered;
-			this.over = over;
+	private static class EncPrefrence {	//An encrypted preference denotes that a candidate
+		// is preferred over another, denoted preferred and over respectively, the ciphertext contains
+		//encryption of the weight of this preference
+		public EncPrefrence( ElGamalCiphertext ciphertext) {
 			this.ciphertext = ciphertext;
 		}
-		public String prefered;
-		public String over;
-		public ElGamalCiphertext ciphertext;
+		 public ElGamalCiphertext ciphertext;
 	}
 	
-	private static class Prefrence {
-		public Prefrence(String prefered, String over, BigInteger plaintext) {
-			this.prefered = prefered;
-			this.over = over;
-			this.plaintext = plaintext;
+	private static class EncPrefrenceWithZKP {	//An encrypted preference denotes that a candidate
+		// is preferred over another, denoted preferred and over respectively, the ciphertext contains
+		//encryption of the weight of this preference
+		public EncPrefrenceWithZKP( ElGamalCiphertext ciphertext) {
+			this.ciphertext = ciphertext;
 		}
-		public String prefered;
-		public String over;
+		 public ElGamalCiphertext ciphertext;
+		 public String ZKP;
+	}
+	
+	private static class Prefrence { //A preference denotes that a candidate
+		// is preferred over another, denoted preferred and over respectively, the plaintext contains
+		//the weight of this preference
+		public Prefrence(BigInteger plaintext) {
+			 this.plaintext = plaintext;
+		}
 		public BigInteger plaintext;
 	}
+	
+	private static class PrefrenceWithZKP { //A preference denotes that a candidate
+		// is preferred over another, denoted preferred and over respectively, the plaintext contains
+		//the weight of this preference
+		public PrefrenceWithZKP(BigInteger plaintext, String ZKP) {
+			 this.plaintext = plaintext;
+			 this.ZKP = ZKP;
+		}
+		public BigInteger plaintext;
+		public String ZKP;
+	}
 
-	private static class EncBallot {
+	private static class EncBallot { //An encrypted ballot contains a list of encrypted preferences
+		// it is expected that this list will be of length n^2 containing the preference relationship between
+		// each candidate the all n candidates
+		// TODO check that the EncPrefrence is correctly formed
 		public EncBallot(List<EncPrefrence> prefrences) {
 			this.prefrences = prefrences;
 		}
@@ -89,45 +112,81 @@ public class HelloWorld {
 		public List<EncPrefrence> prefrences;
 	}
 	
-	private static class Ballot {
+	private static class EncBallotWithZKP { //An encrypted ballot contains a list of encrypted preferences
+		// it is expected that this list will be of length n^2 containing the preference relationship between
+		// each candidate the all n candidates
+		// TODO check that the EncPrefrence is correctly formed
+		public EncBallotWithZKP(List<EncPrefrenceWithZKP> prefrences) {
+			this.prefrences = prefrences;
+		}
+		
+		public List<EncPrefrenceWithZKP> prefrences;
+	}
+	
+	private static class Ballot { //A ballot contains a list of preferences
+		// it is expected that this list will be of length n^2 containing the preference relationship between
+		// each candidate the all n candidates
+		// TODO check that the preferences is correctly formed
 		public Ballot(List<Prefrence> prefrences) {
 			this.prefrences = prefrences;
 		}
 		
 		public List<Prefrence> prefrences;
 	}
+	 
+	private static class BallotWithZKP {//A ballot contains a list of preferences
+		// it is expected that this list will be of length n^2 containing the preference relationship between
+		// each candidate the all n candidates each preference contains a proof that is correctly decryted
+		// TODO check that the preferences is correctly formed
+		public BallotWithZKP(List<PrefrenceWithZKP> prefrences) {
+			this.prefrences = prefrences;
+		}
+		
+		public List<PrefrenceWithZKP> prefrences;
+	}
 	
 	//End Data structures 
 	
-	public static BigInteger generateSK() {
+	@SuppressWarnings("unchecked")
+	public static BigInteger generateSK() {  // Generates a secret key
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
-		Element generator = group.getDefaultGenerator();
+		GStarModElement generator = group.getDefaultGenerator();
 		ElGamalEncryptionScheme elGamal = 
 				ElGamalEncryptionScheme.getInstance(generator);
 		KeyPairGenerator kpg = elGamal.getKeyPairGenerator();
-		GStarModPrimeElement privateKey = kpg.generatePrivateKey();
-		return privateKey;
+		Element<BigInteger> privateKey = kpg.generatePrivateKey();
+		return privateKey.convertToBigInteger();
 	}
 	
-	public static BigInteger generatePK() {
+	@SuppressWarnings("unchecked")
+	public static BigInteger generatePK(BigInteger privateKey) { //Generates a public key from a secret key
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
-		Element generator = group.getDefaultGenerator();
+		GStarModElement generator = group.getDefaultGenerator();
 		ElGamalEncryptionScheme elGamal = 
 				ElGamalEncryptionScheme.getInstance(generator);
 		KeyPairGenerator kpg = elGamal.getKeyPairGenerator();
-		Element<BigInteger> publicKey = kpg.generatePublicKey(privateKey);
-		return publicKey;
+		Element<BigInteger> publicKey = kpg.generatePublicKey(group.getElement(privateKey));
+		return publicKey.convertToBigInteger();
 	}
 	
-	public static EncBallotMulti(EncBallot b1, EncBallot b2) {
-		return new EncBallot(IntStream.range(0, b1.prefrences.size()).mapToObj(i -> new EncPrefrence(b1.prefrences.get(i).prefered,
-				b1.prefrences.get(i).over, multiplyCiphertext(b1.prefrences.get(i).ciphertext,b2.prefrences.get(i).ciphertext)).collect(Collectors.toList()));
+	public static EncBallot EncBallotMulti(EncBallot b1, EncBallot b2) { //Takes two encrypted ballots
+		//and produces a new encrypted ballot by pairwise multiplication of ciphertexts
+		//TODO There are no checks to make sure such multiplication is possible
+		return new EncBallot(
+			IntStream.range(0, b1.prefrences.size()).mapToObj( //For all preferences
+			i -> new EncPrefrence(multiplyCiphertext(b1.prefrences.get(i).ciphertext,b2.prefrences.get(i).ciphertext)) //Multiply the ciphertexts
+			).collect(Collectors.toList())
+		);
 	}
 	
+	//This function calculates the discrete log of element to the base generator 
+	//TODO the function will run in infinite time if no log exists, there should be some limit imposed
+	//TODO the function will run in nearly infinite time if the log is sufficently larger, some limit should be imposed
 	private static BigInteger dLog(GStarModElement generator, Element<BigInteger> element) {
 		return BigInteger.valueOf(IntStream.iterate(0, i -> i++).filter(i -> generator.power(i).equals(element)).findFirst().getAsInt());
 	}
 	
+	//This function takes two BigIntegers representing group elements and produces their product in the group
 	public static BigInteger groupOp(BigInteger element1, BigInteger element2) throws UniCryptException {
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
 		GStarModElement one = group.getElementFrom(element1);
@@ -135,6 +194,7 @@ public class HelloWorld {
 		return one.multiply(two).getValue();
 	}
 	
+	//This function takes two ElGamal ciphertexts and produces their product
 	public static ElGamalCiphertext multiplyCiphertext(ElGamalCiphertext c1, ElGamalCiphertext c2) {
 		try {
 			return new ElGamalCiphertext(groupOp(c1.c1, c2.c1), groupOp(c1.c2, c2.c2));
@@ -143,39 +203,59 @@ public class HelloWorld {
 		}
 	}
 	
-	public static Element ciphertextBigIntegerToElement(ElGamalEncryptionScheme elGamal, ElGamalCiphertext c) {
+	//This function converts an ElGamal BigInteger ciphertext to unicrypt encoding
+	public static Tuple ciphertextConvBItT(ElGamalEncryptionScheme elGamal, ElGamalCiphertext c) {
 		try {
 			return elGamal.getEncryptionSpace().getElementFrom(c.c1, c.c2);
 		} catch (UniCryptException e) {
+			//TODO we fail silently (to make the lamdas happy), we shouldn't
 			e.printStackTrace();
-			return elGamal.getGenerator();
+			return elGamal.encrypt(elGamal.getGenerator(), elGamal.getGenerator());//Not sure if this even makes sense
 		}
 	}
 	
+	//This function takes an encrypted ballot and the private key and returns a (decrypted) ballot
+	@SuppressWarnings("unchecked")
 	public static Ballot decBallot(EncBallot b, BigInteger privateKey) {
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
 		GStarModElement generator = group.getDefaultGenerator();
 		Element<BigInteger> privateKeyElem = group.getZModOrder().getElement(privateKey);
 		ElGamalEncryptionScheme elGamal = 
 				ElGamalEncryptionScheme.getInstance(generator);
-		return new Ballot(b.prefrences.stream().map(i -> new Prefrence(i.prefered, i.over, 
-			dLog(generator, elGamal.decrypt(privateKeyElem, ciphertextBigIntegerToElement(elGamal, i.ciphertext)))
-		
-				)).collect(Collectors.toList()));
+		return new Ballot(b.prefrences.stream().map(i -> 
+			new Prefrence(dLog(generator, elGamal.decrypt(privateKeyElem, ciphertextConvBItT(elGamal, i.ciphertext)))
+		)).collect(Collectors.toList()));
 	}
 	
-	public static Ballot decBallotZKP(EncBallot b, BigInteger privateKey) {
+	//This function takes an encrypted ballot and the private key and returns a (decrypted) ballot
+	// it also returns a ZKP of the correct of decryption
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public static BallotWithZKP decBallotZKP(EncBallot b, BigInteger privateKey) {
+		//Setup ElGamal
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
 		GStarModElement generator = group.getDefaultGenerator();
 		Element<BigInteger> privateKeyElem = group.getZModOrder().getElement(privateKey);
 		ElGamalEncryptionScheme elGamal = 
 				ElGamalEncryptionScheme.getInstance(generator);
-		return new Ballot(b.prefrences.stream().map(i -> new Prefrence(i.prefered, i.over, 
-			dLog(generator, elGamal.decrypt(privateKeyElem, ciphertextBigIntegerToElement(elGamal, i.ciphertext)))
-				)).collect(Collectors.toList()));
 		
+		//Setup ZKP
+		// Create proof functions
+		Function f1  = PowerFunction.getInstance(group);
+		EqualityPreimageProofSystem equalityPreimageProofSystem = EqualityPreimageProofSystem.getInstance(f1);
+		
+		//Return
+		return new BallotWithZKP(b.prefrences.stream().map(i -> {
+			Tuple c = ciphertextConvBItT(elGamal, i.ciphertext);
+			Element encodedMessage =  elGamal.decrypt(privateKeyElem, c);
+			GStarModElement partialDecryption = (GStarModElement) c.getLast();
+			Pair publicInput = Pair.getInstance(group.power(generator, privateKeyElem), partialDecryption);
+			//equalityPreimageProofSystem.generate(privateKeyElem, publicInput)   //Generate (private input and public input
+			return new PrefrenceWithZKP(dLog(generator, encodedMessage),equalityPreimageProofSystem.generate(privateKeyElem, publicInput).toString());
+			}
+		).collect(Collectors.toList()));
 	}
 
+	//TODO
 	public static EncBallot encBallot(Ballot b, BigInteger publicKey)
 	{
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
@@ -184,44 +264,72 @@ public class HelloWorld {
 		ElGamalEncryptionScheme elGamal = 
 				ElGamalEncryptionScheme.getInstance(generator);
 		
-		return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
+		return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(
 				new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
 				)).collect(Collectors.toList()));
 		}
 	
-	//TODO
-	public static EncBallotZKP encBallot(Ballot b, BigInteger publicKey)
-	{
-		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
-		GStarModElement generator = group.getDefaultGenerator();
-		Element<BigInteger> publicKeyElem = group.getElement(publicKey);
-		ElGamalEncryptionScheme elGamal = 
-				ElGamalEncryptionScheme.getInstance(generator);
-		
-		return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
-				new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
-				)).collect(Collectors.toList()));
-	}
-	
-	//TODO
-		public static EncBallotZKPOfPlaintext encBallot(Ballot b, BigInteger publicKey)
-		{
-			GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
-			GStarModElement generator = group.getDefaultGenerator();
-			Element<BigInteger> publicKeyElem = group.getElement(publicKey);
-			ElGamalEncryptionScheme elGamal = 
-					ElGamalEncryptionScheme.getInstance(generator);
-			ElGamalEncryptionValidityProofSystem getInstance
-			return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
-					new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
-					)).collect(Collectors.toList()));
-		}
+//	//TODO
+//	public static EncBallotWithZKP EncBallotZKP(Ballot b, BigInteger publicKey)
+//	{
+//		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
+//		GStarModElement generator = group.getDefaultGenerator();
+//		Element<BigInteger> publicKeyElem = group.getElement(publicKey);
+//		ElGamalEncryptionScheme elGamal = 
+//				ElGamalEncryptionScheme.getInstance(generator);
+//		
+//		return new EncBallotWithZKP(b.prefrences.stream().map(i -> {
+//				return new EncPrefrenceWithZKP(new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext),)),);
+//				).collect(Collectors.toList()));
+//	}
+//	
+//	//TODO
+//		public static EncBallotZKPOfPlaintext(Ballot b, BigInteger publicKey)
+//		{
+//			GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
+//			GStarModElement generator = group.getDefaultGenerator();
+//			Element<BigInteger> publicKeyElem = group.getElement(publicKey);
+//			ElGamalEncryptionScheme elGamal = 
+//					ElGamalEncryptionScheme.getInstance(generator);
+//			ElGamalEncryptionValidityProofSystem getInstance
+//			return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
+//					new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
+//					)).collect(Collectors.toList()));
+//		}
 		
 	//Todo
 	//Row Permute with ZKP
 		
 	//Todo
 	//Column Permute with ZKP
+		
+		// This function takes Array of BigIntegers from OCaml code and returns 
+		// plainttext. Assuming that we have two candidates, our Array b would of size 4 (n X n for candidate size n and will be interpreted as matrix )
+		public static Ballot constructBallot(BigInteger[] b)
+		{
+			List<Prefrence> bal = new ArrayList();
+			for (int i = 0; i < b.length; i++)
+			{
+				bal.add(new Prefrence (b[i]));
+			}
+			return new Ballot(bal);
+		}
+
+		// This function is same as old one (n X n) matrix, but values are taken in pair (i, i + 1)
+		public static EncBallot constructEncBallot (BigInteger[] b)
+		{
+			List<EncPrefrence> encbal = new ArrayList();
+			for(int i = 0; i < b.length; i+= 2)
+			{ 
+				encbal.add(new EncPrefrence(new ElGamalCiphertext(b[i], b[i+1])));
+			}
+			return new EncBallot(encbal);
+		}
+
+		public static BigInteger add_for(BigInteger n, BigInteger m)
+		{
+			return n.add(m);
+		}
 	
 	public static void main(String[] args) throws UniCryptException {
 		
