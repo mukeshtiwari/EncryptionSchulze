@@ -38,10 +38,10 @@ MainByte: big.ml lib.ml lib.mli derivation.ml main.ml
 	ocamlbuild  -use-ocamlfind -r -use-menhir  -package num main.byte
 
 HelloWorld.class : schulze/HelloWorld.java 
-	javac -cp ".:./javacryptocode/jarfiles/unicrypt-2.3.jar:./javacryptocode/jarfiles/jnagmp-2.0.0.jar:./javacryptocode/jarfiles/jna-4.5.0.jar" -Xlint schulze/HelloWorld.java 
+	javac -cp ".:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar" -Xlint schulze/HelloWorld.java 
 
 HelloWorld : schulze/HelloWorld.class
-	java -cp ".:./javacryptocode/jarfiles/unicrypt-2.3.jar:./javacryptocode/jarfiles/jnagmp-2.0.0.jar:./javacryptocode/jarfiles/jna-4.5.0.jar" schulze.HelloWorld
+	java -cp ".:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar" schulze.HelloWorld
 
 jarfile : schulze/HelloWorld.class
 	jar cvf schulze.jar schulze/HelloWorld.class 

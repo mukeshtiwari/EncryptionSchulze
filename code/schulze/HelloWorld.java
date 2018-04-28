@@ -40,7 +40,7 @@ import ch.bfh.unicrypt.crypto.keygenerator.interfaces.KeyPairGenerator;
 public class HelloWorld {
 	
 	//Simplification of java for OCaml
-
+	
 	private static class ElGamalCiphertext {
 		public ElGamalCiphertext(BigInteger c1, BigInteger c2){
 			this.c1 = c1;
@@ -58,24 +58,24 @@ public class HelloWorld {
 	}
 	
 	private static class EncPrefrence {
-		public EncPrefrence(String prefered, String over, ElGamalCiphertext ciphertext) {
-			this.prefered = prefered;
-			this.over = over;
+		public EncPrefrence(/*String prefered, String over, */ElGamalCiphertext ciphertext) {
+			//this.prefered = prefered;
+			//this.over = over;
 			this.ciphertext = ciphertext;
 		}
-		public String prefered;
-		public String over;
+		//public String prefered;
+		//public String over;
 		public ElGamalCiphertext ciphertext;
 	}
 	
 	private static class Prefrence {
-		public Prefrence(String prefered, String over, BigInteger plaintext) {
-			this.prefered = prefered;
-			this.over = over;
+		public Prefrence(/*String prefered, String over, */BigInteger plaintext) {
+			//this.prefered = prefered;
+			//this.over = over;
 			this.plaintext = plaintext;
 		}
-		public String prefered;
-		public String over;
+		//public String prefered;
+		//public String over;
 		public BigInteger plaintext;
 	}
 
@@ -97,7 +97,7 @@ public class HelloWorld {
 	
 	private static BigInteger dLog(GStarModElement generator, Element<BigInteger> element) {
 		return BigInteger.valueOf(IntStream.iterate(0, i -> i++).filter(i -> generator.power(i).equals(element)).findFirst().getAsInt());
-	}
+	} 
 	
 	public static BigInteger groupOp(BigInteger element1, BigInteger element2) throws UniCryptException {
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
@@ -129,10 +129,16 @@ public class HelloWorld {
 		Element<BigInteger> privateKeyElem = group.getZModOrder().getElement(privateKey);
 		ElGamalEncryptionScheme elGamal = 
 				ElGamalEncryptionScheme.getInstance(generator);
-		return new Ballot(b.prefrences.stream().map(i -> new Prefrence(i.prefered, i.over, 
+
+
+		return new Ballot(b.prefrences.stream().map(i -> new Prefrence(
+			dLog(generator, elGamal.decrypt(privateKeyElem, ciphertextBigIntegerToElement(elGamal, i.ciphertext)))
+			)).collect(Collectors.toList()));
+
+		/*return new Ballot(b.prefrences.stream().map(i -> new Prefrence(i.prefered, i.over, 
 			dLog(generator, elGamal.decrypt(privateKeyElem, ciphertextBigIntegerToElement(elGamal, i.ciphertext)))
 		
-				)).collect(Collectors.toList()));
+				)).collect(Collectors.toList())); */
 	}
 
 	public static EncBallot encBallot(Ballot b, BigInteger publicKey)
@@ -143,12 +149,16 @@ public class HelloWorld {
 		ElGamalEncryptionScheme elGamal = 
 				ElGamalEncryptionScheme.getInstance(generator);
 		
-		return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
+		
+		return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(
 				new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
 				)).collect(Collectors.toList()));
+		/*return new EncBallot(b.prefrences.stream().map(i -> new EncPrefrence(i.prefered, i.over, 
+				new ElGamalCiphertext(elGamal.encrypt(publicKeyElem, generator.power(i.plaintext)))
+				)).collect(Collectors.toList()));*/
 		
 		
-	}
+	} 
 
 	public static BigInteger add_for(BigInteger n, BigInteger m)
 	{
