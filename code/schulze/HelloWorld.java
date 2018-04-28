@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -158,7 +159,30 @@ public class HelloWorld {
 				)).collect(Collectors.toList()));*/
 		
 		
-	} 
+	}
+	
+	// This function takes Array of BigIntegers from OCaml code and returns 
+	// plainttext. Assuming that we have two candidates, our Array b would of size 4 (n X n for candidate size n and will be interpreted as matrix )
+	public static Ballot constructBallot(BigInteger[] b)
+	{
+		List<Prefrence> bal = new ArrayList();
+		for (int i = 0; i < b.length; i++)
+		{
+			bal.add(new Prefrence (b[i]));
+		}
+		return new Ballot(bal);
+	}
+
+	// This function is same as old one (n X n) matrix, but values are taken in pair (i, i + 1)
+	public static EncBallot constructEncBallot (BigInteger[] b)
+	{
+		List<EncPrefrence> encbal = new ArrayList();
+		for(int i = 0; i < b.length; i+= 2)
+		{ 
+			encbal.add(new EncPrefrence(new ElGamalCiphertext(b[i], b[i+1])));
+		}
+		return new EncBallot(encbal);
+	}
 
 	public static BigInteger add_for(BigInteger n, BigInteger m)
 	{
@@ -197,7 +221,15 @@ public class HelloWorld {
 
 		System.out.println(HelloWorld.groupOp(new BigInteger("1"), new BigInteger("1")));
 		System.out.println(HelloWorld.add_for(new BigInteger("1"), new BigInteger("1")));
+		BigInteger[] b = new BigInteger[10];
+		Ballot nb = constructBallot(b);
+		// Encrypt it with public key 
+		// encBallot (nb, publickey)
+		// store it in encrypted ballot and decrypte it with private key
 		
+
+
+	 	//System.out.println(ElGamalCiphertext(new BigInteger("1"), new BigInteger("1")).toString());	
 		
 		
 		//Element privateKey = (Element) BigInteger.ONE;
