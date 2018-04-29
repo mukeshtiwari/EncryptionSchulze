@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
+import java.util.Arrays;
 
 import ch.bfh.unicrypt.UniCryptException;
 import ch.bfh.unicrypt.crypto.mixer.classes.IdentityMixer;
@@ -307,23 +307,54 @@ public class HelloWorld {
 		// plainttext. Assuming that we have two candidates, our Array b would of size 4 (n X n for candidate size n and will be interpreted as matrix )
 		public static Ballot constructBallot(BigInteger[] b)
 		{
+
+			return new Ballot(Arrays.asList(b).stream().map(i -> new Prefrence(i)).collect(Collectors.toList()));
+			/*
 			List<Prefrence> bal = new ArrayList();
 			for (int i = 0; i < b.length; i++)
 			{
 				bal.add(new Prefrence (b[i]));
 			}
-			return new Ballot(bal);
+			return new Ballot(bal); */
 		}
 
 		// This function is same as old one (n X n) matrix, but values are taken in pair (i, i + 1)
+		// Try to change this funciton into lambda function
 		public static EncBallot constructEncBallot (BigInteger[] b)
 		{
+
 			List<EncPrefrence> encbal = new ArrayList();
 			for(int i = 0; i < b.length; i+= 2)
 			{ 
 				encbal.add(new EncPrefrence(new ElGamalCiphertext(b[i], b[i+1])));
 			}
 			return new EncBallot(encbal);
+		}
+
+		// This function converts ballots back to list of BigInteger
+		public static BigInteger[] destructBallot(Ballot b)
+		{
+			List<Prefrence> t = b.prefrences;
+			int len = t.size();
+			BigInteger[] bal = new BigInteger[len];
+			for(int i = 0 ; i < len; i++) 
+				bal[i] = t.get(i).plaintext;
+			return bal;
+		}
+
+
+		// Converts Encrypted ballot into Array of BigInteger
+		public static BigInteger[] destructEncBallot(EncBallot b)
+		{
+			List<EncPrefrence> t = b.prefrences;
+			int len = t.size();
+			BigInteger[] bal = new BigInteger [2*len];
+			for(int i = 0, j = 0; i < len; i++, j += 2)
+			{
+				bal[j] = t.get(i).ciphertext.c1;
+				bal[j+1] = t.get(i).ciphertext.c2;
+			}
+			return bal;
 		}
 
 		public static BigInteger add_for(BigInteger n, BigInteger m)
