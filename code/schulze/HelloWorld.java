@@ -356,12 +356,33 @@ public class HelloWorld {
 			}
 			return bal;
 		}
-
+		
+		// this is just for testing purpose. Remove it later
 		public static BigInteger add_for(BigInteger n, BigInteger m)
 		{
 			return n.add(m);
 		}
+
+		// this is alos for testing purpose
+		public static BigInteger[] addEncBallot(BigInteger[] n, BigInteger[] m)
+		{
+			
+			BigInteger[] ret = new BigInteger[n.length];
+			for(int i = 0 ; i < n.length; i++)
+				ret[i] = n[i].add(m[i]);
+			return ret;
+		}
 	
+		public static BigInteger[] multEncBallot(BigInteger[] n, BigInteger[] m)
+                {
+
+                        int len = n.length;
+			EncBallot f = constructEncBallot(n);
+			EncBallot s = constructEncBallot(m);
+			EncBallot t = EncBallotMulti(f, s);
+                        return destructEncBallot(t);
+                }
+
 	public static void main(String[] args) throws UniCryptException {
 		
 		
@@ -391,9 +412,11 @@ public class HelloWorld {
 		System.out.println(ciphertext);
 		Element plaintext = elGamal.decrypt(privateKey, ciphertext);
 		System.out.println(plaintext);
-		
-		
-		
+		BigInteger[] b = new BigInteger[8];
+		for (int i = 0; i < 8; i++) b[i] = BigInteger.ONE;
+		BigInteger[] blt = HelloWorld.multEncBallot(b, b);
+		for(int i= 0; i < 8 ; i++)
+			System.out.println(blt[i]);
 		
 		//Element privateKey = (Element) BigInteger.ONE;
 		//Element publicKey = generator;
