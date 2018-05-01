@@ -571,7 +571,9 @@ public class HelloWorld {
 		//A test case for three candidates and ten votes
 		//
 		/////////////////////
-		
+	
+		System.out.println("Hello World");
+
 		int NumCandidates = 3;
 		int NumVoters = 10;
 		
