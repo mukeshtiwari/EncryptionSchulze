@@ -221,7 +221,7 @@ public class HelloWorld {
 	//This function calculates the discrete log of element to the base generator 
 	//TODO the function will run in infinite time if no log exists, there should be some limit imposed
 	//TODO the function will run in nearly infinite time if the log is sufficently larger, some limit should be imposed
-	private static BigInteger dLog(GStarModElement generator, Element<BigInteger> element) {
+	public static BigInteger dLog(GStarModElement generator, Element<BigInteger> element) {
 		BigInteger dlog = BigInteger.valueOf(IntStream.iterate(0, i -> i+1).filter(i -> generator.power(i).getValue().equals(element.getValue())).findFirst().getAsInt());
 		//System.out.println("Dlog: "+dlog);
 		return dlog;
@@ -258,19 +258,6 @@ public class HelloWorld {
 			e.printStackTrace();
 			return elGamal.encrypt(elGamal.getGenerator(), elGamal.getGenerator());//Not sure if this even makes sense
 		}
-	}
-	
-	//This function takes an encrypted ballot and the private key and returns a (decrypted) ballot
-	@SuppressWarnings("unchecked")
-	public static Ballot decBallot(EncBallot b, BigInteger privateKey) {
-		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
-		GStarModElement generator = group.getDefaultGenerator();
-		Element<BigInteger> privateKeyElem = group.getZModOrder().getElement(privateKey);
-		ElGamalEncryptionScheme elGamal = 
-				ElGamalEncryptionScheme.getInstance(generator);
-		return new Ballot(b.prefrences.stream().map(i -> 
-			dLog(generator, elGamal.decrypt(privateKeyElem, ciphertextConvBItT(elGamal, i))
-		)).collect(Collectors.toList()));
 	}
 	
 	//This function takes an encrypted ballot and the private key and returns a (decrypted) ballot
@@ -515,7 +502,7 @@ public class HelloWorld {
 		public static EncBallot constructEncBallot (BigInteger[] b)
 		{
 
-			List<ElGamalCiphertext> encbal = new ArrayList();
+			List<ElGamalCiphertext> encbal = new ArrayList<ElGamalCiphertext>();
 			for(int i = 0; i < b.length; i+= 2)
 			{ 
 				encbal.add(new ElGamalCiphertext(b[i], b[i+1]));
