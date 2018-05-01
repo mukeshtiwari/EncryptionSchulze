@@ -550,7 +550,14 @@ public class HelloWorld {
 			EncBallot t = EncBallotMulti(f, s);
                         return destructEncBallot(t);
                 }
-	
+		// This function takes plain text ballot in terms of BigInteger Array
+		// converts it to Ballot and encrypt it and returns the encrypted ballot again 
+		// in terms of BigInteger Array
+		public static BigInteger[] encBallotWrapper(BigInteger[] bal, BigInteger publickey)
+		{
+			return destructEncBallot(encBallot(constructBallot(bal), publickey));
+		}
+
 	public static void main(String[] args) throws UniCryptException {
 		
 		/////////////////
@@ -566,15 +573,22 @@ public class HelloWorld {
 		
 		//Generate random ballots
 		List<Ballot> votes = IntStream.range(0, NumVoters).mapToObj(i -> generateRandomBallot(NumCandidates)).collect(Collectors.toList());
-		//System.out.println(votes.toString());
+		System.out.println(votes.toString());
 		
 		//Encrypt the random ballots
 		BigInteger sk = generateSK();
-		//System.out.println(sk);
+		System.out.println(sk);
 		BigInteger pk = generatePK(sk);
+		System.out.println(pk);
+		BigInteger[] bal = new BigInteger[8];
+		for(int i = 0; i < 8; i++) bal[i] = BigInteger.ZERO;
+		BigInteger[] encmar = encBallotWrapper(bal, pk);
+		System.out.println(encmar.toString());
 		
+		
+		/* 
 		List<EncBallot> encVotes = votes.stream().map(i -> encBallot(i,pk)).collect(Collectors.toList());
-		//System.out.println(encVotes.toString());
+		System.out.println(encVotes.toString());
 		
 		//Begin Multiplying
 		EncBallot MarginFunction = EncBallotZKPofPlaintextZero(NumCandidates, pk);
