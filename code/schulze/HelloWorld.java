@@ -390,8 +390,9 @@ public class HelloWorld {
 		// Write Public key and Private Key in file. For testing purpose, make private key 1 and public key generator
 		// We Start from OCaml main function and read a Encrypted ballot, Convert it in Java Array (EncBallot data structure) 
 		// and call multiplyBallot. Takes the EncBallot and convert it to OCaml Array 
-		// 
+		//
 		
+
 		ElGamalCiphertext c = new ElGamalCiphertext(BigInteger.ONE, BigInteger.ONE);
 		
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
