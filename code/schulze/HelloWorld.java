@@ -583,7 +583,7 @@ public class HelloWorld {
 		BigInteger[] bal = new BigInteger[8];
 		for(int i = 0; i < 8; i++) bal[i] = BigInteger.ZERO;
 		BigInteger[] encmar = encBallotWrapper(bal, pk);
-		System.out.println(encmar.toString());
+		for (int i = 0; i < encmar.length; i++) System.out.println(encmar[i].toString());
 		
 		
 		/* 
