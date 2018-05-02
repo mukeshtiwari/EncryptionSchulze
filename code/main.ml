@@ -96,7 +96,7 @@ let map f l =
 
 let _ = 
   let e = Parser.prog Lexer.lexeme (Lexing.from_channel stdin) in
-  let w = map (fun x -> map (fun (a, b, (c, d)) -> (cc a, cc b,  (Big.of_int c, Big.of_int d))) x) e in
+  let w = map (fun x -> map (fun (a, b, (c, d)) -> (cc a, cc b,  (Big.of_string c, Big.of_string d))) x) e in
   let v = map (fun x -> balfun x) w in
   match schulze_winners_pf v with
   | ExistT (f, y) ->
