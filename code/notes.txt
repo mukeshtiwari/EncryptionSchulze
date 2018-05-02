@@ -1,0 +1,4 @@
+Fix public and private key in (lib.ml) file 
+Implement encryption, decryption and multiplication in javaocaml.ml 
+call the functions from javaocaml.ml in lib.ml
+
