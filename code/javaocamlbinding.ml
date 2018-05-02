@@ -58,15 +58,14 @@ let () =
 (* Don't expose any internal class so try to operate in BigInteger world because it will make the code and life easier *)
 
 
-let () = 
- let prikey = Crypto_java.generate_privatekey () in
- let pubkey = Crypto_java.generate_publickey prikey in 
- let zero_marg = encrypt_margin pubkey (create_array_from_list (List.map Big_integer.create starting_margin)) in 
- let len = 18 in
- print_endline (Big_integer.to_string prikey);
- print_endline (Big_integer.to_string pubkey);
- for i = 0 to (len - 1) do
+let _ =  
+   let prikey = Crypto_java.generate_privatekey () in
+   let pubkey = Crypto_java.generate_publickey prikey in 
+   let zero_marg = encrypt_margin pubkey (create_array_from_list (List.map Big_integer.create starting_margin)) in
+   for i = 0 to 17 do
         print_endline (Big_integer.to_string (Jarray.get_object zero_marg i))
- done
-
+   done
+(* with Java.exception e -> 
+   Jthrowable.print_stack_trace e;
+   failwith "" *)
 
