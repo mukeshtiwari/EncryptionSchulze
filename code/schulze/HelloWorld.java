@@ -324,7 +324,9 @@ public class HelloWorld {
 //			}
 //		).collect(Collectors.toList()));
 //	}
+
 	
+
 	public static EncBallotWithZKP EncBallotZKPofPlaintextZero(int size, BigInteger publicKey) throws UniCryptException
 	{
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
@@ -342,6 +344,15 @@ public class HelloWorld {
 			}
 		).collect(Collectors.toList()));
 	}
+
+	//This function is same as EncBallotZKPofPlaintextZero, but here I am passing the ballot whose all entries are zero, public key and return 
+	// Encrypted zero margin function with Zero knowledge proof. Implement it to make sure this matches with OCaml function. 
+	
+	//public static EncBallotWithZKP EncAndZKPofZeroMargin(Ballot b, BigInteger privatekey)
+	//{
+	// }
+		
+
 	
 	public static Triple createCiphertexts(Tuple uV, int size, CyclicGroup G_q, ReEncryptionScheme encryptionScheme, Element encryptionPK, PermutationElement pi) {
 
@@ -488,13 +499,6 @@ public class HelloWorld {
 		{
 
 			return new Ballot(Arrays.asList(b));
-			/*
-			List<Prefrence> bal = new ArrayList();
-			for (int i = 0; i < b.length; i++)
-			{
-				bal.add(new Prefrence (b[i]));
-			}
-			return new Ballot(bal); */
 		}
 
 		// This function is same as old one (n X n) matrix, but values are taken in pair (i, i + 1)
@@ -541,7 +545,7 @@ public class HelloWorld {
 			return ret;
 		}
 	
-		public static BigInteger[] multEncBallot(BigInteger[] n, BigInteger[] m)
+		public static BigInteger[] encBallotMultWrapper(BigInteger[] n, BigInteger[] m)
                 {
 
                         int len = n.length;
@@ -557,6 +561,10 @@ public class HelloWorld {
 		{
 			return destructEncBallot(encBallot(constructBallot(bal), publickey));
 		}
+
+		
+
+
 
 	public static void main(String[] args) throws UniCryptException {
 		
