@@ -1,4 +1,4 @@
-%token <int> INT
+%token <string> STRING
 %token <char> CAND
 %token LPAREN
 %token RPAREN
@@ -19,4 +19,4 @@ prog:
 stmtone:
  | vs = separated_nonempty_list (SEMI, stmt) {vs};
 
-stmt: LPAREN; s = CAND; COMMA; t = CAND; COMMA; LPAREN; n = string; COMMA; m = string; RPAREN; RPAREN {(s, t, (n, m))}
+stmt: LPAREN; s = CAND; COMMA; t = CAND; COMMA; LPAREN; n = STRING; COMMA; m = STRING; RPAREN; RPAREN {(s, t, (n, m))}
