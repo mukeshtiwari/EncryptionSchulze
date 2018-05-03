@@ -744,27 +744,43 @@ Section Encryption.
     Axiom privatekey : Prikey.
     Axiom publickey : Pubkey.
 
-    
-      (*
-    Variable KPub : Type.
-    Variable KPri : Type. *)
+
+    (* This function is same as encryption function but 
+       it encrypts special matrix (initial margin function)
+       whose all entries are zero. We are publishing 
+       encryption of this matrix with zero knowledge proof 
+       that it is honest encryption. One superficial 
+       thing with function is passing list of candidates, and 
+       it is because of margin function function closure 
+       which is translated back to list of values and passed to
+       javaocaml binding code *)
+    Axiom encrypt_zero_margin_with_zkp : list cand -> Pubkey -> ballot -> eballot * Z.
 
 
     (* This function will be realized by Elgamal Encryption.
-       Enc_Pk (m, r) = (g^r, m * h^r) *)
-    Axiom encrypt_ballot : Pubkey -> ballot ->  eballot.
+       Enc_Pk (m, r) = (g^r, m * h^r). This function is not used
+       but here for sake of completeness *)
+    Axiom encrypt_ballot : list cand -> Pubkey -> ballot ->  eballot.
 
     (* This function will be realized by Elgamal Decryption
        which takes encrypted message (c1, c2), private key
-       and outputs the plaintext message *)
-    Axiom decrypt_ballot : Prikey -> eballot -> ballot.
+       and outputs the plaintext message with zkp that we have decrypted 
+       the ciphertext honestly *)
+    Axiom decrypt_ballot_with_zkp : list cand ->  Prikey -> eballot -> ballot * Z.
 
     (* This function takes encrypted ballot and returns
-       permuted encrypted ballot with zero knowledge proof.
+       row permuted reencrypted ballot with zero knowledge proof.
        For the moment, zero knowledge proof is assumed to
        be of type Z *)
-    Axiom permute_encrypted_ballot : eballot ->  eballot * Z.
+    Axiom row_permute_encrypted_ballot : list cand -> Pubkey -> eballot ->  eballot * Z.
 
+     (* This function takes row encrypted ballot and returns
+       column permuted reencrypted ballot with zero knowledge proof.
+       For the moment, zero knowledge proof is assumed to
+       be of type Z. The two separate functions because of two 
+       different implementation in Java *)
+    Axiom column_permute_encrypted_ballot : list cand -> Pubkey -> eballot -> eballot * Z.
+    
     (* This function takes encrypted margin function and encrypted ballot
        and multiply them pointwise. 
        https://nvotes.com/multiplicative-vs-additive-homomorphic-elgamal/ *)
@@ -775,15 +791,19 @@ Section Encryption.
                (encbal : eballot)  : (cand -> cand -> ciphertext) :=
      fun c d => (fst (m c d) * fst (encbal c d), snd (m c d) * snd (encbal c d)). *)
 
-    Axiom  homomorphic_add_eballots : (cand -> cand -> ciphertext) ->
-      eballot -> (cand -> cand -> ciphertext).
+    Axiom  homomorphic_add_eballots : list cand -> (cand -> cand -> ciphertext) ->
+                                      eballot -> (cand -> cand -> ciphertext).
+
+                                                    
+                                            
     (* This function show that ciphertext (c_1, c_2) is indeed the
        the encryption of message m under zero knowledge proof. See the mail
        exchange between Dirk and Thomas Witnessing correct encryption.
        https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/crypto/proofsystem/classes/EqualityPreimageProofSystem.java
        zero_knowlege_decryption m (c_1, c_2) = true *)
 
-    Axiom zero_knowledge_decryption : plaintext -> ciphertext -> Z -> bool.
+    Axiom zero_knowledge_decryption_proof :
+      list cand -> Pubkey -> plaintext -> ciphertext -> Z -> bool.
 
     
 
@@ -898,18 +918,18 @@ Section Encryption.
                 end).
       (* We permuate the ballot u using permute_encrypted_ballot function which gives 
          permuted ballot v and zero knowledge proof of this permutation *)
-      destruct (permute_encrypted_ballot u) as [v zkppermuv].
-      destruct (permute_encrypted_ballot v) as [w zkppermvw].
+      destruct (row_permute_encrypted_ballot cand_all publickey u) as [v zkppermuv].
+      destruct (column_permute_encrypted_ballot cand_all publickey v) as [w zkppermvw].
       (* decrypte the permuted ballot w and prove its validity *)
-      remember (decrypt_ballot privatekey w) as b.
+      destruct (decrypt_ballot_with_zkp cand_all privatekey w) as [b zkphdec].
       (* Decide the validity of ballot b. *) 
-      destruct (ballot_valid_dec b). remember (homomorphic_add_eballots m u) as nm.
+      destruct (ballot_valid_dec b). remember (homomorphic_add_eballots cand_all m u) as nm.
       (* valid ballot so add it to encrypted marging m so far *)
       
       pose proof (F us inbs nm (cvalid bs u v w b
                                        zkppermuv (* zero knowledge proof of v being perm of u *)
                                        zkppermvw (* zero knowledge proof of w being perm of v *)
-                                       0 (* dummy zero knowledge proof that b is indeed correct 
+                                       zkphdec (* dummy zero knowledge proof that b is indeed correct 
                                             decryption of v *)
                                       us m nm inbs Hc v0)).  
       destruct X as [i [ns Ht]].
@@ -920,7 +940,7 @@ Section Encryption.
                     (cinvalid bs u v w b
                               zkppermuv (* zero knowledge proof of v being perm of u *)
                               zkppermvw (* zero knowledge proof of w being perm of v *)
-                              0 (* dummy zero knowledge proof that b is indeed correct 
+                              zkphdec (* dummy zero knowledge proof that b is indeed correct 
                                    decryption of v *)
                               us m inbs Hc n)).
       destruct X as [i [ns Ht]].
@@ -932,9 +952,10 @@ Section Encryption.
 
     Lemma  all_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
-      pose proof (partial_count_all_counted bs bs [] (encrypt_ballot publickey (fun _ _ => 0))).
-      pose (ax bs bs (encrypt_ballot publickey (fun _ _ => 0))
-               0 (* Dummy Zero knowledge proof of m is zero encrypted matrix *)
+      destruct (encrypt_zero_margin_with_zkp cand_all publickey (fun _ _ => 0)) as [enczmargin ezkp].
+      pose proof (partial_count_all_counted bs bs [] enczmargin).
+      pose (ax bs bs enczmargin
+               ezkp (* Dummy Zero knowledge proof of m is zero encrypted matrix *)
                eq_refl).
       destruct (X h) as [i [m Hs]].
       exists i. exists m. assumption.
@@ -945,11 +966,12 @@ Section Encryption.
     Lemma decrypt_margin (bs : list eballot) : existsT m, HCount bs (hdecrypt m).
     Proof.
       destruct (all_ballots_counted bs) as [i [encm p]].
-      pose proof (cdecrypt bs i encm (decrypt_ballot privatekey encm)
-                          0 (* Dummy Zero knowledge proof of decryption of encm *)).
+      destruct (decrypt_ballot_with_zkp cand_all privatekey encm) as [decmarg dechzkp].
+      pose proof (cdecrypt bs i encm decmarg
+                          dechzkp (* Dummy Zero knowledge proof of decryption of encm *)).
       pose proof (X p).
       (* decryption of encrypted margin *)
-      exists (decrypt_ballot privatekey encm). assumption.
+      exists decmarg.  assumption.
     Defined.
 
    (* The main theorem: for every list of ballots, we can find a boolean function that decides
