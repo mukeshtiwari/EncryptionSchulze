@@ -562,8 +562,46 @@ public class HelloWorld {
 			return destructEncBallot(encBallot(constructBallot(bal), publickey));
 		}
 
-		
+		// This function is simplification of decBallotZkp for the moment
+		public static BigInteger[] decBallot(BigInteger[] bal, BigInteger privatekey)
+		{
+			BallotWithZKP b = decBallotZKP(constructEncBallot(bal), privatekey);
+			List<PrefrenceWithZKP> lst = b.prefrences;
+			int len = lst.size();
+			BigInteger[] ret = new BigInteger[len];
+			for(int i = 0; i < len; i++) 
+				ret[i] = lst.get(i).plaintext;
+			return ret;
+		}
+		// This function is simplification of RowShuffleWithZKP
+		public static BigInteger[] rowShuffle(BigInteger[] bal, BigInteger publickey)
+		{
+			EncBallotWithZKPOfPermutation b = RowShuffleWithZKP(constructEncBallot(bal), publickey);
+			List<ElGamalCiphertext> lst = b.prefrences;
+			int len = lst.size();
+			BigInteger[] ret = new BigInteger[2*len];
+			for(int i=0, j= 0; i < len; i++, j += 2)
+			{
+				ret[j] = lst.get(i).c1;
+				ret[j+1] = lst.get(i).c2;
+			}
+			return ret;
+		}
 
+		public static BigInteger[] columnShuffle(BigInteger[] bal, BigInteger publickey)
+		{
+			EncBallotWithZKPOfPermutation b = ColumnShuffleWithZKP(constructEncBallot(bal), publickey);
+			List<ElGamalCiphertext> lst = b.prefrences;
+                        int len = lst.size();
+                        BigInteger[] ret = new BigInteger[2*len];
+                        for(int i=0, j= 0; i < len; i++, j += 2)
+                        {
+                                ret[j] = lst.get(i).c1;
+                                ret[j+1] = lst.get(i).c2;
+                        }
+                        return ret;
+		}
+		
 
 
 	public static void main(String[] args) throws UniCryptException {
