@@ -573,7 +573,8 @@ public class HelloWorld {
 				ret[i] = lst.get(i).plaintext;
 			return ret;
 		}
-		// This function is simplification of RowShuffleWithZKP
+		// This function is simplification of RowShuffleWithZKP, and returns the first 
+		// data structure. Rowshuffled Encrypted ballot as Array of BigInteger
 		public static BigInteger[] rowShuffle(BigInteger[] bal, BigInteger publickey)
 		{
 			EncBallotWithZKPOfPermutation b = RowShuffleWithZKP(constructEncBallot(bal), publickey);
@@ -587,6 +588,15 @@ public class HelloWorld {
 			}
 			return ret;
 		}
+
+		// This function is simplification of Ro RowShuffleWithZKP, and returns the second 
+		// data structure, String as ZeroKnowledge Proof of rowshuffle
+		public static String rowShuffleZKP(BigInteger[] bal, BigInteger publickey)
+                {
+                        EncBallotWithZKPOfPermutation b = RowShuffleWithZKP(constructEncBallot(bal), publickey);
+                        return b.ZKP;
+                }
+	
 
 		public static BigInteger[] columnShuffle(BigInteger[] bal, BigInteger publickey)
 		{
