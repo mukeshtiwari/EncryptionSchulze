@@ -575,7 +575,7 @@ public class HelloWorld {
 		}
 
 		// Zero Knowledge proof of decryption of ballot
-		public static String decBallotZKP(BigInteger[] bal, BigInteger privatekey)
+		public static String decBallotZeroknowledge(BigInteger[] bal, BigInteger privatekey)
                 {
                         BallotWithZKP b = decBallotZKP(constructEncBallot(bal), privatekey);
                         List<PrefrenceWithZKP> lst = b.prefrences;
