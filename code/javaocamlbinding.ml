@@ -1,4 +1,4 @@
-let () = Java.init [| "-Djava.class.path=/home/users/u5935541/Mukesh/ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:schulze.jar:." |]
+let () = Java.init [| "-Djava.class.path=ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:schulze.jar:." |]
 let () = Printexc.record_backtrace true
 
 
@@ -19,8 +19,11 @@ object
         method [@static] enc_ballot_wrapper : big_integer array -> big_integer -> big_integer array = "encBallotWrapper"
         method [@static] enc_ballot_mult_wrapper : big_integer array -> big_integer array -> big_integer array = "encBallotMultWrapper"
         method [@static] dec_ballot_wrapper : big_integer array -> big_integer -> big_integer array = "decBallot"
+        method [@static] dec_ballot_zkp_wrapper : big_integer array -> big_integer -> string = "decBallotZeroknowledge"
         method [@static] row_permutation_wrapper : big_integer array -> big_integer -> big_integer array = "rowShuffle"
+        method [@static] row_permutation_zkp_wrapper : big_integer array -> big_integer -> string = "rowShuffleZKP"
         method [@static] column_permutation_wrapper : big_integer array -> big_integer -> big_integer array = "columnShuffle"
+        method [@static] column_permutation_zkp_wrapper : big_integer array -> big_integer -> string = "columnShuffleZKP"
 end
 
 
@@ -68,17 +71,31 @@ let dec_ballot lst privatekey =
   let decarr = Crypto_java.dec_ballot_wrapper arr privatekey in
   create_list_from_array decarr
 
+(* this function is zero knowledge proof of decryption *)
+let dec_ballot_zkp lst privatekey = 
+  let arr = create_array_from_list lst in
+  Crypto_java.dec_ballot_zkp_wrapper arr privatekey 
+
 (* This function calculates row permuted array *)  
 let row_perm lst publickey = 
   let arr = create_array_from_list lst in
   let rowpermarray = Crypto_java.row_permutation_wrapper arr publickey in 
   create_list_from_array rowpermarray
 
+(* return the zkp of row permuted array *)
+let row_perm_zkp lst publickey = 
+  let arr = create_array_from_list lst in
+  Crypto_java.row_permutation_zkp_wrapper arr publickey 
+
 (* this function calculates column permuted array *)
 let column_perm lst publickey = 
   let arr = create_array_from_list lst in 
   let colpermarray = Crypto_java.column_permutation_wrapper arr publickey in 
   create_list_from_array colpermarray
+
+let column_perm_zkp lst publickey = 
+  let arr = create_array_from_list lst in 
+  Crypto_java.column_permutation_zkp_wrapper arr publickey
   
 (*                 
 let _ = 
