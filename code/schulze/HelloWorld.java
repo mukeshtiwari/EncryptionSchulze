@@ -589,7 +589,7 @@ public class HelloWorld {
 			return ret;
 		}
 
-		// This function is simplification of Ro RowShuffleWithZKP, and returns the second 
+		// This function is simplification of  RowShuffleWithZKP, and returns the second 
 		// data structure, String as ZeroKnowledge Proof of rowshuffle
 		public static String rowShuffleZKP(BigInteger[] bal, BigInteger publickey)
                 {
@@ -597,7 +597,8 @@ public class HelloWorld {
                         return b.ZKP;
                 }
 	
-
+		// This function is simplification of columnShuffleZKP and return the first data structure 
+		// column shuffled ballots
 		public static BigInteger[] columnShuffle(BigInteger[] bal, BigInteger publickey)
 		{
 			EncBallotWithZKPOfPermutation b = ColumnShuffleWithZKP(constructEncBallot(bal), publickey);
@@ -612,6 +613,11 @@ public class HelloWorld {
                         return ret;
 		}
 		
+		public static String columnShuffleZKP(BigInteger[] bal, BigInteger publickey)
+                {
+                        EncBallotWithZKPOfPermutation b = ColumnShuffleWithZKP(constructEncBallot(bal), publickey);
+			return b.ZKP;
+                }
 
 
 	public static void main(String[] args) throws UniCryptException {
