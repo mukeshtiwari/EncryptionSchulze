@@ -573,6 +573,20 @@ public class HelloWorld {
 				ret[i] = lst.get(i).plaintext;
 			return ret;
 		}
+
+		// Zero Knowledge proof of decryption of ballot
+		public static String decBallotZKP(BigInteger[] bal, BigInteger privatekey)
+                {
+                        BallotWithZKP b = decBallotZKP(constructEncBallot(bal), privatekey);
+                        List<PrefrenceWithZKP> lst = b.prefrences;
+			int len = lst.size();
+			String ret = "";
+			for (int i = 0; i < len; i++) ret = ret + " " + lst.get(i).ZKP;
+			return ret; 
+                }
+
+	
+
 		// This function is simplification of RowShuffleWithZKP, and returns the first 
 		// data structure. Rowshuffled Encrypted ballot as Array of BigInteger
 		public static BigInteger[] rowShuffle(BigInteger[] bal, BigInteger publickey)
