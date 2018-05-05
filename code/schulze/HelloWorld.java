@@ -347,10 +347,22 @@ public class HelloWorld {
 
 	//This function is same as EncBallotZKPofPlaintextZero, but here I am passing the ballot whose all entries are zero, public key and return 
 	// Encrypted zero margin function with Zero knowledge proof. Implement it to make sure this matches with OCaml function. 
-	
-	//public static EncBallotWithZKP EncAndZKPofZeroMargin(Ballot b, BigInteger privatekey)
-	//{
-	// }
+	// This function will be called for encrypting the zero margin function and publishing the zero knowledge proof for everyone else to verify it
+	public static EncBallotWithZKP EncAndZKPofZeroMargin(Ballot b, BigInteger publicKey)
+	{
+        	GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
+                GStarModElement generator = group.getDefaultGenerator();
+                Element<BigInteger> publicKeyElem = group.getElement(publicKey);
+                ElGamalEncryptionScheme elGamal = ElGamalEncryptionScheme.getInstance(generator);
+		
+		return new EncBallotWithZKP(b.prefrences.stream().map(i -> {
+				Element random = elGamal.getRandomizationSpace().getElement(BigInteger.ONE);
+				Pair c = elGamal.encrypt(publicKeyElem, generator.power(i) , random);
+				return new EncPreferenceWithZKP(new ElGamalCiphertext(c),"The message is zero and the random coin is one");
+			 } 
+			).collect(Collectors.toList()));
+			 
+	}
 		
 
 	
