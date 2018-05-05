@@ -1,4 +1,4 @@
-let () = Java.init [| "-Djava.class.path=ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:schulze.jar:." |]
+let () = Java.init [| "-Djava.class.path=../ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:schulze.jar:." |]
 let () = Printexc.record_backtrace true
 
 
@@ -110,7 +110,7 @@ let plaintext = List.map (List.map string_of_int) [[0; 1; 1; 0; 0; 1; 0; 0; 0]; 
                  [0; 0; 0; 1; 0; 0; 1; 1; 0]; [0; 1; 0; 0; 0; 0; 1; 1; 0]; [0; 1; 1; 0; 0; 0; 0; 1; 0]; [0; 0; 1; 1; 0; 1; 0; 0; 0]; [0; 1; 1; 0; 0; 1; 0; 0; 0]]
 *)
 let invalid_ballot = (List.map string_of_int [1;1;1;1;1;1;1;1;1])
-
+let valid_ballot = (List.map string_of_int [0; 1; 1; 0; 0; 1; 0; 0; 0])
 
 
 
@@ -119,14 +119,29 @@ let invalid_ballot = (List.map string_of_int [1;1;1;1;1;1;1;1;1])
 let _ = 
  let pkey = Big_integer.create "49228593607874990954666071614777776087" in 
  let skey = Big_integer.create "60245260967214266009141128892124363925" in
- let encinvbal = enc_ballot invalid_ballot pkey in
- let rperm = row_perm encinvbal pkey in 
- let cperm = column_perm rperm pkey in 
- let decinvbal = dec_ballot cperm skey in
- List.iter (fun x -> print_endline x) encinvbal;
+ let encvbal = enc_ballot valid_ballot pkey in (* encrypt the ballot *)
+ let rperm = row_perm encvbal pkey in (* row shift *)
+ let rzkp = row_perm_zkp encvbal pkey in (* zero knowledge proof *)
+ let cperm = column_perm rperm pkey in  (* column permutation *)
+ let czkp = column_perm_zkp rperm pkey in (* zero knowledge proof *)
+ let decbal = dec_ballot cperm skey in (* decrypt the ballot *)
+ let dzkp = dec_ballot_zkp cperm skey in  (* zero knowledge proof *)
+ print_endline "Plaintext ballot";
+ List.iter (fun x -> print_endline x) valid_ballot;
+ print_endline "Encrypted ballot";
+ List.iter (fun x -> print_endline x) encvbal;
+ print_endline "Row Permuted ballot";
  List.iter (fun x -> print_endline x) rperm;
+ print_endline "Zero knowledge of row shuffle";
+ print_endline rzkp;
+ print_endline "Column permuted ballot";
  List.iter (fun x -> print_endline x) cperm;
- List.iter (fun x -> print_endline x) decinvbal
+ print_endline "Zero knowledge proof";
+ print_endline czkp;
+ print_endline "Decrypted permuted ballot";
+ List.iter (fun x -> print_endline x) decbal;
+ print_endline "Zeroknowledge proof of honest decryption";
+ print_endline dzkp
 
 
 
