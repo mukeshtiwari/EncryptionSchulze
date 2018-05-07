@@ -144,12 +144,12 @@ let rec cross_prod = function
   | [] -> []
   | h :: t -> List.map (fun x -> (h, x)) t @ cross_prod t
                                                      
-let show_pair c1 c2 n = show_cand c1 ^ show_cand c2 ^ ":" ^ Big.to_string n                                           
+let show_pair c1 c2 n = show_cand c1 ^ show_cand c2 ^ ": " ^ Big.to_string n                                       
 
 let show_marg m =
   "[" ^ String.concat
           " "
-          (List.map (fun (x, y) -> show_pair x y (m x y)) (cross_prod  Lib.cand_all))
+          (List.map (fun (x, y) -> show_pair x y (m x y)) (cross_prod_orig  Lib.cand_all))
   ^ "]"
       
 let rec show_path = function
@@ -283,7 +283,7 @@ let show_count l =
 
 let show_count l =
   let rec show_count_aux acc = function 
-  | Lib.Ax (_, m, v) -> (underline ("M: " ^ show_enc_marg m ^ ", Zero Knowledge Proof of Encrypted Zero Margin Matrix: " ^ Big.to_string v)) :: acc 
+  | Lib.Ax (_, m, dm, v) -> (underline ("M: " ^ show_enc_marg m ^ ", Decrypted margin " ^ show_marg dm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ Big.to_string v)) :: acc 
   | Lib.Cvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, us, m, nm, inbs, c) ->
      show_count_aux (underline (
        "V: [" ^ show_enc_ballot u ^ (if bool_b us then "]" else ",..]")  ^
