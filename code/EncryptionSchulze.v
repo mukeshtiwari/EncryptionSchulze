@@ -754,14 +754,12 @@ Section Encryption.
        thing with function is passing list of candidates, and 
        it is because of margin function function closure 
        which is translated back to list of values and passed to
-       javaocaml binding code. Removing it beacause using encrypt_ballot 
-       function. *)
-    (* Axiom encrypt_zero_margin : list cand -> Pubkey -> ballot -> eballot. *)
-
+       javaocaml binding code. *)
+    Axiom encrypt_zero_margin : list cand -> Pubkey -> ballot -> eballot.
 
     (* This function will be realized by Elgamal Encryption.
-       Enc_Pk (m, r) = (g^r, m * h^r). This function is not used
-       but here for sake of completeness *)
+       Enc_Pk (m, r) = (g^r, g^m * h^r). This function is not used
+       but here for sake of completeness and removed in extraction*)
     Axiom encrypt_ballot : list cand -> Pubkey -> ballot ->  eballot.
 
     (* This function will be realized by Elgamal Decryption
@@ -956,7 +954,7 @@ Section Encryption.
     Lemma  all_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
       (* encrypt zero margin function *)
-      pose proof (encrypt_ballot cand_all publickey (fun _ _ => 0)) as enczmargin.
+      pose proof (encrypt_zero_margin cand_all publickey (fun _ _ => 0)) as enczmargin.
       (* convince the user that it is indeed encryption of zero margin by decrypting it 
          and giving zero knowledge proof *)
       destruct (decrypt_ballot_with_zkp cand_all privatekey enczmargin) as [decmarg ezkp]. 
