@@ -730,7 +730,8 @@ Section Encryption.
     
 
     Inductive HState: Type :=
-    | hpartial: (list eballot * list eballot)  -> (cand -> cand -> ciphertext) -> HState
+    | hpartial: (list eballot * list eballot)  ->
+                (cand -> cand -> ciphertext) -> HState
     | hdecrypt: (cand -> cand -> plaintext) -> HState
     | winners: (cand -> bool) -> HState.
 
@@ -748,13 +749,14 @@ Section Encryption.
     (* This function is same as encryption function but 
        it encrypts special matrix (initial margin function)
        whose all entries are zero. We are publishing 
-       encryption of this matrix with zero knowledge proof 
+       encryption of this matrix and then we decrypt it with zkp
        that it is honest encryption. One superficial 
        thing with function is passing list of candidates, and 
        it is because of margin function function closure 
        which is translated back to list of values and passed to
-       javaocaml binding code *)
-    Axiom encrypt_zero_margin_with_zkp : list cand -> Pubkey -> ballot -> eballot * Z.
+       javaocaml binding code. Removing it beacause using encrypt_ballot 
+       function. *)
+    (* Axiom encrypt_zero_margin : list cand -> Pubkey -> ballot -> eballot. *)
 
 
     (* This function will be realized by Elgamal Encryption.
@@ -822,7 +824,8 @@ Section Encryption.
     
     Inductive HCount (bs : list eballot) : HState -> Type :=
     (* start of counting *)
-    | ax us (m : cand -> cand -> ciphertext) (zkpdecm : Z)
+    | ax us (m : cand -> cand -> ciphertext)
+         (decm : cand -> cand -> plaintext) (zkpdecm : Z)
          (* for the moment we are assuming it as integer, but it is zero knowledge proof 
             about m zero encrypted matrix *) :
         us = bs (* We start from uncounted ballots *) ->
@@ -952,9 +955,13 @@ Section Encryption.
 
     Lemma  all_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
-      destruct (encrypt_zero_margin_with_zkp cand_all publickey (fun _ _ => 0)) as [enczmargin ezkp].
+      (* encrypt zero margin function *)
+      pose proof (encrypt_ballot cand_all publickey (fun _ _ => 0)) as enczmargin.
+      (* convince the user that it is indeed encryption of zero margin by decrypting it 
+         and giving zero knowledge proof *)
+      destruct (decrypt_ballot_with_zkp cand_all privatekey enczmargin) as [decmarg ezkp]. 
       pose proof (partial_count_all_counted bs bs [] enczmargin).
-      pose (ax bs bs enczmargin
+      pose (ax bs bs enczmargin decmarg
                ezkp (* Dummy Zero knowledge proof of m is zero encrypted matrix *)
                eq_refl).
       destruct (X h) as [i [m Hs]].
