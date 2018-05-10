@@ -1,0 +1,70 @@
+\documentclass{llncs}
+\usepackage{amsmath,amsfonts,wrapfig,graphicx,caption,url}
+\usepackage{subcaption}
+\usepackage[all]{xy}
+\captionsetup{compatibility=false}
+\pagestyle{plain}
+
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\st}{\mathsf{st}}
+\newcommand{\LFP}{\mathsf{LFP}}
+\newcommand{\Pow}{\mathsf{Pow}}
+\newcommand{\GFP}{\mathsf{GFP}}
+
+\begin{document}
+
+\title{No More Excuses: Automated Synthesis of Practical and
+Verifiable Vote-counting Programs for Complex Voting Schemes}
+
+\author{Thomas Haines \inst{1} \and
+      Dirk Pattinson\inst{2} \and Mukesh Tiwari \inst{2}}
+\institute{Polyas, Denmark \and
+          Research School of Computer Science, ANU, Canberra}
+\maketitle
+
+\begin{abstract}
+
+
+\end{abstract}
+
+
+\section{Introduction}
+
+
+\section{Verification and Verifiability} \label{sec:verif}
+
+
+\section{Legal Aspects of Verification and Verifiability}
+
+
+
+
+
+
+\section{The Schulze Method} \label{sec:schulze}
+
+\section{Homomorphic Schulze Method} \label{sec:schulze}
+
+
+\section{Experimental Results}
+
+
+\section{Discussion and Further Work}
+
+
+
+One aspect that we have not considered here is encryption of
+ballots to safe-guard voter privacy which can be incorporated using
+protocols such as shuffle-sum \cite{Benaloh:2009:SSC} and
+homomorphic encryption \cite{Yi:2014:HEA}. The key idea here is to
+formalise a given voting scheme based on encrypted ballots, and then
+to establish a homomorphic property: the decryption of the result
+obtained from encrypted ballots is the same as the result obtained from
+the decrypted ballots.  We leave this to further work.
+
+\bibliographystyle{myplain}
+\bibliography{all2,delta2}
+
+
+\end{document}
