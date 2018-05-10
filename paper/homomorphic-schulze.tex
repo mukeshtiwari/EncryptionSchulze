@@ -45,6 +45,15 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   proves its vaildity
   \item encrypting valid ballots leads to valid ballots, and the
   same for invalid ballots 
+  
+  Each vote, V, is a $n\times$n matrix where n is the number of candidates 
+  participating in
+  election. We mark the entry (i,j) in vote V as 1 if candidate i is preferred over j
+  otherwise 0. No candidate is preferred over itself, so all the diagonal entries are 
+  filled with 0. The reason for representing a vote as matrix because the precise 
+  nature of 
+  Schulze method involves computation of margin (I am assuming here that margin would 
+  already be clear because of previous section). 
 \end{itemize}
 
 \section{Homomorphic Computation of Margin}
