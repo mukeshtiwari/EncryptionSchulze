@@ -40,20 +40,29 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
 \begin{itemize}
   \item motivate the choice of ballots and compare with plaintext
   version
-  \item define encryptoin function that changes represtntation
+  \item define encryption function that changes representation
   \item a ballot is valid if and only if there is evidence that
-  proves its vaildity
+  proves its validity
   \item encrypting valid ballots leads to valid ballots, and the
   same for invalid ballots 
   
-  Each vote, V, is a $n\times$n matrix where n is the number of candidates 
+  Each ballot, B, is a $n\times$n matrix where n is the number of candidates 
   participating in
-  election. We mark the entry (i,j) in vote V as 1 if candidate i is preferred over j
-  otherwise 0. No candidate is preferred over itself, so all the diagonal entries are 
-  filled with 0. The reason for representing a vote as matrix because the precise 
-  nature of 
-  Schulze method involves computation of margin (I am assuming here that margin would 
-  already be clear because of previous section). 
+  election. Each voter marks the entry (i,j) in ballot B as 1 if he prefers 
+  candidate i over j
+  otherwise mark it 0. No candidate is preferred over itself, so all the 
+  diagonal entries are 
+  filled with 0. 
+  The reason for representing a ballot as a matrix because the precise 
+  nature of our algorithm involving no decryption of individual ballot to protect
+  ballot privacy, 
+  Schulze's method involving the computation of margin 
+  (I am assuming here that margin would 
+  already be clear because of previous section) to compute the winners, and ease of 
+  doing computation over encrypted data than linear representation of ballot. 
+  Each entry in ballot is encrypted by additive ElGamal 
+  
+   
 \end{itemize}
 
 \section{Homomorphic Computation of Margin}
