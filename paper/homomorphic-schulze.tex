@@ -45,7 +45,7 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   proves its validity
   \item encrypting valid ballots leads to valid ballots, and the
   same for invalid ballots 
-  
+  \item 
   Each ballot, B, is a $n\times$n matrix where n is the number of candidates 
   participating in
   election. Each voter marks the entry (i,j) in ballot B as 1 if he prefers 
@@ -60,8 +60,27 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   (I am assuming here that margin would 
   already be clear because of previous section) to compute the winners, and ease of 
   doing computation over encrypted data than linear representation of ballot. 
-  Each entry in ballot is encrypted by additive ElGamal 
-  
+  \item  Each entry in ballot is encrypted by additive ElGamal i.e. encrypting the 
+  message m as ($g^{r}, h^{r}g^{m}$) where $g$ is generator of cycle group $G$, and 
+  $h = g^{x}$ is private key. After performing the encryption, a plain text ballot 
+  i.e. matrix having entries of 0, and 1 changes to a matrix having pair for 
+  each entry representing the encryption of corresponding plain text. 
+  A representation of plain text ballot 
+  \[  
+  \begin{bmatrix}
+    x_{11}       & x_{12} & x_{13} & \dots & x_{1n} \\
+    x_{21}       & x_{22} & x_{23} & \dots & x_{2n} \\
+    \hdotsfor{5} \\
+    x_{n1}       & x_{n2} & x_{n3} & \dots & x_{nn}
+  \end{bmatrix}\]
+  A representation of encrypted ballot 
+  \[  
+  \begin{bmatrix}
+    (y_{11}, z_{11}) & (y_{12}, z_{12}) & (y_{13}, z_{13}) & \dots & (y_{1n}, z_{1n}) \\
+    (y_{21}, z_{21}) & (y_{22}, z_{22}) & (y_{23}, z_{23}) & \dots & (y_{2n}, z_{2n}) \\
+    \hdotsfor{5} \\
+    (y_{n1}, z_{n1}) & (y_{n2}, z_{n2}) & (y_{n3}, z_{n3}) & \dots & (y_{nn}, z_{nn})
+  \end{bmatrix}\]
    
 \end{itemize}
 
