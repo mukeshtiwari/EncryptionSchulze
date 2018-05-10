@@ -30,24 +30,42 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
 
 
 \section{Introduction}
+(leave this until the very end)
 
+\section{The Schulze Method}
+(this should be similar to other papers that we already have)
 
-\section{Verification and Verifiability} \label{sec:verif}
+\section{Format of Ballots}
 
+\begin{itemize}
+  \item motivate the choice of ballots and compare with plaintext
+  version
+  \item define encryptoin function that changes represtntation
+  \item a ballot is valid if and only if there is evidence that
+  proves its vaildity
+  \item encrypting valid ballots leads to valid ballots, and the
+  same for invalid ballots 
+\end{itemize}
 
-\section{Legal Aspects of Verification and Verifiability}
+\section{Homomorphic Computation of Margin}
+\begin{itemize}
+  \item motivate and introduce how the margin is computed
+  homomorphcially
+  \item prove that encrption commutes with computation of margin
+\end{itemize}
 
-
-
-
-
-
-\section{The Schulze Method} \label{sec:schulze}
-
-\section{Homomorphic Schulze Method} \label{sec:schulze}
-
+\section{Homomorphic Counting}
+\begin{itemize}
+  \item prove that encruption commutes with computation of winners
+  \item discuss the evidence: publish cleartext margin function
+  \item describe certificates and how to check them
+\end{itemize}
 
 \section{Experimental Results}
+\begin{itemize}
+  \item how long does it take, and how much memory?
+  \item how large are the certificates?
+\end{itemize}
 
 
 \section{Discussion and Further Work}
