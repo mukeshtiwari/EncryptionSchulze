@@ -1,7 +1,6 @@
 open Big
-(*
 open Lexer
-open Parser *)
+open Parser
 
 let () = Java.init [| "-Djava.class.path=../ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:schulze.jar:." |]
 let () = Printexc.record_backtrace true
@@ -62,12 +61,6 @@ let enc_ballot lst publickey =
   let encarry = Crypto_java.enc_ballot_wrapper arr (Big_integer.create publickey) in 
   create_list_from_array encarry
 
-(* this function takes two list of strings (which are basically big integers in string) and returns the sum *)
-let homomorphic_addition lst1 lst2 = 
-  let arr1 = create_array_from_list lst1 in
-  let arr2 = create_array_from_list lst2 in
-  let arr3 = Crypto_java.enc_ballot_mult_wrapper arr1 arr2 in
-  create_list_from_array arr3
 
 (* This function decrypts encrypted ballot *)
 let dec_ballot lst privatekey = 
@@ -101,6 +94,13 @@ let column_perm_zkp lst publickey =
   let arr = create_array_from_list lst in 
   Crypto_java.column_permutation_zkp_wrapper arr (Big_integer.create publickey)
 
+(* this function takes two list of strings (which are basically big integers in string) and returns the sum *)
+let homomorphic_addition lst1 lst2 =
+  let arr1 = create_array_from_list lst1 in
+  let arr2 = create_array_from_list lst2 in
+  let arr3 = Crypto_java.enc_ballot_mult_wrapper arr1 arr2 in
+  create_list_from_array arr3
+  
   
 (*
 let invalid_ballot = (List.map string_of_int [1;1;1;1;1;1;1;1;1])
@@ -137,7 +137,6 @@ let _ =
  print_endline "Zeroknowledge proof of honest decryption";
  print_endline dzkp
 *)
-
 
 
 type __ = Obj.t
@@ -661,6 +660,8 @@ let wins_loses_type_dec cand_all0 dec_cand marg c =
   then Inl (iterated_marg_wins_type cand_all0 dec_cand marg c)
   else Inr (iterated_marg_loses_type cand_all0 dec_cand marg c)
 
+
+
 type plaintext = Big.big_int
 
 type ciphertext = Big.big_int * Big.big_int
@@ -680,8 +681,6 @@ let privatekey = Big.of_string "60245260967214266009141128892124363925"
 (** val publickey : pubkey **)
 
 let publickey = Big.of_string "49228593607874990954666071614777776087"
-
-
 
 type cand =
 | A
@@ -737,13 +736,20 @@ let rec convert_eballot = function
   | [] -> []
   | (u, v) :: ret -> u :: v :: convert_eballot ret
 
+(* converts string to char list *)
+let explode s =
+  let rec exp i l =
+    if i < 0 then l else exp (i - 1) (s.[i] :: l) in
+  exp (String.length s - 1) []
+
 (** val decrypt_ballot_with_zkp :
     'a1 list -> prikey -> 'a1 eballot -> 'a1 ballot * Big.big_int **)
 let decrypt_ballot_with_zkp cand_all prikey eballot =
   let paircand = all_pairs cand_all in
   let encballotvalue = List.map (fun (c, d) -> let (u, v) = eballot c d in (Big.to_string u, Big.to_string v)) paircand in
   let decballot = dec_ballot (convert_eballot encballotvalue) (Big.to_string prikey) in 
-  (convert_fun_dec_ballot decballot, Big.zero)
+  let decballotzkp = dec_ballot_zkp (convert_eballot encballotvalue) (Big.to_string prikey) in
+  (convert_fun_dec_ballot decballot, explode decballotzkp)
   
 
 (** val row_permute_encrypted_ballot :
@@ -753,7 +759,8 @@ let row_permute_encrypted_ballot cand_all pubkey eballot =
   let paircand = all_pairs cand_all in
   let rowpermstr = List.map (fun (c, d) -> let (u, v) = eballot c d in (Big.to_string u, Big.to_string v)) paircand in
   let rowperm = row_perm (convert_eballot rowpermstr) (Big.to_string pubkey) in
-  (convert_fun_enc_ballot rowperm, Big.zero)
+  let rowpermzkp = row_perm_zkp (convert_eballot rowpermstr) (Big.to_string pubkey) in
+  (convert_fun_enc_ballot rowperm, explode rowpermzkp)
 
 (** val column_permute_encrypted_ballot :
     'a1 list -> pubkey -> 'a1 eballot -> 'a1 eballot * Big.big_int **)
@@ -762,7 +769,8 @@ let column_permute_encrypted_ballot cand_all pubkey eballot =
   let paircand = all_pairs cand_all in
   let colpermstr = List.map (fun (c, d) -> let (u, v) = eballot c d in (Big.to_string u, Big.to_string v)) paircand in
   let colperm = column_perm (convert_eballot colpermstr) (Big.to_string pubkey) in
-  (convert_fun_enc_ballot colperm, Big.zero)
+  let colpermzkp = column_perm_zkp (convert_eballot colpermstr) (Big.to_string pubkey) in
+  (convert_fun_enc_ballot colperm, explode colpermzkp)
 
 (** val homomorphic_add_eballots :
     'a1 list -> ('a1 -> 'a1 -> ciphertext) -> 'a1 eballot -> 'a1 -> 'a1 ->
@@ -778,17 +786,17 @@ let homomorphic_add_eballots cand_all emarg eballot =
 
 type 'cand hCount =
 | Eax of 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * ('cand -> 'cand -> plaintext) * Big.big_int
+   * ('cand -> 'cand -> plaintext) * char list
 | Ecvalid of 'cand eballot * 'cand eballot * 'cand eballot
-   * ('cand -> 'cand -> Big.big_int) * Big.big_int * Big.big_int
-   * Big.big_int * 'cand eballot list * ('cand -> 'cand -> ciphertext)
+   * ('cand -> 'cand -> Big.big_int) * char list * char list * char list
+   * 'cand eballot list * ('cand -> 'cand -> ciphertext)
    * ('cand -> 'cand -> ciphertext) * 'cand eballot list * 'cand hCount
 | Ecinvalid of 'cand eballot * 'cand eballot * 'cand eballot
-   * ('cand -> 'cand -> Big.big_int) * Big.big_int * Big.big_int
-   * Big.big_int * 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * 'cand eballot list * 'cand hCount
+   * ('cand -> 'cand -> Big.big_int) * char list * char list * char list
+   * 'cand eballot list * ('cand -> 'cand -> ciphertext) * 'cand eballot list
+   * 'cand hCount
 | Cdecrypt of 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * ('cand -> 'cand -> plaintext) * Big.big_int * 'cand hCount
+   * ('cand -> 'cand -> plaintext) * char list * 'cand hCount
 | Efin of ('cand -> 'cand -> Big.big_int) * ('cand -> bool)
    * ('cand -> ('cand wins_type, 'cand loses_type) sum) * 'cand hCount
 
@@ -829,9 +837,7 @@ let rec ppartial_count_all_counted cand_all0 dec_cand bs ts inbs m0 hc =
     list, ('a1 -> 'a1 -> ciphertext, 'a1 hCount) sigT) sigT **)
 
 let pall_ballots_counted cand_all0 dec_cand bs =
-  let enczmargin =
-    encrypt_zero_margin cand_all0 publickey
-  in
+  let enczmargin = encrypt_zero_margin cand_all0 publickey in
   let p = decrypt_ballot_with_zkp cand_all0 privatekey enczmargin in
   let (decmarg, ezkp) = p in
   let x = ppartial_count_all_counted cand_all0 dec_cand bs bs [] enczmargin in
@@ -890,6 +896,7 @@ let cand_eq_dec a b =
 
 let schulze_winners_pf =
   pschulze_winners cand_all cand_eq_dec
+
 
 (*
 let show_bool = function 
@@ -1152,30 +1159,32 @@ let rec show_count = function
 
 
 
+let cl2s cl = String.concat "" (List.map (String.make 1) cl)
+
 let show_count l =
   let rec show_count_aux acc = function 
-  | Eax (_, m, dm, v) -> (underline ("M: " ^ show_enc_marg m ^ ", Decrypted margin " ^ show_marg dm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ Big.to_string v)) :: acc 
+  | Eax (_, m, dm, v) -> (underline ("M: " ^ show_enc_marg m ^ ", Decrypted margin " ^ show_marg dm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ (cl2s v))) :: acc 
   | Ecvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, us, m, nm, inbs, c) ->
      show_count_aux (underline (
        "V: [" ^ show_enc_ballot u ^ (if bool_b us then "]" else ",..]")  ^
          ", I:  " ^ show_list_inv_ballot inbs  ^ ", M: " ^ show_enc_marg m ^ ", Row Permuted Ballot: " ^ show_enc_ballot v ^
          ", Column Permuted Ballot: " ^ show_enc_ballot w ^
-         ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ Big.to_string zkppermuv ^ 
-         ", Zero Knowledge Proof of Column Permutation: " ^ Big.to_string zkppermvw ^
-         ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecw) :: acc) c 
+         ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ (cl2s zkppermuv) ^ 
+         ", Zero Knowledge Proof of Column Permutation: " ^ (cl2s zkppermvw) ^
+         ", Zero Knowledge Proof of Decryption: " ^ (cl2s zkpdecw)) :: acc) c 
   | Ecinvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, us, m, inbs, c)  ->
      show_count_aux (underline (
        "V: [" ^ show_enc_ballot u ^
          (if bool_b us then "]" else ",..]") ^ ", I: " ^ show_list_inv_ballot inbs ^ 
            ", M: " ^ show_enc_marg m ^ ", Row Permuted Ballot: " ^ show_enc_ballot v ^ 
            ", Column Permuted Ballot: " ^ show_enc_ballot w ^
-           ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ Big.to_string zkppermuv ^ 
-           ", Zero Knowledge Proof of Column Permutation: " ^ Big.to_string zkppermvw ^
-           ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecw) :: acc) c
+           ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ (cl2s zkppermuv) ^ 
+           ", Zero Knowledge Proof of Column Permutation: " ^ (cl2s zkppermvw) ^
+           ", Zero Knowledge Proof of Decryption: " ^ (cl2s zkpdecw)) :: acc) c
   | Cdecrypt (inbs, m, dm, zkpdecm, c) -> 
      show_count_aux (underline (
        "V: [], I: " ^ show_list_inv_ballot inbs ^ ", M: " ^ show_enc_marg m ^ ", DM: " ^ show_marg dm ^ 
-       ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecm) :: acc) c 
+       ", Zero Knowledge Proof of Decryption: " ^ (cl2s zkpdecm)) :: acc) c 
   | Efin (m, p, f, c) ->
      show_count_aux (underline (
        "DM: " ^ show_marg m ^
@@ -1257,15 +1266,21 @@ let map f l =
   in
   map_aux (fun ys -> ys) l
 
+(*
+let fbal = [('A', 'A', ("36298779851590675171784493441809471218", "154402313824196585415782197403965742251")); ('A', 'B', ("143861303906211665855056403061922189147", "8416295835412847971984587159961722280")); ('A', 'C', ("154802215556503296917572828453631007857", "159992136206383694022050707744893109384")); ('B', 'A', ("10082618643668849505327936684527005963", "23507983030617306800838885722953330452")); ('B', 'B', ("112074768704955408044063928805099751409", "101334548041525603500290857389189133621")); ('B', 'C', ("20997879429031352966166576492046928799", "24873500185684887763331722379481691706")); ('C', 'A', ("165341292400026470412885032825699039026", "79093719764332669958326536531596289367")); ('C', 'B', ("68607147314128719103667514144415278841", "83213741986070549122445942673431365894")); ('C', 'C', ("97726566857485399844584900308261246487", "32567851913734176181734306333938927512"))]
 
-let onebal = [('A', 'A', ("36298779851590675171784493441809471218", "154402313824196585415782197403965742251")); ('A', 'B', ("143861303906211665855056403061922189147", "8416295835412847971984587159961722280")); ('A', 'C', ("154802215556503296917572828453631007857", "159992136206383694022050707744893109384")); ('B', 'A', ("10082618643668849505327936684527005963", "23507983030617306800838885722953330452")); ('B', 'B', ("112074768704955408044063928805099751409", "101334548041525603500290857389189133621")); ('B', 'C', ("20997879429031352966166576492046928799", "24873500185684887763331722379481691706")); ('C', 'A', ("165341292400026470412885032825699039026", "79093719764332669958326536531596289367")); ('C', 'B', ("68607147314128719103667514144415278841", "83213741986070549122445942673431365894")); ('C', 'C', ("97726566857485399844584900308261246487", "32567851913734176181734306333938927512"))]
-                          
+
+let sbal = [('A', 'A', ("72233019768267204190901325348317701512", "62550683788631022500254685291790497145")); ('A', 'B', ("101278468642864358014997944035442827222", "42348323394941099048494706278639673802")); ('A', 'C', ("167982540300220192723644011026727632221", "67417063195893511807550830183724691580")); ('B', 'A', ("137015918377085389910533229116551304362", "6843361110662429817471014779744016136")); ('B', 'B', ("151385763570350315745983636122538421095", "52198379059461106548243108394695535567")); ('B', 'C', ("42311382564617960616391879945513276147", "79480503986134208810191987730395404862")); ('C', 'A', ("38837241630957626554468741266542334082", "117199091050002770483871737779226683680")); ('C', 'B', ("94433157604374082654657839726996858986", "85635479354648785714300946031836499124")); ('C', 'C', ("57790062015352140240629368337806293663", "74538277283805585965681318228709837776"))]
+*)
+(*
 let e = [onebal; onebal; onebal; onebal; onebal; onebal; onebal; onebal; onebal; onebal]
+*)
 
 let _ = 
-  (*let e = Parser.prog Lexer.lexeme (Lexing.from_channel stdin) in*)
+  let e = Parser.prog Lexer.lexeme (Lexing.from_channel stdin) in
   let w = map (fun x -> map (fun (a, b, (c, d)) -> (cc a, cc b,  (Big.of_string c, Big.of_string d))) x) e in
   let v = map (fun x -> balfun x) w in
+  Format.printf "%s" "I have printed something";
   match schulze_winners_pf v with
   | ExistT (f, y) ->
      List.iter (fun x -> Format.printf "%s" x) (show_count y)
