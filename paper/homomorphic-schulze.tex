@@ -89,13 +89,20 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
 	$enc_{k}(m_{1}) * enc_{k}(m_{2}) = enc_{k} (m_{1} + m_{2})$
  \end{center}
  \item Our choice of representing ballot as matrix comes with price. A malicious 
- client could try to encode all sort of ballots including cyclic ones i.e. candidate
+ voter could try to encode all sort of ballots including cyclic ones i.e. candidate
  $A$ is preferred over candidate $B$, candidate $B$ is preferred over candidate $C$, 
  and candidate $C$ is preferred over candidate $A$, and it is clear that voter has
- not expressed his choices clearly and should not be considered for counting, or 
- he could inflate his favourite candidate by any other number higher that 1. It makes
- the ballot invalid because any value greater that 1 in a ballot would be very similar
- to voter has casted more than one vote. 
+ not expressed his choices clearly as it can not be expressed in linear preference order 
+ and should not be considered for counting, or 
+ he could inflate his favourite candidate by any other number higher that 1, and It 
+ makes the ballot invalid because any value greater that 1 in a ballot would be similar
+ to voter has casted more than one vote. We define a ballot is valid if all the 
+ entries in matrix is encryption of 0 and 1, and there is no cycle in it. Formally, 
+ in theorem prover we have, 
+ \begin{verbatim}
+  Definition valid (A : Type) (P : A -> A -> Prop) := 
+  	exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f 	d)%nat.
+ \end{verbatim}
  
 \end{itemize}
 
