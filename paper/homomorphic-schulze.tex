@@ -59,7 +59,8 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   Schulze's method involving the computation of margin 
   (I am assuming here that margin would 
   already be clear because of previous section) to compute the winners, and ease of 
-  doing computation over encrypted data than linear representation of ballot. 
+  doing computation over encrypted data than linear representation of ballot.
+   
   \item  Each entry in ballot is encrypted by additive ElGamal i.e. encrypting the 
   message m as ($g^{r}, h^{r}g^{m}$) where $g$ is generator of cycle group $G$, and 
   $h = g^{x}$ is private key. After performing the encryption, a plain text ballot 
@@ -81,7 +82,21 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
     \hdotsfor{5} \\
     (y_{n1}, z_{n1}) & (y_{n2}, z_{n2}) & (y_{n3}, z_{n3}) & \dots & (y_{nn}, z_{nn})
   \end{bmatrix}\]
-   
+     
+ The reason for using additive ElGamal is that it's composability on ciphertext 
+ under same public key ( Try to rephrase it!). In short, 
+ \begin{center}  
+	$enc_{k}(m_{1}) * enc_{k}(m_{2}) = enc_{k} (m_{1} + m_{2})$
+ \end{center}
+ \item Our choice of representing ballot as matrix comes with price. A malicious 
+ client could try to encode all sort of ballots including cyclic ones i.e. candidate
+ $A$ is preferred over candidate $B$, candidate $B$ is preferred over candidate $C$, 
+ and candidate $C$ is preferred over candidate $A$, and it is clear that voter has
+ not expressed his choices clearly and should not be considered for counting, or 
+ he could inflate his favourite candidate by any other number higher that 1. It makes
+ the ballot invalid because any value greater that 1 in a ballot would be very similar
+ to voter has casted more than one vote. 
+ 
 \end{itemize}
 
 \section{Homomorphic Computation of Margin}
