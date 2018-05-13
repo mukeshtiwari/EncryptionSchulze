@@ -97,13 +97,29 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
  he could inflate his favourite candidate by any other number higher that 1, and It 
  makes the ballot invalid because any value greater that 1 in a ballot would be similar
  to voter has casted more than one vote. We define a ballot is valid if all the 
- entries in matrix is encryption of 0 and 1, and there is no cycle in it. Formally, 
- in theorem prover we have, 
+ entries in matrix is encryption of 0 and 1, and there is no cycle in it. Formally, We
+ have
  \begin{verbatim}
   Definition valid (A : Type) (P : A -> A -> Prop) := 
   	exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f 	d)%nat.
  \end{verbatim}
+ and we instantiate this notion of validity for any ballot b by saying that 
+ \begin{verbatim}
+  Definition valid cand (fun c d => b c d = 1) := 
+  	exists (f : cand -> nat), forall (c d : cand), b c d = 1 <-> (f c < f d)%nat.
+ \end{verbatim}
+ Intuitively, it says that a ballot b is valid if we can find a function which expresses 
+ a notion of linear preference ordering for all candidates, and 
+ we prove that we can decide for each ballot if it valid or not 
+ \begin{verbatim}
+ Lemma pballot_valid_dec :
+      forall b : ballot, {valid cand (fun c d => b c d = 1)} +
+                         {~(valid cand (fun c d => b c d = 1))}.
+ \end{verbatim}
  
+ By now, any attentive reader would note that we have claimed that we don't decrypt
+ the ballot to preserve the ballot privacy, so how can we decide the validity 
+ without decrypting the original ballot. 
 \end{itemize}
 
 \section{Homomorphic Computation of Margin}
