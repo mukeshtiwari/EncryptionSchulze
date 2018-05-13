@@ -706,24 +706,215 @@ Section Encryption.
 
   End Evote.
 
+  (*
+  Section  Count.
+
+    Definition ballot := cand -> nat.
+
+    Inductive State: Type :=
+    | partial: (list ballot * list ballot)  -> (cand -> cand -> Z) -> State
+    | winners: (cand -> bool) -> State.
+
+    Inductive Count (bs : list ballot) : State -> Type :=
+    | ax us m : us = bs -> (forall c d, m c d = 0) ->
+                Count bs (partial (us, []) m)             (* zero margin      *)
+    | cvalid u us m nm inbs : Count bs (partial (u :: us, inbs) m) ->
+                              (forall c, (u c > 0)%nat) ->              (* u is valid       *)
+                              (forall c d : cand,
+                                  ((u c < u d)%nat -> nm c d = m c d + 1) (* c preferred to d *) /\
+                                  ((u c = u d)%nat -> nm c d = m c d)     (* c, d rank equal  *) /\
+                                  ((u c > u d)%nat -> nm c d = m c d - 1))(* d preferred to c *) ->
+                              Count bs (partial (us, inbs) nm)
+    | cinvalid u us m inbs : Count bs (partial (u :: us, inbs) m) ->
+                             (exists c, (u c = 0)%nat)                 (* u is invalid     *) ->
+                             Count bs (partial (us, u :: inbs) m)
+    | fin m inbs w (d : (forall c, (wins_type m c) + (loses_type m
+                                                            c))):
+        Count bs (partial ([], inbs) m)           (* no ballots left  *) ->
+        (forall c, w c = true <-> (exists x, d c = inl x)) ->
+        (forall c, w c = false <-> (exists x, d c = inr x)) ->
+        Count bs (winners w).
+
+    Open Scope nat_scope.
+
+    Definition forall_exists_fin_dec : forall (A : Type) (l : list A) (f : A -> nat),
+        {forall x, In x l -> f x > 0} + {exists x, In x l /\ f x = 0} := 
+      fun (A : Type) =>
+        fix F l f {struct l} :=
+        match l with
+        | [] => left (fun (x : A) (H : In x []) => match H with end)
+        | h :: t =>
+          match Nat.eq_dec (f h) 0 with
+          | left e =>
+            right (ex_intro _  h (conj (in_eq h t) e))
+          | right n =>
+            match F t f with
+            | left Fl =>
+              left (fun x H =>
+                      match H with
+                      | or_introl H1 =>
+                        match zerop (f x) with
+                        | left e =>
+                          False_ind (f x > 0) ((eq_ind h (fun v : A => f v <> 0) n x H1) e)
+                        | right r => r
+                        end
+                      | or_intror H2 => Fl x H2
+                      end)
+            | right Fr =>
+              right
+                match Fr with
+                | ex_intro _ x (conj Frl Frr) =>
+                  ex_intro _ x (conj (in_cons h x t Frl) Frr)
+                end
+            end
+          end
+        end.
+
+    Definition ballot_valid_dec : forall b : ballot, {forall c, b c > 0} + {exists c, b c = 0} :=
+      fun b => let H := forall_exists_fin_dec cand cand_all in
+               match H b with
+               | left Lforall => left
+                                   (fun c : cand => Lforall c (cand_fin c))
+               | right Lexists => right
+                                    match Lexists with
+                                    | ex_intro _ x (conj _ L) =>
+                                      ex_intro (fun c : cand => b c = 0) x L
+                                    end
+               end.
+
+    Open Scope Z_scope.
+
+    Definition update_marg (p : ballot) (m : cand -> cand -> Z) : cand -> cand -> Z :=
+      fun c d =>  if (Nat.ltb (p c) (p d))%nat
+               then (m c d + 1)%Z
+               else (if (Nat.ltb (p d) (p c))%nat
+                     then (m c d -1)%Z
+                     else m c d).
+
+    Definition listify_v (m : cand -> cand -> Z) :=
+      map (fun s => (fst s, snd s, m (fst s) (snd s))) (all_pairs cand_all). 
 
 
+    Fixpoint linear_search_v (c d : cand) (m : cand -> cand -> Z) l :=
+      match l with
+      | [] => m c d
+      | (c1, c2, k) :: t =>
+        match dec_cand c c1, dec_cand d c2 with
+        | left _, left _ => k
+        | _, _ => linear_search_v c d m t
+        end
+      end.
+    
+   
+
+    
+
+    Definition update_marg_listify (p : ballot) (m : cand -> cand -> Z) : cand -> cand -> Z :=
+      let t := update_marg p m in
+      let l := listify_v t in
+      fun c d => linear_search_v c d t l.
+
+    Theorem equivalent_m_w_v : forall c d m, linear_search_v c d m (listify_v m) = m c d.
+    Proof.
+      unfold  listify_v.
+      intros. induction (all_pairs cand_all); simpl; auto.
+      destruct a as (a1, a2). simpl in *.
+      destruct (dec_cand c a1).
+      destruct (dec_cand d a2). subst. auto.
+      auto. auto.
+    Qed.
+
+    Corollary equiv_cor : forall p m c d, update_marg p m c d = update_marg_listify p m c d.
+    Proof.
+      intros p m c d.  unfold update_marg_listify.
+      rewrite <- equivalent_m_w_v. 
+      auto.      
+    Qed.
+      
+    (* correctness of update_marg above *)
+    Lemma update_marg_corr: forall m (p : ballot) (c d : cand),
+        ((p c < p d)%nat -> update_marg p m c d = m c d + 1) /\
+        ((p c = p d)%nat -> update_marg p m c d = m c d) /\
+        ((p c > p d)%nat -> update_marg p m c d = m c d - 1).
+    Proof.
+      intros m p c d.
+      split; intros; unfold update_marg.
+      destruct (p c <? p d)%nat eqn: H1. omega.
+      destruct (p d <? p c)%nat eqn: H2. apply Nat.ltb_lt in H2.
+      apply Nat.ltb_ge in H1. omega.
+      apply Nat.ltb_ge in H2. apply Nat.ltb_ge in H1. omega.
+      split; intros.
+      destruct (p c <? p d)%nat eqn: H1.
+      apply Nat.ltb_lt in H1. omega.
+      apply Nat.ltb_ge in H1. destruct (p d <? p c)%nat eqn: H2. apply Nat.ltb_lt in H2.
+      apply Nat.ltb_ge in H1. omega. apply Nat.ltb_ge in H2. omega.
+      unfold update_marg.
+      destruct (p c <? p d)%nat eqn:H1. apply Nat.ltb_lt in H1. omega.
+      apply Nat.ltb_ge in H1. destruct (p d <? p c)%nat eqn: H2.
+      apply Nat.ltb_lt in H2. omega. apply Nat.ltb_ge in H2. omega.
+    Qed.
+
+    
+     Lemma update_marg_corr_listify: forall m (p : ballot) (c d : cand),
+        ((p c < p d)%nat -> update_marg_listify p m c d = m c d + 1) /\
+        ((p c = p d)%nat -> update_marg_listify p m c d = m c d) /\
+        ((p c > p d)%nat -> update_marg_listify p m c d = m c d - 1).
+     Proof.
+       intros m p c d. rewrite <- equiv_cor. apply update_marg_corr.
+     Qed.
 
 
+     Definition partial_count_all_counted bs : forall u inbs m,
+        Count bs (partial (u, inbs) m) ->  existsT i m, (Count bs (partial ([], i) m)) :=
+      fix F u {struct u} :=
+        match u with
+        | [] =>
+          fun inbs m Hc =>
+            existT _ inbs (existT _ m Hc)
+        | h :: t =>
+          fun inbs m Hc =>
+            match ballot_valid_dec h with
+            | left Hv =>
+              let w := update_marg_listify h m in 
+              F t inbs w (cvalid bs h t m w inbs Hc Hv (update_marg_corr_listify m h))
+            | right Hi =>  F t (h :: inbs) m (cinvalid bs h t m inbs Hc Hi)
+            end
+        end.
+
+
+    Definition all_ballots_counted (bs : list ballot) :
+      existsT i m, Count bs (partial ([], i) m) :=
+      partial_count_all_counted bs bs [] (fun _ _ : cand => 0)
+                                (ax bs bs (fun _ _ : cand => 0) eq_refl
+                                    (fun _ _ : cand => eq_refl)).
+
+
+     Definition schulze_winners (bs : list ballot) :
+      existsT (f : cand -> bool) (p : Count bs (winners f)), True :=
+      let (i, t) := all_ballots_counted bs in
+      let (m, p) := t in
+      existT _ (c_wins m) (existT _ (fin _ _ _ _ (wins_loses_type_dec m) p
+                                         (c_wins_true_type m) (c_wins_false_type m)) I).
+
+  End Count.
+  *)
+
+    
+  Require Import Coq.Strings.String.
   Section ECount.
 
     (*
-    Axiom plaintext : Type.
-    Axiom ciphertext : Type. *)
+    Axiom Plaintext : Type.
+    Axiom Ciphertext : Type. *)
 
-     
     
     Definition plaintext := Z.
-    Definition ciphertext := (Z * Z)%type. (* Cipher text is pair (c1, c2). Elgamal encryption *)
-
+    Definition ciphertext := (Z * Z)%type.
+    (* String is kind of hack. Cipher text is pair (c1, c2). Elgamal encryption *)
+    
 
     (* ballot is plain text value *)
-    Definition ballot := cand -> cand -> plaintext.
+    Definition pballot := cand -> cand -> plaintext.
     (* eballot is encrypted value *)
     Definition eballot := cand -> cand -> ciphertext.
 
@@ -733,7 +924,7 @@ Section Encryption.
     | hpartial: (list eballot * list eballot)  ->
                 (cand -> cand -> ciphertext) -> HState
     | hdecrypt: (cand -> cand -> plaintext) -> HState
-    | winners: (cand -> bool) -> HState.
+    | hwinners: (cand -> bool) -> HState.
 
     (* Public key and private key are integers 
     Definition Pubkey := Z.
@@ -754,32 +945,30 @@ Section Encryption.
        thing with function is passing list of candidates, and 
        it is because of margin function function closure 
        which is translated back to list of values and passed to
-       javaocaml binding code. *)
-    Axiom encrypt_zero_margin : list cand -> Pubkey -> ballot -> eballot.
+       javaocaml binding code. We are constructing Zero 
+       margin ballot*)
+    Axiom encrypt_zero_margin : list cand -> Pubkey -> eballot.
 
     (* This function will be realized by Elgamal Encryption.
        Enc_Pk (m, r) = (g^r, g^m * h^r). This function is not used
        but here for sake of completeness and removed in extraction*)
-    Axiom encrypt_ballot : list cand -> Pubkey -> ballot ->  eballot.
+    Axiom encrypt_ballot : list cand -> Pubkey -> pballot ->  eballot.
 
     (* This function will be realized by Elgamal Decryption
        which takes encrypted message (c1, c2), private key
        and outputs the plaintext message with zkp that we have decrypted 
        the ciphertext honestly *)
-    Axiom decrypt_ballot_with_zkp : list cand ->  Prikey -> eballot -> ballot * Z.
+    Axiom decrypt_ballot_with_zkp : list cand ->  Prikey -> eballot -> pballot * string.
 
     (* This function takes encrypted ballot and returns
-       row permuted reencrypted ballot with zero knowledge proof.
-       For the moment, zero knowledge proof is assumed to
-       be of type Z *)
-    Axiom row_permute_encrypted_ballot : list cand -> Pubkey -> eballot ->  eballot * Z.
+       row permuted reencrypted ballot with zero knowledge proof.*)
+    Axiom row_permute_encrypted_ballot : list cand -> Pubkey -> eballot ->  eballot * string.
 
      (* This function takes row encrypted ballot and returns
        column permuted reencrypted ballot with zero knowledge proof.
-       For the moment, zero knowledge proof is assumed to
-       be of type Z. The two separate functions because of two 
+       The two separate functions because of two 
        different implementation in Java *)
-    Axiom column_permute_encrypted_ballot : list cand -> Pubkey -> eballot -> eballot * Z.
+    Axiom column_permute_encrypted_ballot : list cand -> Pubkey -> eballot -> eballot * string.
     
     (* This function takes encrypted margin function and encrypted ballot
        and multiply them pointwise. 
@@ -803,13 +992,13 @@ Section Encryption.
        zero_knowlege_decryption m (c_1, c_2) = true *)
 
     Axiom zero_knowledge_decryption_proof :
-      list cand -> Pubkey -> plaintext -> ciphertext -> Z -> bool.
+      list cand -> Pubkey -> plaintext -> ciphertext -> string -> bool.
 
     
 
     (* This function is takes u, v and val where permute_encypted_ballot u = (v, val)
        and return true or false *)
-    Axiom certify_permuted_ballots : eballot -> eballot -> Z -> bool.
+    Axiom certify_permuted_ballots : eballot -> eballot -> string -> bool.
 
     (* Note that all the assertions would be erased after code extractions
        so keeping them is kind of useless becaue we are not proving them, 
@@ -822,8 +1011,8 @@ Section Encryption.
     
     Inductive HCount (bs : list eballot) : HState -> Type :=
     (* start of counting *)
-    | ax us (m : cand -> cand -> ciphertext)
-         (decm : cand -> cand -> plaintext) (zkpdecm : Z)
+    | eax us (m : cand -> cand -> ciphertext)
+         (decm : cand -> cand -> plaintext) (zkpdecm : string)
          (* for the moment we are assuming it as integer, but it is zero knowledge proof 
             about m zero encrypted matrix *) :
         us = bs (* We start from uncounted ballots *) ->
@@ -834,8 +1023,8 @@ Section Encryption.
            Honest decryption proof that m is encryption of zero matrix *)
         HCount bs (hpartial (us, []) m)
     (* Valid Ballot *)
-    | cvalid u (v : eballot) (w : eballot) b (zkppermuv : Z) (zkppermvw : Z)
-             (zkpdecw : Z) us m nm inbs :
+    | ecvalid u (v : eballot) (w : eballot) b (zkppermuv : string) (zkppermvw : string)
+             (zkpdecw : string) us m nm inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
         valid cand (fun c d => b c d = 1) -> 
         (* u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
@@ -856,8 +1045,8 @@ Section Encryption.
         (forall c d, nm c d = homomorphic_add_eballots m u c d) -> *)
         HCount bs (hpartial (us, inbs) nm)
     (* Invalid ballot *)
-    | cinvalid u (v : eballot) (w : eballot) b (zkppermuv : Z) (zkppermvw : Z)
-               (zkpdecw : Z) us m inbs :
+    | ecinvalid u (v : eballot) (w : eballot) b (zkppermuv : string) (zkppermvw : string)
+               (zkpdecw : string) us m inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
         ~valid cand (fun c d => b c d = 1) -> 
         (*  u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
@@ -876,23 +1065,23 @@ Section Encryption.
         HCount bs (hpartial (us, u :: inbs) m) 
     (* Decrypt the margin function at this point with proof that it is
         honest decryption *)
-    | cdecrypt inbs m dm (zkpdecm : Z):
+    | cdecrypt inbs m dm (zkpdecm : string):
         HCount bs (hpartial ([], inbs) m) ->
         (* proof of honest decryption. zkpdecm is zero knowledge proof datastructure 
            which proves that dm is decryption of m under zero knowledge proof. 
         (forall c d, zero_knowledge_decryption (dm c d) (m c d) zkpdecm = true) -> *)
         HCount bs (hdecrypt dm)
     (* Compute the winner *)
-    | fin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
+    | efin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
         HCount bs (hdecrypt dm) ->
         (forall c, w c = true <-> (exists x, d c = inl x)) ->
         (forall c, w c = false <-> (exists x, d c = inr x)) ->
-        HCount bs (winners w). 
-
+        HCount bs (hwinners w). 
+  
 
     (* Each ballot is either valid or not valid *)
-    Lemma ballot_valid_dec :
-      forall b : ballot, {valid cand (fun c d => b c d = 1)} +
+    Lemma pballot_valid_dec :
+      forall b : pballot, {valid cand (fun c d => b c d = 1)} +
                          {~(valid cand (fun c d => b c d = 1))}.
     Proof.  
       intros b.
@@ -907,7 +1096,7 @@ Section Encryption.
     (* every partial state of vote tallying can be progressed to a state where
        the margin function is fully constructed, i.e. all ballots are counted *)
     
-    Lemma partial_count_all_counted bs : forall ts inbs m,
+    Lemma ppartial_count_all_counted bs : forall ts inbs m,
         HCount bs (hpartial (ts, inbs) m) -> existsT i nm, (HCount bs (hpartial ([], i) nm)).
     Proof.
       refine (fix F ts {struct ts} :=
@@ -917,6 +1106,7 @@ Section Encryption.
                 | u :: us =>
                   fun inbs m Hc => _
                 end).
+   
       (* We permuate the ballot u using permute_encrypted_ballot function which gives 
          permuted ballot v and zero knowledge proof of this permutation *)
       destruct (row_permute_encrypted_ballot cand_all publickey u) as [v zkppermuv].
@@ -924,10 +1114,10 @@ Section Encryption.
       (* decrypte the permuted ballot w and prove its validity *)
       destruct (decrypt_ballot_with_zkp cand_all privatekey w) as [b zkphdec].
       (* Decide the validity of ballot b. *) 
-      destruct (ballot_valid_dec b). remember (homomorphic_add_eballots cand_all m u) as nm.
+      destruct (pballot_valid_dec b). remember (homomorphic_add_eballots cand_all m u) as nm.
       (* valid ballot so add it to encrypted marging m so far *)
       
-      pose proof (F us inbs nm (cvalid bs u v w b
+      pose proof (F us inbs nm (ecvalid bs u v w b
                                        zkppermuv (* zero knowledge proof of v being perm of u *)
                                        zkppermvw (* zero knowledge proof of w being perm of v *)
                                        zkphdec (* dummy zero knowledge proof that b is indeed correct 
@@ -938,7 +1128,7 @@ Section Encryption.
 
       (* ballot not valid *) 
       pose proof (F us (u :: inbs) m
-                    (cinvalid bs u v w b
+                    (ecinvalid bs u v w b
                               zkppermuv (* zero knowledge proof of v being perm of u *)
                               zkppermvw (* zero knowledge proof of w being perm of v *)
                               zkphdec (* dummy zero knowledge proof that b is indeed correct 
@@ -951,15 +1141,15 @@ Section Encryption.
     (* for every list of incoming ballots, we can progress the count to a state where all
      ballots are processed *)
 
-    Lemma  all_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
+    Lemma  pall_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
       (* encrypt zero margin function *)
-      pose proof (encrypt_zero_margin cand_all publickey (fun _ _ => 0)) as enczmargin.
+      pose proof (encrypt_zero_margin cand_all publickey) as enczmargin.
       (* convince the user that it is indeed encryption of zero margin by decrypting it 
          and giving zero knowledge proof *)
       destruct (decrypt_ballot_with_zkp cand_all privatekey enczmargin) as [decmarg ezkp]. 
-      pose proof (partial_count_all_counted bs bs [] enczmargin).
-      pose (ax bs bs enczmargin decmarg
+      pose proof (ppartial_count_all_counted bs bs [] enczmargin).
+      pose (eax bs bs enczmargin decmarg
                ezkp (* Dummy Zero knowledge proof of m is zero encrypted matrix *)
                eq_refl).
       destruct (X h) as [i [m Hs]].
@@ -970,10 +1160,10 @@ Section Encryption.
     (* We decrypt the encrypted margin to run the computation *)
     Lemma decrypt_margin (bs : list eballot) : existsT m, HCount bs (hdecrypt m).
     Proof.
-      destruct (all_ballots_counted bs) as [i [encm p]].
+      destruct (pall_ballots_counted bs) as [i [encm p]].
       destruct (decrypt_ballot_with_zkp cand_all privatekey encm) as [decmarg dechzkp].
       pose proof (cdecrypt bs i encm decmarg
-                          dechzkp (* Dummy Zero knowledge proof of decryption of encm *)).
+                          dechzkp (*Zero knowledge proof of decryption of encm *)).
       pose proof (X p).
       (* decryption of encrypted margin *)
       exists decmarg.  assumption.
@@ -981,12 +1171,12 @@ Section Encryption.
 
    (* The main theorem: for every list of ballots, we can find a boolean function that decides
      winners, together with evidences of the correctness of this determination *)
-    Lemma schulze_winners (bs : list eballot) :
-      existsT (f : cand -> bool), HCount bs (winners f).
+    Lemma pschulze_winners (bs : list eballot) :
+      existsT (f : cand -> bool), HCount bs (hwinners f).
     Proof.
       destruct (decrypt_margin bs) as [dm H].
       exists (c_wins dm).
-      pose proof (fin bs dm (c_wins dm) (wins_loses_type_dec dm)).
+      pose proof (efin bs dm (c_wins dm) (wins_loses_type_dec dm)).
       pose proof (X H (c_wins_true_type dm) (c_wins_false_type dm)).
       auto.
     Defined.
@@ -994,6 +1184,8 @@ Section Encryption.
   End ECount.
 
 End Encryption.
+
+
 
 Section Candidate.
 
@@ -1065,6 +1257,4 @@ Section Candidate.
 End Candidate.
 
 Definition schulze_winners_pf :=
-  schulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
-
-
+  pschulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
