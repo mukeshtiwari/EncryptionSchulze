@@ -84,7 +84,8 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   \end{bmatrix}\]
      
  The reason for using additive ElGamal is that it's composability on ciphertext 
- under same public key ( Try to rephrase it!). In short, 
+ under same public key ( Try to rephrase it or move it to Homomorphic section!). 
+ In short, 
  \begin{center}  
 	$enc_{k}(m_{1}) * enc_{k}(m_{2}) = enc_{k} (m_{1} + m_{2})$
  \end{center}
@@ -109,17 +110,43 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   	exists (f : cand -> nat), forall (c d : cand), b c d = 1 <-> (f c < f d)%nat.
  \end{verbatim}
  Intuitively, it says that a ballot b is valid if we can find a function which expresses 
- a notion of linear preference ordering for all candidates, and 
- we prove that we can decide for each ballot if it valid or not 
+ the notion of linear preference ordering for all candidates, and 
+ we prove that we can decide for each ballot if it is valid or not 
  \begin{verbatim}
  Lemma pballot_valid_dec :
       forall b : ballot, {valid cand (fun c d => b c d = 1)} +
                          {~(valid cand (fun c d => b c d = 1))}.
  \end{verbatim}
  
- By now, any attentive reader would note that we have claimed that we don't decrypt
- the ballot to preserve the ballot privacy, so how can we decide the validity 
- without decrypting the original ballot. 
+ By now, a attentive reader would note that we have claimed that we don't decrypt
+ the ballot to preserve the privacy, so how can we decide the validity 
+ without decrypting the original ballot. We will discuss our whole cryptographic 
+ scheme in next section, but to quench the thrust of reader for now, we have 
+ proved that if ballot b was valid
+ before encryption, then encrypting it followed by permuting each row by 
+ secret permutation $\sigma$ and permuting again the each column of resulting matrix 
+ from  previous step by same permutation, $\sigma$, and decrypting it back would
+ still 
+ lead to valid ballot. (Is it giving too much information ? ) 
+ \begin{verbatim}
+ Lemma perm_presv_validity :
+  forall (A : Type) (P : A -> A -> Prop)
+         (Adec : forall (c d : A), {c = d} + {c <> d})
+         (Pdec : forall c d, {P c d} + {~P c d}) 
+         (sig : A -> A)
+         (Hsig : Bijective sig), 
+	valid A P <-> valid A (perm A P sig).	
+ \end{verbatim}
+ And similarly, for invalid ballot 
+ \begin{verbatim}
+ Lemma not_perm_persv_validity :
+  forall (A : Type) (P : A -> A -> Prop)
+         (Adec : forall (c d : A), {c = d} + {c <> d})
+         (Pdec : forall c d, {P c d} + {~P c d}) 
+         (sig : A -> A)
+         (Hsig : Bijective sig),
+	~valid A P <-> ~valid A (perm A P sig).
+\end{verbatim}
 \end{itemize}
 
 \section{Homomorphic Computation of Margin}
