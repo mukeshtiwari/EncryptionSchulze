@@ -26,8 +26,7 @@ Section Encryption.
   Hypothesis dec_cand : forall n m : cand, {n = m} + {n <> m}.
   Hypothesis cand_not_nil : cand_all <> nil.
 
-
-
+ 
   Section Evote.
     (** Section 2: Specification of Schulze Vote Counting **)
 
@@ -706,7 +705,7 @@ Section Encryption.
 
   End Evote.
 
-  (*
+  
   Section  Count.
 
     Definition ballot := cand -> nat.
@@ -897,7 +896,7 @@ Section Encryption.
                                          (c_wins_true_type m) (c_wins_false_type m)) I).
 
   End Count.
-  *)
+  
 
     
   Require Import Coq.Strings.String.
@@ -983,8 +982,57 @@ Section Encryption.
     Axiom  homomorphic_add_eballots : list cand -> (cand -> cand -> ciphertext) ->
                                       eballot -> (cand -> cand -> ciphertext).
 
-                                                    
-                                            
+    Definition add_plaintext (u : cand -> cand -> plaintext)
+               (v : cand -> cand -> plaintext) :=
+      fun c d => u c d + v c d.
+    
+    Axiom homomorphic_axiom :
+      forall (c d : cand) (m : cand -> cand -> ciphertext)
+             (u : cand -> cand -> ciphertext), 
+        fst (decrypt_ballot_with_zkp
+               cand_all privatekey
+               (homomorphic_add_eballots cand_all m u)) =
+        add_plaintext
+          (fst (decrypt_ballot_with_zkp cand_all privatekey m))
+          (fst (decrypt_ballot_with_zkp cand_all privatekey u)).
+
+
+    (* This function defines map between linear preoder ballot 
+       and matrix plaintext ballot *)
+    Definition map_ballot_pballot
+               (b : ballot) (p : pballot) :=
+      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d = 1
+                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d = 0
+                      else p c d = -1.
+
+     (* Each ballot is either valid or not valid *)
+    Lemma pballot_valid_dec :
+      forall b : pballot, {valid cand (fun c d => b c d = 1)} +
+                         {~(valid cand (fun c d => b c d = 1))}.
+    Proof.  
+      intros b.
+      pose proof (decidable_valid cand (fun c d => b c d = 1) dec_cand).
+      simpl in X. assert (Ht : forall c d : cand, {b c d = 1} + {b c d <> 1}).
+      intros c d. pose proof (Z.eq_dec (b c d) 1). auto.      
+      pose proof (X Ht). unfold finite in X0. apply X0.
+      exists cand_all. assumption.
+    Defined.
+
+    Lemma connect_validty_of_ballot_pballot :
+      forall (b : ballot) (p : pballot), (forall c d, map_ballot_pballot b p c d) -> 
+        proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = true <->
+        proj1_sig (bool_of_sumbool (pballot_valid_dec p)) = true.
+    Proof.
+      intros b p Hm. split; intros.
+      destruct (ballot_valid_dec b) as [H1 | H2];
+        destruct (pballot_valid_dec p) as [Hp1 | Hp2]; simpl in *; try auto.
+      unfold valid in Hp2. destruct Hp2.
+      unfold map_ballot_pballot in Hm. 
+    Admitted.
+
+   
+ 
+      
     (* This function show that ciphertext (c_1, c_2) is indeed the
        the encryption of message m under zero knowledge proof. See the mail
        exchange between Dirk and Thomas Witnessing correct encryption.
@@ -1041,8 +1089,8 @@ Section Encryption.
                      certify_permuted_ballots u v zkppermuv = true /\ 
                      zero_knowledge_decryption (b c d) (v c d) zkpdecv= true) -> *)
         (* Proof that new margin is encrypted sum. This statement is proved 
-           in Coq, but due to mod problem, we are taking it as Axiom
-        (forall c d, nm c d = homomorphic_add_eballots m u c d) -> *)
+           in Coq, but due to mod problem, we are taking it as Axiom *)
+        (forall c d, nm c d = homomorphic_add_eballots cand_all m u c d) ->
         HCount bs (hpartial (us, inbs) nm)
     (* Invalid ballot *)
     | ecinvalid u (v : eballot) (w : eballot) b (zkppermuv : string) (zkppermvw : string)
@@ -1079,19 +1127,7 @@ Section Encryption.
         HCount bs (hwinners w). 
   
 
-    (* Each ballot is either valid or not valid *)
-    Lemma pballot_valid_dec :
-      forall b : pballot, {valid cand (fun c d => b c d = 1)} +
-                         {~(valid cand (fun c d => b c d = 1))}.
-    Proof.  
-      intros b.
-      pose proof (decidable_valid cand (fun c d => b c d = 1) dec_cand).
-      simpl in X. assert (Ht : forall c d : cand, {b c d = 1} + {b c d <> 1}).
-      intros c d. pose proof (Z.eq_dec (b c d) 1). auto.      
-      pose proof (X Ht). unfold finite in X0. apply X0.
-      exists cand_all. assumption.
-    Defined.
-    
+   
 
     (* every partial state of vote tallying can be progressed to a state where
        the margin function is fully constructed, i.e. all ballots are counted *)
@@ -1116,13 +1152,15 @@ Section Encryption.
       (* Decide the validity of ballot b. *) 
       destruct (pballot_valid_dec b). remember (homomorphic_add_eballots cand_all m u) as nm.
       (* valid ballot so add it to encrypted marging m so far *)
+      assert (Htt : forall c d, nm c d = homomorphic_add_eballots cand_all m u c d).
+      intros c d. rewrite Heqnm. auto.
       
       pose proof (F us inbs nm (ecvalid bs u v w b
                                        zkppermuv (* zero knowledge proof of v being perm of u *)
                                        zkppermvw (* zero knowledge proof of w being perm of v *)
                                        zkphdec (* dummy zero knowledge proof that b is indeed correct 
                                             decryption of v *)
-                                      us m nm inbs Hc v0)).  
+                                      us m nm inbs Hc v0 Htt)).  
       destruct X as [i [ns Ht]].
       exists i. exists ns. assumption.
 
@@ -1182,7 +1220,7 @@ Section Encryption.
     Defined.
     
   End ECount.
-
+ 
 End Encryption.
 
 
@@ -1256,5 +1294,5 @@ Section Candidate.
   
 End Candidate.
 
-Definition schulze_winners_pf :=
+Definition eschulze_winners_pf :=
   pschulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
