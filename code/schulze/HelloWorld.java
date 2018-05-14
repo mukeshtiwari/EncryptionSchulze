@@ -54,7 +54,6 @@ public class HelloWorld {
 	//Simplification of java for OCaml
 	
 	//Begin data structures
-	
 	public static class ElGamalCiphertext {	//An ElGamal Ciphertext is represented as two BigIntegers
 		public ElGamalCiphertext(BigInteger c1, BigInteger c2){
 			this.c1 = c1;
