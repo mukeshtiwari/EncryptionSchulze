@@ -50,6 +50,8 @@ import ch.bfh.unicrypt.crypto.keygenerator.interfaces.KeyPairGenerator;
 import java.util.Arrays;
 
 public class HelloWorld {
+    
+    public static PermutationElement pi;
 	
 	//Simplification of java for OCaml
 	
@@ -391,7 +393,7 @@ public class HelloWorld {
 		//Setup Proof system
 		int sqrt = (int) Math.sqrt(b.prefrences.size());
 		ReEncryptionShuffleProofSystem proofSystem = ReEncryptionShuffleProofSystem.getInstance(sqrt, elGamal, publicKeyElem);
-		final PermutationElement pi = PermutationGroup.getInstance(sqrt).getRandomElement();
+		pi = PermutationGroup.getInstance(sqrt).getRandomElement();
 		final DeterministicRandomByteSequence rrs = DeterministicRandomByteSequence.getInstance();
 		PermutationCommitmentScheme pcs = PermutationCommitmentScheme.getInstance(group,sqrt, rrs);
 		Tuple sV = pcs.getRandomizationSpace().getRandomElement();
@@ -431,6 +433,7 @@ public class HelloWorld {
 	}
 		
 
+    //This must be called after Row shuffle
 	public static EncBallotWithZKPOfPermutation ColumnShuffleWithZKP(EncBallot b, BigInteger publicKey) {
 		//Setup ElGamal
 		GStarModPrime group = GStarModSafePrime.getInstance(SafePrime.getSmallestInstance(128));
@@ -442,7 +445,7 @@ public class HelloWorld {
 		//Setup Proof system
 		int sqrt = (int) Math.sqrt(b.prefrences.size());
 		ReEncryptionShuffleProofSystem proofSystem = ReEncryptionShuffleProofSystem.getInstance(sqrt, elGamal, publicKeyElem);
-		final PermutationElement pi = PermutationGroup.getInstance(sqrt).getRandomElement();
+		//final PermutationElement pi = PermutationGroup.getInstance(sqrt).getRandomElement();
 		final DeterministicRandomByteSequence rrs = DeterministicRandomByteSequence.getInstance();
 		PermutationCommitmentScheme pcs = PermutationCommitmentScheme.getInstance(group,sqrt, rrs);
 		Tuple sV = pcs.getRandomizationSpace().getRandomElement();
@@ -657,20 +660,37 @@ public class HelloWorld {
 
 		int NumCandidates = 3;
 		int NumVoters = 10;
-		
+        
+        //Generate random ballots
+        List<Ballot> votes = IntStream.range(0, NumVoters).mapToObj(i -> generateRandomBallot(NumCandidates)).collect(Collectors.toList());
+        System.out.println(votes.toString());
+        
+        //Encrypt the random ballots
+        BigInteger sk = generateSK();
+        System.out.println(sk);
+        BigInteger pk = generatePK(sk);
+        System.out.println(pk);
+        //BigInteger[] bal = new BigInteger[8];
+        //for(int i = 0; i < 8; i++) bal[i] = BigInteger.ZERO;
+        //BigInteger[] encmar = encBallotWrapper(bal, pk);
+        //for (int i = 0; i < encmar.length; i++) System.out.println(encmar[i].toString());
+
 		//Generate random ballots
-		List<Ballot> votes = IntStream.range(0, NumVoters).mapToObj(i -> generateRandomBallot(NumCandidates)).collect(Collectors.toList());
-		System.out.println(votes.toString());
-		
-		//Encrypt the random ballots
-		BigInteger sk = generateSK();
-		System.out.println(sk);
-		BigInteger pk = generatePK(sk);
-		System.out.println(pk);
-		BigInteger[] bal = new BigInteger[8];
-		for(int i = 0; i < 8; i++) bal[i] = BigInteger.ZERO;
-		BigInteger[] encmar = encBallotWrapper(bal, pk);
-		for (int i = 0; i < encmar.length; i++) System.out.println(encmar[i].toString());
+        List<EncBallot> encVotes = votes.stream().map(i -> encBallot(i,pk)).collect(Collectors.toList());
+        System.out.println(encVotes.toString());
+        
+        //Begin Multiplying
+        EncBallot MarginFunction = EncBallotZKPofPlaintextZero(NumCandidates, pk);
+        //System.out.println(MarginFunction);
+        for(int i = 0; i < NumVoters; i++) {
+            EncBallot rowBallot = RowShuffleWithZKP(encVotes.get(i), pk);
+            EncBallot columnBallot = ColumnShuffleWithZKP(rowBallot, pk);
+            BallotWithZKP maybeValidBallot = decBallotZKP(columnBallot,sk);
+            System.out.println("Permuted ballot: ");
+            maybeValidBallot.prefrences.forEach(j -> System.out.println(j.plaintext));
+            
+            MarginFunction = EncBallotMulti(MarginFunction, encVotes.get(i));
+        }
 		
 		
 		/* 
