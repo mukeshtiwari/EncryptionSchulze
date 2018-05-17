@@ -1018,6 +1018,10 @@ Section Encryption.
       exists cand_all. assumption.
     Defined.
 
+   
+      
+
+      
     Lemma connect_validty_of_ballot_pballot :
       forall (b : ballot) (p : pballot), (forall c d, map_ballot_pballot b p c d) -> 
         proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = true <->
@@ -1026,12 +1030,53 @@ Section Encryption.
       intros b p Hm. split; intros.
       destruct (ballot_valid_dec b) as [H1 | H2];
         destruct (pballot_valid_dec p) as [Hp1 | Hp2]; simpl in *; try auto.
-      unfold valid in Hp2. destruct Hp2.
+      (* This is not valid, because if b c > 0 then it means P c d = 1*)
       unfold map_ballot_pballot in Hm. 
-    Admitted.
+      destruct Hp2. unfold valid.
+      exists b. intros c d. split; intros.
+      pose proof (H1 c). pose proof (H1 d). Open Scope nat_scope.
+      assert (0 < b c) by omega.
+      pose proof (proj2 (ltb_lt _ _) H4).
+      pose proof (Hm c d).
+      rewrite H5 in H6. SearchAbout (_ && true).
+      rewrite (andb_true_r (b c <? b d)) in H6.
+      rewrite (andb_true_r (b c =? b d)) in H6.  
+      (* God, give me strength to discharge all the menial proofs *)
+      pose proof (lt_eq_lt_dec (b c) (b d)).
+      destruct H7 as [[H7 | H7] | H7]. auto.
+      rewrite H7 in H6. SearchAbout (_ <? _ = false).
+      rewrite (Nat.ltb_irrefl (b d)) in H6.
+      SearchAbout (_ =? _ = true).
+      rewrite (Nat.eqb_refl (b d)) in H6.
+      rewrite H6 in H0. inversion H0.
+      remember (b c <? b d) as v. symmetry in Heqv.
+      destruct v.  SearchAbout (_ <? _ = true).
+      pose proof (proj1 (Nat.ltb_lt (b c) (b d)) Heqv). omega.
+      remember (b c =? b d) as v. symmetry in Heqv0.
+      destruct v. rewrite H6 in H0. inversion H0. rewrite H6 in H0.
+      inversion H0. (* Thank you God for giving me strenght *)      
+      pose proof (Hm c d).
+      pose proof (H1 c).
+      SearchAbout (_ <? _ = true).
+      pose proof (proj2 (Nat.ltb_lt (b c) (b d)) H0). rewrite H4 in H2.
+      pose proof (proj2 (Nat.ltb_lt 0 (b c))).
+      assert (0 < b c) by omega. pose proof (H5 H6).
+      rewrite H7 in H2. simpl in H2. auto.
+       
+      (* Other side of proof. When pballot is valid then ballot is also 
+         valid *)
+      destruct (pballot_valid_dec p) as [H1 | H2];
+        destruct (ballot_valid_dec b) as [Hp1 | Hp2]; simpl in *; try (auto with arith).
+      (* Now this case invalid because my pballot is valid and b is invalid *) 
+      destruct Hp2. unfold valid in H1. destruct H1 as [f H1].
+      unfold map_ballot_pballot in Hm.  
+      pose proof (Hm x x). (* I know that b x = 0 then 0 <? b x = false *)
+      assert (0 <? b x = false). admit.
+      rewrite H3 in H2. SearchAbout (_ && false).
+      rewrite (andb_false_r (b x <? b x)) in H2.
+      rewrite (andb_false_r (b x =? b x)) in H2.
+      pose proof (H1 x x). destruct H4.
 
-   
- 
       
     (* This function show that ciphertext (c_1, c_2) is indeed the
        the encryption of message m under zero knowledge proof. See the mail
