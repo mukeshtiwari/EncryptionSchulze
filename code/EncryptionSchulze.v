@@ -1175,21 +1175,22 @@ Section Encryption.
     Inductive HCount (bs : list eballot) : HState -> Type :=
     (* start of counting *)
     | eax us (m : cand -> cand -> ciphertext)
-         (decm : cand -> cand -> plaintext) (zkpdecm : string)
-         (* for the moment we are assuming it as integer, but it is zero knowledge proof 
-            about m zero encrypted matrix *) :
+         (decm : cand -> cand -> plaintext) (zkpdecm : string) :
         us = bs (* We start from uncounted ballots *) ->
-        (* (forall c d, zero_knowledge_decryption 0 (m c d) zkpdecm = true) ->
-           This is useless, because this statement is not proved in coq, but 
-           will run at execution of extracted code, and should return true if 
-           m is encrypted zero matrix. It helps to keep track about the
-           Honest decryption proof that m is encryption of zero matrix *)
-        HCount bs (hpartial (us, []) m)
+        decm = fst (decrypt_ballot_with_zkp cand_all privatekey m) ->
+        zkpdecm = snd (decrypt_ballot_with_zkp cand_all privatekey m) ->
+        HCount bs (hpartial (us, []) m) 
     (* Valid Ballot *)
     | ecvalid u (v : eballot) (w : eballot) b (zkppermuv : string) (zkppermvw : string)
              (zkpdecw : string) us m nm inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
-        valid cand (fun c d => b c d = 1) -> 
+        matrix_ballot_valid b ->
+        v = fst (row_permute_encrypted_ballot cand_all publickey u) ->
+        zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey u) ->
+        w = fst (column_permute_encrypted_ballot cand_all publickey v) ->
+        zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v) ->
+        b = fst (decrypt_ballot_with_zkp cand_all privatekey w) ->
+        zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w) ->  
         (* u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
              -> (decryption of w) b.
            b is honest decryption of w proved under zero knowledge proof, zkpdecw, 
@@ -1197,12 +1198,7 @@ Section Encryption.
            zkppermuv is zero knowledge proof data structure about v being row permutation
            of u. zkppermvw is zero knowledge proof data structre about w being column 
            permutation of v. b is valid ballot and using the lemma perm_presv_validity, it follows 
-           to decryption of u.
-           permute_encrypted_ballot u = (v, zkp) and ceritify_permuted_ballots u v zkp = true 
-        (forall c d, (fst (permute_encrypted_ballot u)) c d = v c d /\
-                     (snd (permute_encrypted_ballot u)) = zkppermuv /\
-                     certify_permuted_ballots u v zkppermuv = true /\ 
-                     zero_knowledge_decryption (b c d) (v c d) zkpdecv= true) -> *)
+           to decryption of u. *)
         (* Proof that new margin is encrypted sum. This statement is proved 
            in Coq, but due to mod problem, we are taking it as Axiom *)
         (forall c d, nm c d = homomorphic_add_eballots cand_all m u c d) ->
@@ -1211,7 +1207,7 @@ Section Encryption.
     | ecinvalid u (v : eballot) (w : eballot) b (zkppermuv : string) (zkppermvw : string)
                (zkpdecw : string) us m inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
-        ~valid cand (fun c d => b c d = 1) -> 
+        ~matrix_ballot_valid b -> 
         (*  u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
              -> (decryption of w) b.
            b is honest decryption of w proved under zero knowledge proof, zkpdecw, 
