@@ -1198,34 +1198,38 @@ Section Encryption.
            zkppermuv is zero knowledge proof data structure about v being row permutation
            of u. zkppermvw is zero knowledge proof data structre about w being column 
            permutation of v. b is valid ballot and using the lemma perm_presv_validity, it follows 
-           to decryption of u. *)
-        (* Proof that new margin is encrypted sum. This statement is proved 
+           to decryption of u. 
+           Proof that new margin is encrypted sum. This statement is proved 
            in Coq, but due to mod problem, we are taking it as Axiom *)
         (forall c d, nm c d = homomorphic_add_eballots cand_all m u c d) ->
         HCount bs (hpartial (us, inbs) nm)
     (* Invalid ballot *)
     | ecinvalid u (v : eballot) (w : eballot) b (zkppermuv : string) (zkppermvw : string)
-               (zkpdecw : string) us m inbs :
+                (zkpdecw : string) us m inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
-        ~matrix_ballot_valid b -> 
+        ~matrix_ballot_valid b ->
+        v = fst (row_permute_encrypted_ballot cand_all publickey u) ->
+        zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey u) ->
+        w = fst (column_permute_encrypted_ballot cand_all publickey v) ->
+        zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v) ->
+        b = fst (decrypt_ballot_with_zkp cand_all privatekey w) ->
+        zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w) -> 
         (*  u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
              -> (decryption of w) b.
            b is honest decryption of w proved under zero knowledge proof, zkpdecw, 
-           data structure which is Z for the moment. 
+           data structure. 
            zkppermuv is zero knowledge proof data structure about v being row permutation
            of u. zkppermvw is zero knowledge proof data structure about w being column 
            permutation of v. 
            b is invalid ballot and using the lemma not_perm_persv_validity, it follows
-           to decryption of u.
-        (forall c d, (fst (permute_encrypted_ballot u)) c d = v c d /\
-                     (snd (permute_encrypted_ballot u)) = zkppermuv /\
-                     certify_permuted_ballots u v zkppermuv = true /\
-                     zero_knowledge_decryption (b c d) (v c d) zkpdecv= true) -> *)
+           to decryption of u. *)
         HCount bs (hpartial (us, u :: inbs) m) 
     (* Decrypt the margin function at this point with proof that it is
         honest decryption *)
     | cdecrypt inbs m dm (zkpdecm : string):
         HCount bs (hpartial ([], inbs) m) ->
+        dm = fst (decrypt_ballot_with_zkp cand_all privatekey m) ->
+        zkpdecm = snd (decrypt_ballot_with_zkp cand_all privatekey m) -> 
         (* proof of honest decryption. zkpdecm is zero knowledge proof datastructure 
            which proves that dm is decryption of m under zero knowledge proof. 
         (forall c d, zero_knowledge_decryption (dm c d) (m c d) zkpdecm = true) -> *)
@@ -1256,33 +1260,64 @@ Section Encryption.
    
       (* We permuate the ballot u using permute_encrypted_ballot function which gives 
          permuted ballot v and zero knowledge proof of this permutation *)
-      destruct (row_permute_encrypted_ballot cand_all publickey u) as [v zkppermuv].
-      destruct (column_permute_encrypted_ballot cand_all publickey v) as [w zkppermvw].
+      remember (row_permute_encrypted_ballot cand_all publickey u) as H1.
+      destruct H1 as [v zkppermuv].
+      remember (column_permute_encrypted_ballot cand_all publickey v) as H2.
+      destruct H2 as [w zkppermvw].
       (* decrypte the permuted ballot w and prove its validity *)
-      destruct (decrypt_ballot_with_zkp cand_all privatekey w) as [b zkphdec].
+      remember (decrypt_ballot_with_zkp cand_all privatekey w) as H3.
+      destruct H3 as [b zkpdecw].
       (* Decide the validity of ballot b. *) 
-      destruct (pballot_valid_dec b). remember (homomorphic_add_eballots cand_all m u) as nm.
+      destruct (matrix_ballot_valid_dec b).
+      remember (homomorphic_add_eballots cand_all m u) as nm.
       (* valid ballot so add it to encrypted marging m so far *)
       assert (Htt : forall c d, nm c d = homomorphic_add_eballots cand_all m u c d).
       intros c d. rewrite Heqnm. auto.
       
-      pose proof (F us inbs nm (ecvalid bs u v w b
+      assert (v = fst (row_permute_encrypted_ballot cand_all publickey u)).
+      rewrite <- HeqH1. auto.
+      assert (zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey u)). 
+      rewrite <- HeqH1. auto.
+      assert (w = fst (column_permute_encrypted_ballot cand_all publickey v)).
+      rewrite <- HeqH2. auto.
+      assert (zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v)).
+      rewrite <- HeqH2. auto.
+      assert (b = fst (decrypt_ballot_with_zkp cand_all privatekey w)).
+      rewrite <- HeqH3. auto.
+      assert (zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w)). 
+      rewrite <- HeqH3. auto.
+
+      
+      pose proof (F us inbs nm  (ecvalid bs u v w b
                                        zkppermuv (* zero knowledge proof of v being perm of u *)
                                        zkppermvw (* zero knowledge proof of w being perm of v *)
-                                       zkphdec (* dummy zero knowledge proof that b is indeed correct 
+                                       zkpdecw (* dummy zero knowledge proof that b is indeed correct 
                                             decryption of v *)
-                                      us m nm inbs Hc v0 Htt)).  
+                                      us m nm inbs Hc m0 H H0 H1 H2 H3 H4 Htt)).  
       destruct X as [i [ns Ht]].
       exists i. exists ns. assumption.
+
+      assert (v = fst (row_permute_encrypted_ballot cand_all publickey u)).
+      rewrite <- HeqH1. auto.
+      assert (zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey u)). 
+      rewrite <- HeqH1. auto.
+      assert (w = fst (column_permute_encrypted_ballot cand_all publickey v)).
+      rewrite <- HeqH2. auto.
+      assert (zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v)).
+      rewrite <- HeqH2. auto.
+      assert (b = fst (decrypt_ballot_with_zkp cand_all privatekey w)).
+      rewrite <- HeqH3. auto.
+      assert (zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w)). 
+      rewrite <- HeqH3. auto.
 
       (* ballot not valid *) 
       pose proof (F us (u :: inbs) m
                     (ecinvalid bs u v w b
                               zkppermuv (* zero knowledge proof of v being perm of u *)
                               zkppermvw (* zero knowledge proof of w being perm of v *)
-                              zkphdec (* dummy zero knowledge proof that b is indeed correct 
+                              zkpdecw (* dummy zero knowledge proof that b is indeed correct 
                                    decryption of v *)
-                              us m inbs Hc n)).
+                              us m inbs Hc n H H0 H1 H2 H3 H4)).
       destruct X as [i [ns Ht]].
       exists i. exists ns. assumption.
     Defined. 
@@ -1293,14 +1328,19 @@ Section Encryption.
     Lemma  pall_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
       (* encrypt zero margin function *)
-      pose proof (encrypt_zero_margin cand_all publickey) as enczmargin.
+      remember (encrypt_zero_margin cand_all publickey) as enczmargin.
       (* convince the user that it is indeed encryption of zero margin by decrypting it 
          and giving zero knowledge proof *)
-      destruct (decrypt_ballot_with_zkp cand_all privatekey enczmargin) as [decmarg ezkp]. 
+      remember (decrypt_ballot_with_zkp cand_all privatekey enczmargin) as H.
+      destruct H as [decmarg ezkp]. 
       pose proof (ppartial_count_all_counted bs bs [] enczmargin).
+      assert (decmarg = fst (decrypt_ballot_with_zkp cand_all privatekey enczmargin)).
+      rewrite <- HeqH. auto.
+      assert (ezkp = snd (decrypt_ballot_with_zkp cand_all privatekey enczmargin)).
+      rewrite <- HeqH. auto.
       pose (eax bs bs enczmargin decmarg
-               ezkp (* Dummy Zero knowledge proof of m is zero encrypted matrix *)
-               eq_refl).
+               ezkp (* Zero knowledge proof of m is zero encrypted matrix *)
+               eq_refl H H0).
       destruct (X h) as [i [m Hs]].
       exists i. exists m. assumption.
     Defined.
@@ -1309,11 +1349,17 @@ Section Encryption.
     (* We decrypt the encrypted margin to run the computation *)
     Lemma decrypt_margin (bs : list eballot) : existsT m, HCount bs (hdecrypt m).
     Proof.
-      destruct (pall_ballots_counted bs) as [i [encm p]].
-      destruct (decrypt_ballot_with_zkp cand_all privatekey encm) as [decmarg dechzkp].
+      remember (pall_ballots_counted bs) as H.
+      destruct H as [i [encm p]].
+      remember (decrypt_ballot_with_zkp cand_all privatekey encm) as H1.
+      destruct H1 as [decmarg dechzkp].
+      assert (decmarg = fst (decrypt_ballot_with_zkp cand_all privatekey encm)).
+      rewrite <- HeqH1. auto.
+      assert(dechzkp = snd (decrypt_ballot_with_zkp cand_all privatekey encm)).
+      rewrite <- HeqH1. auto.
       pose proof (cdecrypt bs i encm decmarg
-                          dechzkp (*Zero knowledge proof of decryption of encm *)).
-      pose proof (X p).
+                           dechzkp (*Zero knowledge proof of decryption of encm *)
+                 p H H0).
       (* decryption of encrypted margin *)
       exists decmarg.  assumption.
     Defined.
