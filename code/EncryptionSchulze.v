@@ -889,11 +889,12 @@ Section Encryption.
 
 
      Definition schulze_winners (bs : list ballot) :
-      existsT (f : cand -> bool) (p : Count bs (winners f)), True :=
+      existsT (f : cand -> bool), Count bs (winners f) :=
       let (i, t) := all_ballots_counted bs in
       let (m, p) := t in
-      existT _ (c_wins m) (existT _ (fin _ _ _ _ (wins_loses_type_dec m) p
-                                         (c_wins_true_type m) (c_wins_false_type m)) I).
+      existT  _ (c_wins m) (fin _ _ _ _ (wins_loses_type_dec m) p
+                                (c_wins_true_type m) (c_wins_false_type m)).
+     
 
   End Count.
   
@@ -1375,7 +1376,9 @@ Section Encryption.
       pose proof (X H (c_wins_true_type dm) (c_wins_false_type dm)).
       auto.
     Defined.
+
     
+    Check schulze_winners.
   End ECount.
  
 End Encryption.
