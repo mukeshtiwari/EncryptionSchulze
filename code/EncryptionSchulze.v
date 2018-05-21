@@ -1376,11 +1376,47 @@ Section Encryption.
       pose proof (X H (c_wins_true_type dm) (c_wins_false_type dm)).
       auto.
     Defined.
-
     
-    Check schulze_winners.
   End ECount.
- 
+  
+  Fixpoint mapping_ballot_pballot (bs : list ballot) (pbs : list pballot) :
+    List.length bs = List.length pbs ->  Prop. 
+  Proof.
+    refine (match bs, pbs with
+            | [], [] => fun H => True
+            | [], h :: _ => fun H => _  
+            | h :: _, [] => fun H => _
+            | h1 :: t1, h2 :: t2 =>
+              fun H =>
+                ((forall c d, map_ballot_pballot h1 h2 c d) /\
+                 mapping_ballot_pballot t1 t2 _ )
+            end); inversion H.
+    auto.
+  Defined.
+
+  
+    
+    
+  Lemma main_correctness :
+    forall (bs : list ballot) (pbs : list pballot)
+           (ebs : list eballot) (H : List.length bs = List.length pbs)
+           (H1 : ebs = map (fun x => encrypt_ballot cand_all publickey x) pbs)
+           (H2 : pbs = map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs)
+           (H3 : forall (pb : pballot),
+               pb = fst (decrypt_ballot_with_zkp cand_all privatekey
+                                                 (encrypt_ballot cand_all publickey pb)))
+           (H4 : forall (eb : eballot),
+               eb = encrypt_ballot cand_all publickey
+                                   (fst (decrypt_ballot_with_zkp cand_all privatekey eb))),
+            mapping_ballot_pballot bs pbs H -> 
+      (forall c : cand, projT1 (schulze_winners bs) c = true <-> 
+                        projT1 (pschulze_winners ebs) c = true).  
+  Proof.
+    intros. split; intros.
+    destruct (schulze_winners bs) as [f Cnt]. simpl in H5.
+    destruct (pschulze_winners ebs) as [g Hcnt]. simpl.
+    
+    
 End Encryption.
 
 
