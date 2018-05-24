@@ -946,8 +946,11 @@ Section Encryption.
        it is because of margin function function closure 
        which is translated back to list of values and passed to
        javaocaml binding code. We are constructing Zero 
-       margin ballot*)
-    Axiom encrypt_zero_margin : list cand -> Pubkey -> eballot.
+       margin ballot . It's creating little bit problem with proof 
+       so for the moment I am using encrypt ballot to encrypt
+       zero matrix margin.
+    Axiom encrypt_zero_margin_matrix :
+      list cand -> Pubkey ->  (cand -> cand -> plaintext ) -> eballot. *)
 
     (* This function will be realized by Elgamal Encryption.
        Enc_Pk (m, r) = (g^r, g^m * h^r). This function is not used
@@ -986,6 +989,7 @@ Section Encryption.
     Definition add_plaintext (u : cand -> cand -> plaintext)
                (v : cand -> cand -> plaintext) :=
       fun c d => u c d + v c d.
+
     
     Axiom homomorphic_axiom :
       forall (c d : cand) (m : cand -> cand -> ciphertext)
@@ -997,6 +1001,13 @@ Section Encryption.
           (fst (decrypt_ballot_with_zkp cand_all privatekey m))
           (fst (decrypt_ballot_with_zkp cand_all privatekey u)).
 
+    Axiom encrypt_decrypt_identity : forall (pb : pballot),
+        pb = fst (decrypt_ballot_with_zkp cand_all privatekey
+                                          (encrypt_ballot cand_all publickey pb)).
+    
+    Axiom decrypt_encrypt_identity : forall (eb : eballot),
+        eb = encrypt_ballot cand_all publickey
+                            (fst (decrypt_ballot_with_zkp cand_all privatekey eb)).
 
     (* A ballot is valid if all the entries are either 0 or 1 *)
     Definition matrix_ballot_valid (p : pballot) :=
@@ -1055,10 +1066,8 @@ Section Encryption.
       pose proof (n H). auto.
       right. unfold not. intros. destruct H.
       pose proof (n H). auto.
-    Qed.
-    
-      
-      
+    Defined.
+        
 
       
     Lemma connect_validty_of_ballot_pballot :
@@ -1153,18 +1162,18 @@ Section Encryption.
        the encryption of message m under zero knowledge proof. See the mail
        exchange between Dirk and Thomas Witnessing correct encryption.
        https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/crypto/proofsystem/classes/EqualityPreimageProofSystem.java
-       zero_knowlege_decryption m (c_1, c_2) = true *)
+       zero_knowlege_decryption m (c_1, c_2) = true
 
     Axiom zero_knowledge_decryption_proof :
       list cand -> Pubkey -> plaintext -> ciphertext -> string -> bool.
 
     
 
-    (* This function is takes u, v and val where permute_encypted_ballot u = (v, val)
-       and return true or false *)
+     This function is takes u, v and val where permute_encypted_ballot u = (v, val)
+       and return true or false 
     Axiom certify_permuted_ballots : eballot -> eballot -> string -> bool.
 
-    (* Note that all the assertions would be erased after code extractions
+       Note that all the assertions would be erased after code extractions
        so keeping them is kind of useless becaue we are not proving them, 
        but using a Java library, unicrypt, to plug the needed implementation.
        So in order to convince the user that it computes according to 
@@ -1178,6 +1187,10 @@ Section Encryption.
     | eax us (m : cand -> cand -> ciphertext)
          (decm : cand -> cand -> plaintext) (zkpdecm : string) :
         us = bs (* We start from uncounted ballots *) ->
+        (* m is encryption of zero matrix *)
+        (forall c d, m c d = encrypt_ballot cand_all publickey (fun _ _ => 0%Z) c d) ->
+        (* all the entries of decm is 0 *)
+        (forall c d, decm c d = 0%Z) -> 
         decm = fst (decrypt_ballot_with_zkp cand_all privatekey m) ->
         zkpdecm = snd (decrypt_ballot_with_zkp cand_all privatekey m) ->
         HCount bs (hpartial (us, []) m) 
@@ -1329,7 +1342,7 @@ Section Encryption.
     Lemma  pall_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
       (* encrypt zero margin function *)
-      remember (encrypt_zero_margin cand_all publickey) as enczmargin.
+      remember (encrypt_ballot cand_all publickey (fun _ _ => 0%Z)) as enczmargin.
       (* convince the user that it is indeed encryption of zero margin by decrypting it 
          and giving zero knowledge proof *)
       remember (decrypt_ballot_with_zkp cand_all privatekey enczmargin) as H.
@@ -1339,9 +1352,19 @@ Section Encryption.
       rewrite <- HeqH. auto.
       assert (ezkp = snd (decrypt_ballot_with_zkp cand_all privatekey enczmargin)).
       rewrite <- HeqH. auto.
+      assert (forall c d : cand,
+                 enczmargin c d =
+                 encrypt_ballot cand_all publickey (fun _ _ : cand => 0%Z) c d).
+      rewrite Heqenczmargin. auto.
+      assert (forall c d : cand, decmarg c d = 0%Z).
+      rewrite Heqenczmargin in H.
+      pose proof (encrypt_decrypt_identity (fun _ _ : cand => 0%Z)).
+      rewrite <- H2 in H. rewrite H. auto.
       pose (eax bs bs enczmargin decmarg
                ezkp (* Zero knowledge proof of m is zero encrypted matrix *)
-               eq_refl H H0).
+               eq_refl H1 H2 H H0).
+      
+     
       destruct (X h) as [i [m Hs]].
       exists i. exists m. assumption.
     Defined.
@@ -1394,12 +1417,14 @@ Section Encryption.
     auto.
   Defined.
 
-  
-    
     
   Lemma main_correctness :
     forall (bs : list ballot) (pbs : list pballot)
-           (ebs : list eballot) (H : List.length bs = List.length pbs)
+           (ebs : list eballot)
+           (f : cand -> bool)
+           (g : cand -> bool)
+           (H : List.length bs = List.length pbs)
+           (Ht : List.length pbs = List.length ebs)
            (H1 : ebs = map (fun x => encrypt_ballot cand_all publickey x) pbs)
            (H2 : pbs = map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs)
            (H3 : forall (pb : pballot),
@@ -1407,12 +1432,28 @@ Section Encryption.
                                                  (encrypt_ballot cand_all publickey pb)))
            (H4 : forall (eb : eballot),
                eb = encrypt_ballot cand_all publickey
-                                   (fst (decrypt_ballot_with_zkp cand_all privatekey eb))),
-            mapping_ballot_pballot bs pbs H -> 
-      (forall c : cand, projT1 (schulze_winners bs) c = true <-> 
-                        projT1 (pschulze_winners ebs) c = true).  
+                                   (fst (decrypt_ballot_with_zkp cand_all privatekey eb))) 
+           (H5 : f = projT1 (schulze_winners bs))
+           (H6 : g = projT1 (pschulze_winners ebs)),
+      mapping_ballot_pballot bs pbs H -> 
+      (forall c : cand, f c = true <-> 
+                        g c = true) (* /\ (Count bs (winners f) <-> HCount ebs (hwinners g)) *).
   Proof.
     intros. split; intros.
+    destruct (schulze_winners bs).
+    destruct (pschulze_winners ebs). simpl in *.
+    rewrite <- H5 in c0. rewrite <- H6 in h.
+
+    (* Try to trace back the computation for Count and HCount *)
+    
+    pose proof (all_ballots_counted bs). destruct X as [i [m Hm]].
+    
+    induction c0. pose proof (ax _ _ m e e0).
+    induction h. 
+
+    
+
+    split; intros.
     destruct (schulze_winners bs) as [f Cnt]. simpl in H5.
     destruct (pschulze_winners ebs) as [g Hcnt]. simpl.
     
