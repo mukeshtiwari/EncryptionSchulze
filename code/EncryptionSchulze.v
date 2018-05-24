@@ -1035,11 +1035,11 @@ Section Encryption.
     
     Definition map_ballot_pballot
                (b : ballot) (p : pballot) :=
-      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d = 1 
-                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d = 0
-                      else  if (b d <? b c)%nat && (0 <? b d)%nat then p c d = 0
-                            else p c d = -1.
-
+      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d =? 1 
+                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d =? 0
+                      else  if (b d <? b c)%nat && (0 <? b d)%nat then p c d =? 0
+                            else p c d =? -1.
+    
      (* Each ballot is either valid or not valid *)
     Lemma pballot_valid_dec :
       forall b : pballot, {valid cand (fun c d => b c d = 1)} +
@@ -1071,7 +1071,7 @@ Section Encryption.
 
       
     Lemma connect_validty_of_ballot_pballot :
-      forall (b : ballot) (p : pballot), (forall c d, map_ballot_pballot b p c d) -> 
+      forall (b : ballot) (p : pballot), (forall c d, map_ballot_pballot b p c d = true) -> 
         proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = true <->
         proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec p)) = true.
     Proof.
@@ -1079,8 +1079,8 @@ Section Encryption.
       destruct (ballot_valid_dec b) as [H1 | H2];
         destruct (matrix_ballot_valid_dec p) as [Hp1 | Hp2]; simpl in *; try auto.
       (* This is not valid, because if b c > 0 then it means P c d = 0 \/ P c d = 1*) 
-      unfold map_ballot_pballot in Hm.  
-      destruct Hp2. unfold matrix_ballot_valid.
+      unfold map_ballot_pballot in Hm.   
+      destruct Hp2. unfold matrix_ballot_valid. 
       split. intros.  simpl.
       pose proof (Hm c d). pose proof (H1 c). Open Scope nat_scope.
       assert (0 < b c) by omega.
@@ -1089,13 +1089,13 @@ Section Encryption.
       pose proof (H1 d). pose proof (lt_eq_lt_dec (b c) (b d)).
       destruct H6 as [[H6 | H6] | H6].
       pose proof (proj2 (Nat.ltb_lt _ _) H6).
-      rewrite H7 in H0. auto.
+      rewrite H7 in H0.  apply Z.eqb_eq in H0. auto.
       (* since b c = b d it means b c <? b d = false and b c ?= b d = true *)
       remember (b c <? b d) as v.
       symmetry in Heqv. destruct v.
       pose proof (proj1 (Nat.ltb_lt _ _) Heqv). omega.
       pose proof (proj2 (Nat.eqb_eq _ _) H6).
-      rewrite H7 in H0. simpl in H0. auto.
+      rewrite H7 in H0. simpl in H0.  apply  Z.eqb_eq in H0. auto.
       assert (b c <? b d = false).
       apply Nat.ltb_ge. omega. rewrite H7 in H0.
       assert ((b c =? b d)%nat = false).
@@ -1104,7 +1104,7 @@ Section Encryption.
       pose proof(proj2 (Nat.ltb_lt _ _) H6).
       assert (0 < b d) by omega.
       pose proof (proj2 (Nat.ltb_lt _ _) H10).
-      rewrite H9 in H0. rewrite H11 in H0. simpl in H0. auto.
+      rewrite H9 in H0. rewrite H11 in H0. simpl in H0. apply Z.eqb_eq in H0. auto.
            
       (* discharge the validity *) 
       exists b.  intros c d. split; intros.
@@ -1121,23 +1121,24 @@ Section Encryption.
       rewrite H7 in H6.
       rewrite (Nat.ltb_irrefl (b d)) in H6.
       rewrite (Nat.eqb_refl (b d)) in H6.
+      apply Z.eqb_eq in H6.
       rewrite H6 in H0. inversion H0. 
       remember (b c <? b d) as v. symmetry in Heqv.
       destruct v. 
       pose proof (proj1 (Nat.ltb_lt (b c) (b d)) Heqv). omega.
       remember (b c =? b d) as v. symmetry in Heqv0.
-      destruct v. rewrite H6 in H0. inversion H0.
+      destruct v. apply Z.eqb_eq in H6. rewrite H6 in H0. inversion H0.
       pose proof (proj2 (Nat.ltb_lt (b d) (b c)) H7). rewrite H8 in H6.
       assert (0 < b d) by omega.
       pose proof (proj2 (Nat.ltb_lt 0 (b d)) H9). rewrite H10 in H6.
-      simpl in H6. rewrite H6 in H0. inversion H0.
+      simpl in H6. apply Z.eqb_eq in H6. rewrite H6 in H0. inversion H0.
       (* Thank you God for giving me strenght *)      
       pose proof (Hm c d).
       pose proof (H1 c).
       pose proof (proj2 (Nat.ltb_lt (b c) (b d)) H0). rewrite H4 in H2.
       pose proof (proj2 (Nat.ltb_lt 0 (b c))).
-      assert (0 < b c) by omega. pose proof (H5 H6).
-      rewrite H7 in H2. simpl in H2. auto.
+      assert (0 < b c) by omega. pose proof (H5 H6). 
+      rewrite H7 in H2. simpl in H2.  apply Z.eqb_eq in H2. auto.
         
       (* Other side of proof. When pballot is valid then ballot is also 
          valid *)
@@ -1152,8 +1153,8 @@ Section Encryption.
       pose proof (H2 x).  rewrite (andb_false_r (0 <? b x)) in H3.
       rewrite (andb_false_r (0 =? b x)) in H3.
       rewrite H0 in H3. simpl in H3. pose proof (Hin x x).
-      destruct H4. rewrite H3 in H4. inversion H4.
-      destruct H4. rewrite H3 in H4. inversion H4. auto.
+      destruct H4. apply Z.eqb_eq in H3. rewrite H3 in H4. inversion H4.
+      destruct H4. apply Z.eqb_eq in H3. rewrite H3 in H4. inversion H4. auto.
     Qed.
     
     
@@ -1416,7 +1417,14 @@ Section Encryption.
             end); inversion H.
     auto.
   Defined.
+  (* Proof Idea is match each constructor of Count to HCount and vice versa *)
 
+  Lemma count_partial_hcount_hpartial :
+    forall (bs : list ballot) (us : list ballot) (ebs : list eballot) (eus : list eballot)
+      (m : cand -> cand -> Z) (em : cand -> cand -> ciphertext),
+    Count bs (partial (us, []) m) -> HCount ebs (hpartial (eus, []) em). 
+  Proof.
+    intros. destruct X. eapply eax. 
     
   Lemma main_correctness :
     forall (bs : list ballot) (pbs : list pballot)
@@ -1427,35 +1435,23 @@ Section Encryption.
            (Ht : List.length pbs = List.length ebs)
            (H1 : ebs = map (fun x => encrypt_ballot cand_all publickey x) pbs)
            (H2 : pbs = map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs)
-           (H3 : forall (pb : pballot),
-               pb = fst (decrypt_ballot_with_zkp cand_all privatekey
-                                                 (encrypt_ballot cand_all publickey pb)))
-           (H4 : forall (eb : eballot),
-               eb = encrypt_ballot cand_all publickey
-                                   (fst (decrypt_ballot_with_zkp cand_all privatekey eb))) 
            (H5 : f = projT1 (schulze_winners bs))
            (H6 : g = projT1 (pschulze_winners ebs)),
       mapping_ballot_pballot bs pbs H -> 
-      (forall c : cand, f c = true <-> 
-                        g c = true) (* /\ (Count bs (winners f) <-> HCount ebs (hwinners g)) *).
+      (* (forall c : cand, f c = true <-> 
+                        g c = true)  /\ *) (Count bs (partial (us, []) m)  -> HCount ebs (hpartial ).
   Proof.
-    intros. split; intros.
+    intros.  induction X. 
+    
+    split; intros.
     destruct (schulze_winners bs).
     destruct (pschulze_winners ebs). simpl in *.
     rewrite <- H5 in c0. rewrite <- H6 in h.
 
-    (* Try to trace back the computation for Count and HCount *)
+    (* Try to trace back the computation for Count and HCount. We are starting from 
+       same state 
     
-    pose proof (all_ballots_counted bs). destruct X as [i [m Hm]].
-    
-    induction c0. pose proof (ax _ _ m e e0).
-    induction h. 
-
-    
-
-    split; intros.
-    destruct (schulze_winners bs) as [f Cnt]. simpl in H5.
-    destruct (pschulze_winners ebs) as [g Hcnt]. simpl.
+   
     
     
 End Encryption.
