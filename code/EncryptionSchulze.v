@@ -1079,7 +1079,7 @@ Section Encryption.
       destruct (ballot_valid_dec b) as [H1 | H2];
         destruct (matrix_ballot_valid_dec p) as [Hp1 | Hp2]; simpl in *; try auto.
       (* This is not valid, because if b c > 0 then it means P c d = 0 \/ P c d = 1*) 
-      unfold map_ballot_pballot in Hm.   
+      unfold map_ballot_pballot in Hm. 
       destruct Hp2. unfold matrix_ballot_valid. 
       split. intros.  simpl.
       pose proof (Hm c d). pose proof (H1 c). Open Scope nat_scope.
@@ -1421,8 +1421,38 @@ Section Encryption.
   Defined.
   (* Proof Idea is match each constructor of Count to HCount and vice versa *)
 
- 
+  (*
+   Lemma count_partial_hcount_hpartial (bs : list ballot) (ebs : list eballot):
+     forall (ts inbs : list ballot) (mm : cand -> cand -> Z)
+       (ets einbs : list eballot) (em : cand -> cand -> ciphertext)
+       (pbs etsp einbp : list pballot)
+       (H : List.length bs = List.length pbs)
+       (H2 : List.length pbs = List.length ebs)
+       (H3 : pbs = map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs)
+       (H4 : mapping_ballot_pballot bs pbs H)
+       (H5 : List.length ts = List.length etsp)
+       (H6 : List.length etsp = List.length ets)
+       (H7 : etsp =  map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ets)
+       (H8 : mapping_ballot_pballot ts etsp H5)
+       (H9 : List.length inbs = List.length einbp)
+       (H10 : List.length einbp = List.length einbs)
+       (H11 : einbp =  map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) einbs)
+       (H12 : mapping_ballot_pballot inbs einbp H9)
+       (H13 : mm =  fst (decrypt_ballot_with_zkp cand_all privatekey em)),
+      Count bs (partial (ts, inbs) mm) ->
+      HCount ebs (hpartial (ets, einbs) em).
+   Proof.
 
+     
+     
+     intros. remember X as v. induction X.
+     
+     
+     admit.
+    eapply eax; auto. intros. pose proof (e0 c d).
+    rewrite <- encrypt_decrypt_identity. auto. *)
+     
+     
   Lemma count_partial_hcount_hpartial (bs : list ballot) (ebs : list eballot):
     forall (ts inbs : list ballot) (mm : cand -> cand -> Z)
       (pbs : list pballot)
@@ -1433,51 +1463,76 @@ Section Encryption.
       Count bs (partial (ts, inbs) mm) ->
       existsT ets einbs em, HCount ebs (hpartial (ets, einbs) em).
   Proof.
-    intros. 
-    refine (match X with
-            | ax _ _ _  _ _ => _
-            | cvalid _ _ _ _ _ _ _ _ _ => _
-            | cinvalid _  _ _ _ _ _ _ => _
-            end).
+    (* Pattern Matching on structure of X *)
+
+ 
+    
+    
+    
+    intros. induction X.
     exists ebs, [], (encrypt_ballot cand_all publickey (fun c d => 0%Z)).
     eapply eax; auto. intros. pose proof (e0 c d).
     rewrite <- encrypt_decrypt_identity. auto.
-    
-
-    
-    
-
-    (* u is valid ballot *)
-    
-    
-    
-    
-  Lemma main_correctness :
-    forall (bs : list ballot) (pbs : list pballot)
-           (ebs : list eballot)
-           (f : cand -> bool)
-           (g : cand -> bool)           (H : List.length bs = List.length pbs)
-           (Ht : List.length pbs = List.length ebs)
-           (H1 : ebs = map (fun x => encrypt_ballot cand_all publickey x) pbs)
-           (H2 : pbs = map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs)
-           (H5 : f = projT1 (schulze_winners bs))
-           (H6 : g = projT1 (pschulze_winners ebs)),
-      mapping_ballot_pballot bs pbs H -> 
-      (* (forall c : cand, f c = true <-> 
-                        g c = true)  /\ *) (Count bs (partial (us, []) m)  -> HCount ebs (hpartial ).
-  Proof.
-    intros.  induction X. 
-    
-    split; intros.
-    destruct (schulze_winners bs).
-    destruct (pschulze_winners ebs). simpl in *.
-    rewrite <- H5 in c0. rewrite <- H6 in h.
-
-    (* Try to trace back the computation for Count and HCount. We are starting from 
-       same state 
+  
+    (* destruct IHX as [ets [einbs [em Hc]]]. *)
+    (* At this point Count bs (partial (u :: us, inbs0) m) *)
     
    
-    
+     
+    auto. auto. auto.
+    Show Proof.
+  Defined.
+  Print count_partial_hcount_hpartial.
+
+  (*
+    remember (fun c0 d0 =>
+                if (b c0 <? b d0)%nat &&  (0 <? b c0 )%nat then 1%Z 
+                else if (b c0 =? b d0)%nat && (0 <? b c0)%nat then  0%Z
+                     else  if (b d0 <? b c0)%nat && (0 <? b d0)%nat then 0%Z
+                           else  -1%Z) as pb. 
+    (* connect the ballot b with pballot pb. *)
+    assert (forall c0 d0, map_ballot_pballot b pb c0 d0 = true).
+    intros. unfold map_ballot_pballot.
+    rewrite Heqpb. Open Scope nat. 
+    pose proof (g c0).
+    pose proof (g d0).
+    pose proof (lt_eq_lt_dec (b c0) (b d0)).
+    destruct H5 as [[H5 | H5] | H5].
+    admit. admit. admit.
+    pose proof (connect_validty_of_ballot_pballot b pb H0).
+    destruct H1.
+    destruct (ballot_valid_dec b). simpl in H1.
+    pose proof (H1 eq_refl).
+    destruct (matrix_ballot_valid_dec pb).
+    (* forall c, b c > 0 -> matrix_ballot_valid pb so add this ballot into counting *)
+    (* remaining ballot ets = encryption of l, einbs = encryption of l0 and 
+       em is  homomorphic_addition of (en (z c d) (en pb) *)
+    remember (fun (bl : ballot) c0 d0 =>
+                if (bl c0 <? bl d0) && (0 <? bl c0)
+                then 1%Z
+                else if (bl c0 =? bl d0) && (0 <? bl c0)
+                     then 0%Z
+                     else if (bl d0 <? bl c0) && (0 <? bl d0) then 0%Z else - (1)) as blpbl.
+    remember (map blpbl l) as ets.
+    remember (map (fun pb => encrypt_ballot cand_all publickey pb) ets) as encets.
+    remember (map blpbl l0) as teinbs.
+    remember (map (fun pb => encrypt_ballot cand_all publickey pb) teinbs) as einbs.
+    remember (homomorphic_add_eballots
+                cand_all
+                (encrypt_ballot cand_all publickey z)
+                (encrypt_ballot cand_all publickey pb)) as em.
+    exists  encets, einbs, em.
+    remember (encrypt_ballot cand_all publickey pb) as u. (* encryption of valid ballot *)
+    remember (row_permute_encrypted_ballot cand_all publickey u) as tu.
+    destruct tu as (v, zkppermuv).
+    remember (column_permute_encrypted_ballot cand_all publickey v) as tv.
+    destruct tv as (w, zkppermvw).
+    remember (decrypt_ballot_with_zkp cand_all privatekey w) as tw.
+    destruct tw as (bb, zkpdecw).
+    pose proof (ecvalid ebs u v w bb zkppermuv zkppermvw zkpdecw encets
+                (encrypt_ballot cand_all publickey z) em einbs).
+   *)
+
     
 End Encryption.
 
