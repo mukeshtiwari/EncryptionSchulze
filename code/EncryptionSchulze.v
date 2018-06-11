@@ -1024,8 +1024,9 @@ Section Encryption.
     Proof.
       Admitted.
 
-      
     
+    
+ 
                                                
     (* This function defines map between linear preoder ballot 
        and matrix plaintext ballot 
@@ -1069,8 +1070,11 @@ Section Encryption.
       right. unfold not. intros. destruct H.
       pose proof (n H). auto.
     Defined.
-        
 
+    (* The idea is if pballot is valid then any permutation of 
+       it is valid *)
+
+    
       
     Lemma connect_validty_of_ballot_pballot :
       forall (b : ballot) (p : pballot), (forall c d, map_ballot_pballot b p c d = true) -> 
@@ -1732,10 +1736,30 @@ Section Encryption.
     
     specialize (X uenc v w b zkppermuv zkppermvw zkpdecw ets
                   (encrypt_ballot cand_all publickey m) em etinbs
-                  IHCount). 
-    unfold matrix_ballot_valid in X.
-    unfold matrix_ballot_valid in m0.
-    
+                  IHCount).
+    (* At this point I know that matrix_ballot_valid umat -> matrix_ballot_valid b 
+       because b is decryption of w (unec -> v -> w) *)
+    assert (matrix_ballot_valid b). admit.
+    specialize (X H15).
+    assert ((forall c d : cand, v c d = fst (row_permute_encrypted_ballot cand_all publickey uenc) c d)).
+    intros. rewrite <- HeqHvenc. auto.
+    assert (zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey uenc)).
+    rewrite <- HeqHvenc. auto.
+    assert((forall c d : cand, w c d = fst (column_permute_encrypted_ballot cand_all publickey v) c d)).
+    intros. rewrite <- HeqHwenc. auto.
+    assert (zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v)).
+    rewrite <- HeqHwenc. auto.
+    assert (forall c d : cand, b c d = fst (decrypt_ballot_with_zkp cand_all privatekey w) c d).
+    intros. rewrite <- HeqHbenc. auto.
+    assert (zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w)).
+    rewrite <- HeqHbenc. auto.
+    specialize (X H16 H17 H18 H19 H20 H21).
+    assert ((forall c d : cand,
+                em c d = homomorphic_add_eballots cand_all
+                                                  (encrypt_ballot cand_all publickey m) uenc c d)).
+    intros. specialize (homomorphic_axiom c d
+                                          (encrypt_ballot cand_all publickey m) uenc).
+    intros.  
        
   Lemma final_correctness :
     forall (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
