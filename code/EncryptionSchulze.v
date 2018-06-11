@@ -1759,7 +1759,16 @@ Section Encryption.
                                                   (encrypt_ballot cand_all publickey m) uenc c d)).
     intros. specialize (homomorphic_axiom c d
                                           (encrypt_ballot cand_all publickey m) uenc).
-    intros.  
+    intros.  admit.
+    specialize (X H22). auto.
+    (* At this point I have two admitted goals. One the validity of b and 
+       em is decryption of nm so it must be equal to mulitplication of 
+       encryption of two ballots  *)
+    inversion H1.  simpl in H1. simpl in H8. assert False.
+    destruct e. pose proof (g x). omega. inversion H13.
+    (* finished valid case *)
+    (* Invalid case is easy because we are not updating the marging *)
+    
        
   Lemma final_correctness :
     forall (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
