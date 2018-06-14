@@ -1194,8 +1194,7 @@ Section Encryption.
     | eax us (m : cand -> cand -> ciphertext)
           (decm : cand -> cand -> plaintext) (zkpdecm : string) :
         us = bs (* We start from uncounted ballots *) ->
-        (* m is encryption of zero matrix *)
-        (forall c d, m c d = encrypt_ballot cand_all publickey (fun _ _ => 0%Z) c d) ->
+        (* forall c d, m c d = encrypt_ballot cand_all publickey (fun _ _ => 0%Z) c d) -> *)
         (* all the entries of decm is 0 *)
         (forall c d, decm c d = 0%Z) ->
         (* Proof that it is decryption of m *)
@@ -1279,7 +1278,7 @@ Section Encryption.
                           existT _ inbs (existT _ m Hc)
                 | u :: us =>
                   fun inbs m Hc => _
-                end).
+                end). 
    
       (* We permuate the ballot u using permute_encrypted_ballot function which gives 
          permuted ballot v and zero knowledge proof of this permutation *)
@@ -1350,7 +1349,7 @@ Section Encryption.
 
     Lemma  pall_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
-      (* encrypt zero margin function *) 
+      (* encrypt zero margin function *)  
       remember (encrypt_ballot cand_all publickey (fun _ _ => 0%Z)) as enczmargin.
       (* convince the user that it is indeed encryption of zero margin by decrypting it 
          and giving zero knowledge proof *)
@@ -1360,20 +1359,20 @@ Section Encryption.
       assert (forall c d, decmarg c d = fst (decrypt_ballot_with_zkp cand_all privatekey enczmargin) c d).
       rewrite <- HeqH. auto.
       assert (ezkp = snd (decrypt_ballot_with_zkp cand_all privatekey enczmargin)).
-      rewrite <- HeqH. auto. 
+      rewrite <- HeqH. auto.
+      (* The reason to remove this code is encryption is not deterministic 
       assert (forall c d : cand,
                  enczmargin c d =
                  encrypt_ballot cand_all publickey (fun _ _ : cand => 0%Z) c d).
-      rewrite Heqenczmargin. auto.
-      assert (forall c d : cand, decmarg c d = 0%Z).
+      rewrite Heqenczmargin. auto. *)
+      assert (forall c d : cand, decmarg c d = 0%Z). 
       rewrite Heqenczmargin in H.
       pose proof (encrypt_decrypt_identity (fun _ _ : cand => 0%Z)). intros.
-      pose proof (H2 c d). rewrite <- H in H3. auto.
+      pose proof (H1 c d). rewrite <- H in H2. auto.
       pose (eax bs bs enczmargin decmarg
                ezkp (* Zero knowledge proof of m is zero encrypted matrix *)
-               eq_refl H1 H2 H H0).
-      
-     
+               eq_refl H1 H H0).
+           
       destruct (X h) as [i [m Hs]].
       exists i. exists m. assumption.
     Defined.
@@ -1572,37 +1571,39 @@ Section Encryption.
                                                      cand_all privatekey em)) ->
                      HCount ebs (hpartial (ets, etinbs) em).
   Proof. 
-    intros s H.  induction H.  
-    intros. inversion H. (*
+    intros s H. induction H.  
+    intros. inversion H.
     pose proof (eax ebs ebs em m
                     (snd (decrypt_ballot_with_zkp cand_all privatekey em))
-               eq_refl). *)
-    
-   
+                    eq_refl e0).
+    assert ((forall c d : cand, m c d = fst (decrypt_ballot_with_zkp cand_all privatekey em) c d)).
+    intros. rewrite H5. reflexivity.
+    specialize (X H0 eq_refl).      
     (* etinbs is empty *)
     rewrite <- H2 in H12.
     assert (etpbs = []).
     destruct etpbs. auto.
-    inversion H12. rewrite H0 in H10.
+    inversion H12.  rewrite H6 in H10.
     symmetry in H10. apply map_eq_nil in H10. 
-    rewrite H10. eapply eax.
-    rewrite H1 in e.
-    rewrite <- e in H4.
+    rewrite H10. (* eapply eax. *)
+    rewrite H1 in e. rewrite <- e in H4.
     pose proof (mapping_ballot_pballot_equality ts _ _ H4 H11).
-    (* Admit it for the moment and discuss with Dirk *)
-    (* In Elgamal encryption if plaintext p1 = p2 
+    (* I know that pbs = tpbs but it is not necessary that their encryption is also same 
+       because of non deterministic nature of Elgamal encryption. Admit it for the 
+       moment and discuss with Dirk. If we change the condition in HCount 
+       ets = ebs to 
+       map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ets = 
+       map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs.
+       In Elgamal encryption if plaintext p1 = p2 
        then it does not mean that enc(p1, pubkey) = enc (p2, pubkey).
        However, if ciphertext c1 = c2 => dec(c1, privatekey) = dec (c2, privatekey) *)
-    admit.
-    intros. (* Encryption is not deterministic *) admit.
-    exact e0. 
-    intros c d. rewrite H5. auto.
-    eexists. 
+    admit.  
+    
  
     (* Count bs (partial (u :: us, inbs) m) *)
     intros. inversion H0.  
     specialize (IHCount (u :: us) inbs).
-    (* Change u to matrix form *)
+    (* Change u to matrix form *) 
     remember (fun c d =>
                 if (u c <? u d)%nat &&  (0 <? u c )%nat then 1 
                  else if (u c =? u d)%nat && (0 <? u c)%nat then  0
@@ -1613,82 +1614,21 @@ Section Encryption.
     intros c d. unfold map_ballot_pballot.
     remember (umat c d) as tumat.
     rewrite Hequmat in Heqtumat.
-    pose proof (zerop (u c)). destruct H7.
-    assert ((0 <? u c)%nat = false).
-    rewrite e. SearchAbout (_ <? _ = false)%nat.
-    apply Nat.ltb_irrefl.  rewrite H7 in Heqtumat.
-    rewrite andb_false_r in Heqtumat.
-    rewrite andb_false_r in Heqtumat.
-    rewrite H7.
-    rewrite andb_false_r.
-    rewrite andb_false_r.
-    pose proof (zerop (u d)). destruct H8.
-    assert ((0 <? u d)%nat = false). rewrite e0.
-    apply Nat.ltb_irrefl. rewrite H8 in Heqtumat.
-    rewrite H8.  rewrite andb_false_r in Heqtumat.
-    rewrite andb_false_r.
-    SearchAbout ( _ =? _ = true).
-    apply Z.eqb_eq. auto.
-    
-    assert ((u d <? u c)%nat = false).
-    rewrite e. SearchAbout (_ <? _ )%nat.
-    apply Nat.ltb_nlt. unfold not. intros.
-    omega. rewrite H8 in Heqtumat.
-    rewrite andb_false_l in Heqtumat.
-    rewrite H8.
-    rewrite andb_false_l.
-    apply Z.eqb_eq. auto.
-    assert ((0 <? u c)%nat = true).
-    SearchAbout ( _ <? _ = true)%nat.
-    apply Nat.ltb_lt. auto. rewrite H7 in Heqtumat.
-    rewrite andb_true_r in Heqtumat.
-    rewrite andb_true_r in Heqtumat.
-    rewrite H7.
-    rewrite andb_true_r.
-    rewrite andb_true_r.
-    pose proof (lt_eq_lt_dec (u c) (u d)).
-    destruct H8 as [[H8 | H8] | H8].
-    assert ((u c <? u d)%nat = true).
-    SearchAbout (_ <? _ = true)%nat.
-    apply Nat.ltb_lt. auto. rewrite H13 in Heqtumat.
-    rewrite H13.
-    apply Z.eqb_eq.  auto.
-    assert ((u c <? u d)%nat = false).
-    SearchAbout (_ <? _ = false)%nat.
-    apply Nat.ltb_nlt. unfold not. intros.
-    omega. rewrite H13 in Heqtumat.
-    rewrite H13.
-    assert ((u c =? u d)%nat = true).
-    SearchAbout (_ =? _ = true)%nat.
-    apply Nat.eqb_eq. auto.
-    rewrite H14 in Heqtumat. rewrite H14. 
-    apply Z.eqb_eq. auto.
-    assert ((u c <? u d)%nat = false).
-    SearchAbout (_ <? _ = false)%nat.
-    apply Nat.ltb_nlt. unfold not. intros.
-    omega. rewrite H13 in Heqtumat. rewrite H13. 
-    assert ((u c =? u d)%nat = false).
-    SearchAbout (_ =? _ = false).
-    apply Nat.eqb_neq. unfold not. intros. omega.
-    rewrite H14 in Heqtumat. rewrite H14.
-    assert ((u d <? u c)%nat = true).
-    apply Nat.ltb_lt. auto. rewrite H15 in Heqtumat.
-    rewrite H15.
-    rewrite andb_true_l in Heqtumat. rewrite andb_true_l.
-    pose proof (zerop (u d)). destruct H16.
-    assert ((0 <? u d)%nat = false).
-    apply Nat.ltb_nlt. unfold not. intros.
-    omega. rewrite H16 in Heqtumat. rewrite H16.
-    apply Z.eqb_eq.  auto. 
-    assert ((0 <? u d)%nat = true).
-    apply Nat.ltb_lt. auto.  rewrite H16 in Heqtumat.
-    rewrite H16. apply Z.eqb_eq. auto.
+    destruct ((u c <? u d)%nat && (0 <? u c)%nat) in *.
+    apply Z.eqb_eq in Heqtumat. auto.
+    destruct ((u c =? u d)%nat && (0 <? u c)%nat).
+    apply Z.eqb_eq in Heqtumat. auto.
+    destruct ((u d <? u c)%nat && (0 <? u d)%nat).
+    apply Z.eqb_eq in Heqtumat. auto.
+    apply Z.eqb_eq in Heqtumat. auto.
     (* valid b <-> valid u *)
-    specialize(H1 H7).
-    destruct H1.
+    specialize(H1 H7). destruct H1.
     destruct (ballot_valid_dec u). simpl in H1.
     specialize (H1 eq_refl).
-    destruct (matrix_ballot_valid_dec umat). simpl in H1.  
+    destruct (matrix_ballot_valid_dec umat). simpl in H1.
+    
+
+    
     (* At this stage, u is valid and matrix translation of this ballot, umat is also valid *) 
     specialize (IHCount ((encrypt_ballot cand_all publickey umat) :: ets) etinbs
                         (umat :: tpbs) etpbs (* replace here em *)
