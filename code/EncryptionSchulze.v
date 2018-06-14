@@ -1551,8 +1551,7 @@ Section Encryption.
     rewrite H4. apply f_equal. apply IHxs. auto. auto.
   Qed.
   
-    
-     
+
                            
   Lemma state_true (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
         (H3 : pbs =  map (fun x => fst (decrypt_ballot_with_zkp
@@ -1689,10 +1688,10 @@ Section Encryption.
     destruct H1.
     destruct (ballot_valid_dec u). simpl in H1.
     specialize (H1 eq_refl).
-    destruct (matrix_ballot_valid_dec umat). simpl in H1. 
-    (* At this stage, u is valid and matrix translation of this ballot, umat is also valid *)
+    destruct (matrix_ballot_valid_dec umat). simpl in H1.  
+    (* At this stage, u is valid and matrix translation of this ballot, umat is also valid *) 
     specialize (IHCount ((encrypt_ballot cand_all publickey umat) :: ets) etinbs
-                        (umat :: tpbs) etpbs
+                        (umat :: tpbs) etpbs (* replace here em *)
                         (encrypt_ballot cand_all publickey m)).
     (* I wish I could think like Dirk. Would I ever be a thinker like him ? *)
     assert (umat :: tpbs =
@@ -1713,6 +1712,7 @@ Section Encryption.
     specialize (IHCount H13).
     rewrite <- H5 in H12.
     specialize (IHCount H12).
+   
     assert (m = (fst
                    (decrypt_ballot_with_zkp cand_all privatekey
                                             (encrypt_ballot cand_all publickey m)))).
@@ -1879,43 +1879,82 @@ Section Encryption.
     simpl in H10. inversion H10.
     rewrite H5 in H12. rewrite Hv in H12.
     simpl in H12. destruct H12 as [H17 H18].
+
+
+    assert (forall c d, umat c d = t c d).
+    intros. pose proof (H7 c d). pose proof (H17 c d).
+    unfold map_ballot_pballot in H12.
+    unfold map_ballot_pballot in H14.
+
+    destruct ((u c <? u d)%nat && (0 <? u c)%nat).
+    apply Z.eqb_eq in H12.
+    apply Z.eqb_eq in H14.
+    rewrite H12.  rewrite H14. auto.
+    destruct ((u c =? u d)%nat && (0 <? u c)%nat).
+    apply Z.eqb_eq in H12.
+    apply Z.eqb_eq in H14.
+    rewrite H12. rewrite H14. auto.
+    destruct ((u d <? u c)%nat && (0 <? u d)%nat).
+    apply Z.eqb_eq in H12.
+    apply Z.eqb_eq in H14.
+    rewrite H12. rewrite H14. auto.
+    apply Z.eqb_eq in H12.
+    apply Z.eqb_eq in H14.
+    rewrite H12. rewrite H14. auto.
+    assert (umat = t).
+    apply functional_extensionality; intros.
+    apply functional_extensionality; intros.
+    specialize (H12 x x0). assumption.
+    
+
+
     
     (* Now we are in ecinvalid case *)
     specialize (IHCount (u :: us) inbs
-                        ((encrypt_ballot cand_all publickey umat) :: ets)
+                        (i :: ets)
                         etinbs'
-                        (umat :: tpbs) etpbs' em). (*
-                        (encrypt_ballot cand_all publickey m)) *)
-    assert (umat :: tpbs =
+                        (t :: tpbs) etpbs' em). 
+    assert (t :: tpbs =
             map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x))
-                (encrypt_ballot cand_all publickey umat :: ets)).
-    simpl.
-    assert (umat = fst (decrypt_ballot_with_zkp cand_all privatekey
-                                                (encrypt_ballot cand_all publickey umat))).
-    pose proof (encrypt_decrypt_identity umat).
-    apply functional_extensionality. intros.
-    apply functional_extensionality. intros.
-    pose proof (H12 x x0). auto.
-    rewrite <- H12. apply f_equal. auto.
-    specialize (IHCount H12). 
-    assert (mapping_ballot_pballot (u :: us) (umat :: tpbs)).
+                (i :: ets)).
+    simpl. rewrite H15. apply f_equal. auto. 
+    specialize (IHCount H19).   
+    assert (mapping_ballot_pballot (u :: us) (t :: tpbs)).
     simpl. split. auto. rewrite H2. auto.
-    specialize (IHCount H16 H14 H18). rewrite H6 in IHCount.
-    specialize (IHCount eq_refl). 
-    
-   
+    specialize (IHCount H16 H20 H18). 
+    assert (partial (u :: us, inbs) m =
+            partial (u :: us, inbs) (fst (decrypt_ballot_with_zkp cand_all privatekey em)) ).
+    rewrite H6. reflexivity. 
+    specialize (IHCount H21).
 
-    
-    pose proof (ecinvalid).
-    remember (encrypt_ballot cand_all publickey umat) as uenc.
-    remember (row_permute_encrypted_ballot cand_all publickey uenc) as Hvenc.
+
+    pose proof (ecinvalid). 
+    remember (row_permute_encrypted_ballot cand_all publickey i) as Hvenc.
     destruct Hvenc as (v, zkppermuv).
     remember (column_permute_encrypted_ballot cand_all publickey v) as Hwenc.
     destruct Hwenc as (w, zkppermvw).
     remember (decrypt_ballot_with_zkp cand_all privatekey w) as Hbenc.
     destruct Hbenc as (b, zkpdecw).
-    specialize (X0 ebs uenc v w b zkppermuv zkppermvw zkpdecw ets em).
-    
+    specialize (X0 ebs i v w b zkppermuv zkppermvw zkpdecw ets em etinbs' IHCount).
+    assert (~ matrix_ballot_valid b). admit. (* Admit it because 
+     ~ matrix_ballot_valid umat  would lead to not valid b *)
+    specialize (X0 H22).
+    assert ((forall c d : cand, v c d = fst (row_permute_encrypted_ballot cand_all publickey i) c d)).
+    intros. rewrite <- HeqHvenc. auto.
+    assert (zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey i)).
+    rewrite <- HeqHvenc. auto.
+    assert((forall c d : cand, w c d = fst (column_permute_encrypted_ballot cand_all publickey v) c d)).
+    intros. rewrite <- HeqHwenc. auto.
+    assert (zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v)).
+    rewrite <- HeqHwenc. auto.
+    assert (forall c d : cand, b c d = fst (decrypt_ballot_with_zkp cand_all privatekey w) c d).
+    intros. rewrite <- HeqHbenc. auto.
+    assert (zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w)).
+    rewrite <- HeqHbenc. auto.
+    specialize (X0 H23 H24 H25 H26 H27 H28). rewrite <- Hw in X0. assumption.
+
+    (* winner case *)
+    intros. inversion H0.
     
     
   Lemma final_correctness :
