@@ -1005,11 +1005,7 @@ Section Encryption.
         pb c d = fst (decrypt_ballot_with_zkp cand_all privatekey
                                           (encrypt_ballot cand_all publickey pb)) c d.
 
-    (*
-    Axiom decrypt_encrypt_identity : forall (eb : eballot) (c d : cand),
-        eb c d = encrypt_ballot cand_all publickey
-                            (fst (decrypt_ballot_with_zkp cand_all privatekey eb)) c d.
-     *)
+  
     
     (* A ballot is valid if all the entries are either 0 or 1 *)
     Definition matrix_ballot_valid (p : pballot) :=
@@ -1025,16 +1021,6 @@ Section Encryption.
       Admitted.
 
     
-    
- 
-                                               
-    (* This function defines map between linear preoder ballot 
-       and matrix plaintext ballot 
-    Definition map_ballot_pballot
-               (b : ballot) (p : pballot) :=
-      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d = 1
-                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d = 0
-                      else p c d = -1.  *)
     
     Definition map_ballot_pballot
                (b : ballot) (p : pballot) :=
@@ -1188,13 +1174,13 @@ Section Encryption.
        zero knowledge proof which would there after extraction and could be plugged 
        into other functions to verify the correctness *)
 
-    
+     
     Inductive HCount (bs : list eballot) : HState -> Type :=
     (* start of counting *)
     | eax us (m : cand -> cand -> ciphertext)
           (decm : cand -> cand -> plaintext) (zkpdecm : string) :
-        us = bs (* We start from uncounted ballots *) ->
-        (* forall c d, m c d = encrypt_ballot cand_all publickey (fun _ _ => 0%Z) c d) -> *)
+        map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) us = 
+        map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) bs ->
         (* all the entries of decm is 0 *)
         (forall c d, decm c d = 0%Z) ->
         (* Proof that it is decryption of m *)
@@ -1264,7 +1250,7 @@ Section Encryption.
         HCount bs (hwinners w). 
   
 
-   
+    
 
     (* every partial state of vote tallying can be progressed to a state where
        the margin function is fully constructed, i.e. all ballots are counted *)
@@ -1352,7 +1338,7 @@ Section Encryption.
       (* encrypt zero margin function *)  
       remember (encrypt_ballot cand_all publickey (fun _ _ => 0%Z)) as enczmargin.
       (* convince the user that it is indeed encryption of zero margin by decrypting it 
-         and giving zero knowledge proof *)
+         and giving zero knowledge proof *) 
       remember (decrypt_ballot_with_zkp cand_all privatekey enczmargin) as H.
       destruct H as [decmarg ezkp]. 
       pose proof (ppartial_count_all_counted bs bs [] enczmargin).
@@ -1367,12 +1353,12 @@ Section Encryption.
       rewrite Heqenczmargin. auto. *)
       assert (forall c d : cand, decmarg c d = 0%Z). 
       rewrite Heqenczmargin in H.
-      pose proof (encrypt_decrypt_identity (fun _ _ : cand => 0%Z)). intros.
+      pose proof (encrypt_decrypt_identity (fun _ _ : cand => 0%Z)).  intros.
       pose proof (H1 c d). rewrite <- H in H2. auto.
       pose (eax bs bs enczmargin decmarg
-               ezkp (* Zero knowledge proof of m is zero encrypted matrix *)
-               eq_refl H1 H H0).
-           
+                ezkp (* Zero knowledge proof of m is zero encrypted matrix *)
+                eq_refl H1 H H0).
+      
       destruct (X h) as [i [m Hs]].
       exists i. exists m. assumption.
     Defined.
@@ -1570,15 +1556,13 @@ Section Encryption.
                      s = partial (ts, tinbs) (fst (decrypt_ballot_with_zkp
                                                      cand_all privatekey em)) ->
                      HCount ebs (hpartial (ets, etinbs) em).
-  Proof. 
+  Proof.  
     intros s H. induction H.  
-    intros. inversion H.
-    pose proof (eax ebs ebs em m
-                    (snd (decrypt_ballot_with_zkp cand_all privatekey em))
-                    eq_refl e0).
+    intros. inversion H. 
+    pose proof (eax ebs ets em m
+                    (snd (decrypt_ballot_with_zkp cand_all privatekey em))).
     assert ((forall c d : cand, m c d = fst (decrypt_ballot_with_zkp cand_all privatekey em) c d)).
     intros. rewrite H5. reflexivity.
-    specialize (X H0 eq_refl).      
     (* etinbs is empty *)
     rewrite <- H2 in H12.
     assert (etpbs = []).
@@ -1588,18 +1572,10 @@ Section Encryption.
     rewrite H10. (* eapply eax. *)
     rewrite H1 in e. rewrite <- e in H4.
     pose proof (mapping_ballot_pballot_equality ts _ _ H4 H11).
-    (* I know that pbs = tpbs but it is not necessary that their encryption is also same 
-       because of non deterministic nature of Elgamal encryption. Admit it for the 
-       moment and discuss with Dirk. If we change the condition in HCount 
-       ets = ebs to 
-       map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ets = 
-       map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs.
-       In Elgamal encryption if plaintext p1 = p2 
-       then it does not mean that enc(p1, pubkey) = enc (p2, pubkey).
-       However, if ciphertext c1 = c2 => dec(c1, privatekey) = dec (c2, privatekey) *)
-    admit.  
-    
- 
+    rewrite <- H9 in X. rewrite <- H3 in X.
+    symmetry in H7.
+    specialize (X H7 e0 H0 eq_refl). auto.
+   
     (* Count bs (partial (u :: us, inbs) m) *)
     intros. inversion H0.  
     specialize (IHCount (u :: us) inbs).
@@ -1679,7 +1655,7 @@ Section Encryption.
                   IHCount).
     (* At this point I know that matrix_ballot_valid umat -> matrix_ballot_valid b 
        because b is decryption of w (unec -> v -> w) *)
-    assert (matrix_ballot_valid b). admit.
+    assert (matrix_ballot_valid b).  admit.
     specialize (X H15).
     assert ((forall c d : cand, v c d = fst (row_permute_encrypted_ballot cand_all publickey uenc) c d)).
     intros. rewrite <- HeqHvenc. auto.
