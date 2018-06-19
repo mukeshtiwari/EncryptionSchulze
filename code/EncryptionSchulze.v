@@ -946,8 +946,11 @@ Section Encryption.
        it is because of margin function function closure 
        which is translated back to list of values and passed to
        javaocaml binding code. We are constructing Zero 
-       margin ballot*)
-    Axiom encrypt_zero_margin : list cand -> Pubkey -> eballot.
+       margin ballot . It's creating little bit problem with proof 
+       so for the moment I am using encrypt ballot to encrypt
+       zero matrix margin.
+    Axiom encrypt_zero_margin_matrix :
+      list cand -> Pubkey ->  (cand -> cand -> plaintext ) -> eballot. *)
 
     (* This function will be realized by Elgamal Encryption.
        Enc_Pk (m, r) = (g^r, g^m * h^r). This function is not used
@@ -986,18 +989,24 @@ Section Encryption.
     Definition add_plaintext (u : cand -> cand -> plaintext)
                (v : cand -> cand -> plaintext) :=
       fun c d => u c d + v c d.
+
     
     Axiom homomorphic_axiom :
       forall (c d : cand) (m : cand -> cand -> ciphertext)
              (u : cand -> cand -> ciphertext), 
         fst (decrypt_ballot_with_zkp
                cand_all privatekey
-               (homomorphic_add_eballots cand_all m u)) =
+               (homomorphic_add_eballots cand_all m u)) c d  =
         add_plaintext
           (fst (decrypt_ballot_with_zkp cand_all privatekey m))
-          (fst (decrypt_ballot_with_zkp cand_all privatekey u)).
+          (fst (decrypt_ballot_with_zkp cand_all privatekey u)) c d.
 
+    Axiom encrypt_decrypt_identity : forall (pb : pballot) (c d : cand),
+        pb c d = fst (decrypt_ballot_with_zkp cand_all privatekey
+                                          (encrypt_ballot cand_all publickey pb)) c d.
 
+  
+    
     (* A ballot is valid if all the entries are either 0 or 1 *)
     Definition matrix_ballot_valid (p : pballot) :=
       (forall c d : cand, In (p c d) [0; 1]) /\
@@ -1011,24 +1020,15 @@ Section Encryption.
     Proof.
       Admitted.
 
-      
     
-                                               
-    (* This function defines map between linear preoder ballot 
-       and matrix plaintext ballot 
-    Definition map_ballot_pballot
-               (b : ballot) (p : pballot) :=
-      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d = 1
-                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d = 0
-                      else p c d = -1.  *)
     
     Definition map_ballot_pballot
                (b : ballot) (p : pballot) :=
-      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d = 1 
-                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d = 0
-                      else  if (b d <? b c)%nat && (0 <? b d)%nat then p c d = 0
-                            else p c d = -1.
-
+      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d =? 1 
+                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d =? 0
+                      else  if (b d <? b c)%nat && (0 <? b d)%nat then p c d =? 0
+                            else p c d =? -1.
+    
      (* Each ballot is either valid or not valid *)
     Lemma pballot_valid_dec :
       forall b : pballot, {valid cand (fun c d => b c d = 1)} +
@@ -1055,14 +1055,15 @@ Section Encryption.
       pose proof (n H). auto.
       right. unfold not. intros. destruct H.
       pose proof (n H). auto.
-    Qed.
+    Defined.
+
+    (* The idea is if pballot is valid then any permutation of 
+       it is valid *)
+
     
       
-      
-
-      
     Lemma connect_validty_of_ballot_pballot :
-      forall (b : ballot) (p : pballot), (forall c d, map_ballot_pballot b p c d) -> 
+      forall (b : ballot) (p : pballot), (forall c d, map_ballot_pballot b p c d = true) -> 
         proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = true <->
         proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec p)) = true.
     Proof.
@@ -1070,8 +1071,8 @@ Section Encryption.
       destruct (ballot_valid_dec b) as [H1 | H2];
         destruct (matrix_ballot_valid_dec p) as [Hp1 | Hp2]; simpl in *; try auto.
       (* This is not valid, because if b c > 0 then it means P c d = 0 \/ P c d = 1*) 
-      unfold map_ballot_pballot in Hm.  
-      destruct Hp2. unfold matrix_ballot_valid.
+      unfold map_ballot_pballot in Hm. 
+      destruct Hp2. unfold matrix_ballot_valid. 
       split. intros.  simpl.
       pose proof (Hm c d). pose proof (H1 c). Open Scope nat_scope.
       assert (0 < b c) by omega.
@@ -1080,13 +1081,13 @@ Section Encryption.
       pose proof (H1 d). pose proof (lt_eq_lt_dec (b c) (b d)).
       destruct H6 as [[H6 | H6] | H6].
       pose proof (proj2 (Nat.ltb_lt _ _) H6).
-      rewrite H7 in H0. auto.
+      rewrite H7 in H0.  apply Z.eqb_eq in H0. auto.
       (* since b c = b d it means b c <? b d = false and b c ?= b d = true *)
       remember (b c <? b d) as v.
       symmetry in Heqv. destruct v.
       pose proof (proj1 (Nat.ltb_lt _ _) Heqv). omega.
       pose proof (proj2 (Nat.eqb_eq _ _) H6).
-      rewrite H7 in H0. simpl in H0. auto.
+      rewrite H7 in H0. simpl in H0.  apply  Z.eqb_eq in H0. auto.
       assert (b c <? b d = false).
       apply Nat.ltb_ge. omega. rewrite H7 in H0.
       assert ((b c =? b d)%nat = false).
@@ -1095,7 +1096,7 @@ Section Encryption.
       pose proof(proj2 (Nat.ltb_lt _ _) H6).
       assert (0 < b d) by omega.
       pose proof (proj2 (Nat.ltb_lt _ _) H10).
-      rewrite H9 in H0. rewrite H11 in H0. simpl in H0. auto.
+      rewrite H9 in H0. rewrite H11 in H0. simpl in H0. apply Z.eqb_eq in H0. auto.
            
       (* discharge the validity *) 
       exists b.  intros c d. split; intros.
@@ -1112,23 +1113,24 @@ Section Encryption.
       rewrite H7 in H6.
       rewrite (Nat.ltb_irrefl (b d)) in H6.
       rewrite (Nat.eqb_refl (b d)) in H6.
+      apply Z.eqb_eq in H6.
       rewrite H6 in H0. inversion H0. 
       remember (b c <? b d) as v. symmetry in Heqv.
       destruct v. 
       pose proof (proj1 (Nat.ltb_lt (b c) (b d)) Heqv). omega.
       remember (b c =? b d) as v. symmetry in Heqv0.
-      destruct v. rewrite H6 in H0. inversion H0.
+      destruct v. apply Z.eqb_eq in H6. rewrite H6 in H0. inversion H0.
       pose proof (proj2 (Nat.ltb_lt (b d) (b c)) H7). rewrite H8 in H6.
       assert (0 < b d) by omega.
       pose proof (proj2 (Nat.ltb_lt 0 (b d)) H9). rewrite H10 in H6.
-      simpl in H6. rewrite H6 in H0. inversion H0.
+      simpl in H6. apply Z.eqb_eq in H6. rewrite H6 in H0. inversion H0.
       (* Thank you God for giving me strenght *)      
       pose proof (Hm c d).
       pose proof (H1 c).
       pose proof (proj2 (Nat.ltb_lt (b c) (b d)) H0). rewrite H4 in H2.
       pose proof (proj2 (Nat.ltb_lt 0 (b c))).
-      assert (0 < b c) by omega. pose proof (H5 H6).
-      rewrite H7 in H2. simpl in H2. auto.
+      assert (0 < b c) by omega. pose proof (H5 H6). 
+      rewrite H7 in H2. simpl in H2.  apply Z.eqb_eq in H2. auto.
         
       (* Other side of proof. When pballot is valid then ballot is also 
          valid *)
@@ -1143,8 +1145,8 @@ Section Encryption.
       pose proof (H2 x).  rewrite (andb_false_r (0 <? b x)) in H3.
       rewrite (andb_false_r (0 =? b x)) in H3.
       rewrite H0 in H3. simpl in H3. pose proof (Hin x x).
-      destruct H4. rewrite H3 in H4. inversion H4.
-      destruct H4. rewrite H3 in H4. inversion H4. auto.
+      destruct H4. apply Z.eqb_eq in H3. rewrite H3 in H4. inversion H4.
+      destruct H4. apply Z.eqb_eq in H3. rewrite H3 in H4. inversion H4. auto.
     Qed.
     
     
@@ -1153,18 +1155,18 @@ Section Encryption.
        the encryption of message m under zero knowledge proof. See the mail
        exchange between Dirk and Thomas Witnessing correct encryption.
        https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/crypto/proofsystem/classes/EqualityPreimageProofSystem.java
-       zero_knowlege_decryption m (c_1, c_2) = true *)
+       zero_knowlege_decryption m (c_1, c_2) = true
 
     Axiom zero_knowledge_decryption_proof :
       list cand -> Pubkey -> plaintext -> ciphertext -> string -> bool.
 
     
 
-    (* This function is takes u, v and val where permute_encypted_ballot u = (v, val)
-       and return true or false *)
+     This function is takes u, v and val where permute_encypted_ballot u = (v, val)
+       and return true or false 
     Axiom certify_permuted_ballots : eballot -> eballot -> string -> bool.
 
-    (* Note that all the assertions would be erased after code extractions
+       Note that all the assertions would be erased after code extractions
        so keeping them is kind of useless becaue we are not proving them, 
        but using a Java library, unicrypt, to plug the needed implementation.
        So in order to convince the user that it computes according to 
@@ -1172,13 +1174,18 @@ Section Encryption.
        zero knowledge proof which would there after extraction and could be plugged 
        into other functions to verify the correctness *)
 
-    
+     
     Inductive HCount (bs : list eballot) : HState -> Type :=
     (* start of counting *)
     | eax us (m : cand -> cand -> ciphertext)
-         (decm : cand -> cand -> plaintext) (zkpdecm : string) :
-        us = bs (* We start from uncounted ballots *) ->
-        decm = fst (decrypt_ballot_with_zkp cand_all privatekey m) ->
+          (decm : cand -> cand -> plaintext) (zkpdecm : string) :
+        map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) us = 
+        map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) bs ->
+        (* all the entries of decm is 0 *)
+        (forall c d, decm c d = 0%Z) ->
+        (* Proof that it is decryption of m *)
+        (forall c d, decm c d = fst (decrypt_ballot_with_zkp cand_all privatekey m) c d) ->
+        (* Zero knowledge proof *)
         zkpdecm = snd (decrypt_ballot_with_zkp cand_all privatekey m) ->
         HCount bs (hpartial (us, []) m) 
     (* Valid Ballot *)
@@ -1186,11 +1193,11 @@ Section Encryption.
              (zkpdecw : string) us m nm inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
         matrix_ballot_valid b ->
-        v = fst (row_permute_encrypted_ballot cand_all publickey u) ->
+        (forall c d : cand, v c d = fst (row_permute_encrypted_ballot cand_all publickey u) c d) ->
         zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey u) ->
-        w = fst (column_permute_encrypted_ballot cand_all publickey v) ->
+        (forall c d : cand, w c d = fst (column_permute_encrypted_ballot cand_all publickey v) c d) ->
         zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v) ->
-        b = fst (decrypt_ballot_with_zkp cand_all privatekey w) ->
+        (forall c d : cand, b c d = fst (decrypt_ballot_with_zkp cand_all privatekey w) c d) ->
         zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w) ->  
         (* u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
              -> (decryption of w) b.
@@ -1209,11 +1216,11 @@ Section Encryption.
                 (zkpdecw : string) us m inbs :
         HCount bs (hpartial (u :: us, inbs) m) ->
         ~matrix_ballot_valid b ->
-        v = fst (row_permute_encrypted_ballot cand_all publickey u) ->
+        (forall c d : cand, v c d = fst (row_permute_encrypted_ballot cand_all publickey u) c d) ->
         zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey u) ->
-        w = fst (column_permute_encrypted_ballot cand_all publickey v) ->
+        (forall c d : cand, w c d = fst (column_permute_encrypted_ballot cand_all publickey v) c d) ->
         zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v) ->
-        b = fst (decrypt_ballot_with_zkp cand_all privatekey w) ->
+        (forall c d, b c d = fst (decrypt_ballot_with_zkp cand_all privatekey w) c d ) ->
         zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w) -> 
         (*  u -> (row permutation) (v, zkppermuv) -> (column permutation) (w, zkppermvw) 
              -> (decryption of w) b.
@@ -1229,7 +1236,7 @@ Section Encryption.
         honest decryption *)
     | cdecrypt inbs m dm (zkpdecm : string):
         HCount bs (hpartial ([], inbs) m) ->
-        dm = fst (decrypt_ballot_with_zkp cand_all privatekey m) ->
+        (forall c d : cand, dm c d = fst (decrypt_ballot_with_zkp cand_all privatekey m) c d) ->
         zkpdecm = snd (decrypt_ballot_with_zkp cand_all privatekey m) -> 
         (* proof of honest decryption. zkpdecm is zero knowledge proof datastructure 
            which proves that dm is decryption of m under zero knowledge proof. 
@@ -1243,7 +1250,7 @@ Section Encryption.
         HCount bs (hwinners w). 
   
 
-   
+    
 
     (* every partial state of vote tallying can be progressed to a state where
        the margin function is fully constructed, i.e. all ballots are counted *)
@@ -1257,7 +1264,7 @@ Section Encryption.
                           existT _ inbs (existT _ m Hc)
                 | u :: us =>
                   fun inbs m Hc => _
-                end).
+                end). 
    
       (* We permuate the ballot u using permute_encrypted_ballot function which gives 
          permuted ballot v and zero knowledge proof of this permutation *)
@@ -1275,15 +1282,15 @@ Section Encryption.
       assert (Htt : forall c d, nm c d = homomorphic_add_eballots cand_all m u c d).
       intros c d. rewrite Heqnm. auto.
       
-      assert (v = fst (row_permute_encrypted_ballot cand_all publickey u)).
+      assert (forall c d, v c d = fst (row_permute_encrypted_ballot cand_all publickey u) c d).
       rewrite <- HeqH1. auto.
       assert (zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey u)). 
       rewrite <- HeqH1. auto.
-      assert (w = fst (column_permute_encrypted_ballot cand_all publickey v)).
+      assert (forall c d, w c d = fst (column_permute_encrypted_ballot cand_all publickey v) c d).
       rewrite <- HeqH2. auto.
       assert (zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v)).
       rewrite <- HeqH2. auto.
-      assert (b = fst (decrypt_ballot_with_zkp cand_all privatekey w)).
+      assert (forall c d, b c d = fst (decrypt_ballot_with_zkp cand_all privatekey w) c d).
       rewrite <- HeqH3. auto.
       assert (zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w)). 
       rewrite <- HeqH3. auto.
@@ -1298,15 +1305,15 @@ Section Encryption.
       destruct X as [i [ns Ht]].
       exists i. exists ns. assumption.
 
-      assert (v = fst (row_permute_encrypted_ballot cand_all publickey u)).
+      assert (forall c d, v c d = fst (row_permute_encrypted_ballot cand_all publickey u) c d).
       rewrite <- HeqH1. auto.
       assert (zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey u)). 
       rewrite <- HeqH1. auto.
-      assert (w = fst (column_permute_encrypted_ballot cand_all publickey v)).
+      assert (forall c d, w c d = fst (column_permute_encrypted_ballot cand_all publickey v) c d).
       rewrite <- HeqH2. auto.
       assert (zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v)).
       rewrite <- HeqH2. auto.
-      assert (b = fst (decrypt_ballot_with_zkp cand_all privatekey w)).
+      assert (forall c d, b c d = fst (decrypt_ballot_with_zkp cand_all privatekey w) c d).
       rewrite <- HeqH3. auto.
       assert (zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w)). 
       rewrite <- HeqH3. auto.
@@ -1328,20 +1335,30 @@ Section Encryption.
 
     Lemma  pall_ballots_counted (bs : list eballot) : existsT i m, HCount bs (hpartial ([], i) m).
     Proof.
-      (* encrypt zero margin function *)
-      remember (encrypt_zero_margin cand_all publickey) as enczmargin.
+      (* encrypt zero margin function *)  
+      remember (encrypt_ballot cand_all publickey (fun _ _ => 0%Z)) as enczmargin.
       (* convince the user that it is indeed encryption of zero margin by decrypting it 
-         and giving zero knowledge proof *)
+         and giving zero knowledge proof *) 
       remember (decrypt_ballot_with_zkp cand_all privatekey enczmargin) as H.
       destruct H as [decmarg ezkp]. 
       pose proof (ppartial_count_all_counted bs bs [] enczmargin).
-      assert (decmarg = fst (decrypt_ballot_with_zkp cand_all privatekey enczmargin)).
+      assert (forall c d, decmarg c d = fst (decrypt_ballot_with_zkp cand_all privatekey enczmargin) c d).
       rewrite <- HeqH. auto.
       assert (ezkp = snd (decrypt_ballot_with_zkp cand_all privatekey enczmargin)).
       rewrite <- HeqH. auto.
+      (* The reason to remove this code is encryption is not deterministic 
+      assert (forall c d : cand,
+                 enczmargin c d =
+                 encrypt_ballot cand_all publickey (fun _ _ : cand => 0%Z) c d).
+      rewrite Heqenczmargin. auto. *)
+      assert (forall c d : cand, decmarg c d = 0%Z). 
+      rewrite Heqenczmargin in H.
+      pose proof (encrypt_decrypt_identity (fun _ _ : cand => 0%Z)).  intros.
+      pose proof (H1 c d). rewrite <- H in H2. auto.
       pose (eax bs bs enczmargin decmarg
-               ezkp (* Zero knowledge proof of m is zero encrypted matrix *)
-               eq_refl H H0).
+                ezkp (* Zero knowledge proof of m is zero encrypted matrix *)
+                eq_refl H1 H H0).
+      
       destruct (X h) as [i [m Hs]].
       exists i. exists m. assumption.
     Defined.
@@ -1354,7 +1371,7 @@ Section Encryption.
       destruct H as [i [encm p]].
       remember (decrypt_ballot_with_zkp cand_all privatekey encm) as H1.
       destruct H1 as [decmarg dechzkp].
-      assert (decmarg = fst (decrypt_ballot_with_zkp cand_all privatekey encm)).
+      assert (forall c d, decmarg c d = fst (decrypt_ballot_with_zkp cand_all privatekey encm) c d).
       rewrite <- HeqH1. auto.
       assert(dechzkp = snd (decrypt_ballot_with_zkp cand_all privatekey encm)).
       rewrite <- HeqH1. auto.
@@ -1378,43 +1395,536 @@ Section Encryption.
     Defined.
     
   End ECount.
+
+
+  (* This function connects the ballot and pballot *)
   
-  Fixpoint mapping_ballot_pballot (bs : list ballot) (pbs : list pballot) :
-    List.length bs = List.length pbs ->  Prop. 
+  Fixpoint mapping_ballot_pballot (bs : list ballot) (pbs : list pballot) : Prop. 
   Proof.
     refine (match bs, pbs with
-            | [], [] => fun H => True
-            | [], h :: _ => fun H => _  
-            | h :: _, [] => fun H => _
+            | [], [] => True
+            | [], h :: _ => False 
+            | h :: _, [] => False
             | h1 :: t1, h2 :: t2 =>
-              fun H =>
-                ((forall c d, map_ballot_pballot h1 h2 c d) /\
-                 mapping_ballot_pballot t1 t2 _ )
+                ((forall c d, map_ballot_pballot h1 h2 c d = true) /\
+                 mapping_ballot_pballot t1 t2 )
             end); inversion H.
-    auto.
+  Defined.
+  (* Proof Idea is match each constructor of Count to HCount and vice versa *)
+
+
+  Lemma count_partial_hcount_hpartial (bs : list ballot) (ebs : list eballot):
+    forall (ts inbs : list ballot) (mm : cand -> cand -> Z)
+      (pbs : list pballot)
+      (H : pbs = map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs)
+      (H1 : mapping_ballot_pballot bs pbs),
+      Count bs (partial (ts, inbs) mm) ->
+      existsT ets einbs em, HCount ebs (hpartial (ets, einbs) em).
+  Proof.
+    intros. 
+    
+    (* Pattern Matching on structure of X *)
+    intros. induction X.
+    exists ebs, [], (encrypt_ballot cand_all publickey (fun c d => 0%Z)).
+    eapply eax; auto. intros. pose proof (e0 c d).
+    rewrite <- encrypt_decrypt_identity. auto.   
+    auto. auto. auto.
   Defined.
 
   
-    
-    
-  Lemma main_correctness :
-    forall (bs : list ballot) (pbs : list pballot)
-           (ebs : list eballot) (H : List.length bs = List.length pbs)
-           (H1 : ebs = map (fun x => encrypt_ballot cand_all publickey x) pbs)
-           (H2 : pbs = map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs)
-           (H3 : forall (pb : pballot),
-               pb = fst (decrypt_ballot_with_zkp cand_all privatekey
-                                                 (encrypt_ballot cand_all publickey pb)))
-           (H4 : forall (eb : eballot),
-               eb = encrypt_ballot cand_all publickey
-                                   (fst (decrypt_ballot_with_zkp cand_all privatekey eb))),
-            mapping_ballot_pballot bs pbs H -> 
-      (forall c : cand, projT1 (schulze_winners bs) c = true <-> 
-                        projT1 (pschulze_winners ebs) c = true).  
+
+
+  (* One to One correspondence *)
+  Lemma mapping_ballot_pballot_equality :
+    forall (xs : list ballot) (ys : list pballot)
+      (zs : list pballot),
+      mapping_ballot_pballot xs ys -> mapping_ballot_pballot xs zs -> ys = zs.
   Proof.
-    intros. split; intros.
-    destruct (schulze_winners bs) as [f Cnt]. simpl in H5.
-    destruct (pschulze_winners ebs) as [g Hcnt]. simpl.
+    induction xs. intros.
+    destruct ys, zs. auto. simpl in H0. inversion H0.
+    simpl in H. inversion H. simpl in H. inversion H.
+    (* Inductive case *)
+    intros. simpl in H. simpl in H0.
+    destruct ys, zs. auto. inversion H. inversion H0.
+    destruct H. destruct H0.
+    assert (forall c d, p c d = p0 c d).
+    intros. specialize (H c d).
+    specialize (H0 c d).
+    unfold map_ballot_pballot in H.
+    unfold map_ballot_pballot in H0.
+    pose proof (zerop (a c)). destruct H3.
+    assert ((0 <? a c)%nat = false).
+    rewrite e. SearchAbout (_ <? _ = false)%nat.
+    apply Nat.ltb_irrefl.  rewrite H3 in H.
+    rewrite H3 in H0.
+    rewrite andb_false_r in H.
+    rewrite andb_false_r in H.
+    rewrite andb_false_r in H0.
+    rewrite andb_false_r in H0.
+    pose proof (zerop (a d)). destruct H4.
+    assert ((0 <? a d)%nat = false). rewrite e0.
+    apply Nat.ltb_irrefl. rewrite H4 in H.
+    rewrite H4 in H0. rewrite andb_false_r in H.
+    rewrite andb_false_r in H0.
+    SearchAbout ( _ =? _ = true).
+    apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
+    rewrite H. rewrite H0. auto.
+    assert ((a d <? a c)%nat = false).
+    rewrite e. SearchAbout (_ <? _ )%nat.
+    apply Nat.ltb_nlt. unfold not. intros.
+    omega. rewrite H4 in H. rewrite H4 in H0.
+    rewrite andb_false_l in H.
+    rewrite andb_false_l in H0.
+    apply Z.eqb_eq in H. apply Z.eqb_eq in  H0.
+    rewrite H. rewrite H0. auto.
+    assert ((0 <? a c)%nat = true).
+    SearchAbout ( _ <? _ = true)%nat.
+    apply Nat.ltb_lt. auto. rewrite H3 in H.
+    rewrite H3 in H0.
+    rewrite andb_true_r in H.
+    rewrite andb_true_r in H.
+    rewrite andb_true_r in H0.
+    rewrite andb_true_r in H0.
+    pose proof (lt_eq_lt_dec (a c) (a d)).
+    destruct H4 as [[H4 | H4] | H4].
+    assert ((a c <? a d)%nat = true).
+    SearchAbout (_ <? _ = true)%nat.
+    apply Nat.ltb_lt. auto. rewrite H5 in H.
+    rewrite H5 in H0.
+    apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
+    rewrite H. rewrite H0. auto.
+    assert ((a c <? a d)%nat = false).
+    SearchAbout (_ <? _ = false)%nat.
+    apply Nat.ltb_nlt. unfold not. intros.
+    omega. rewrite H5 in H.
+    rewrite H5 in H0.
+    assert ((a c =? a d)%nat = true).
+    SearchAbout (_ =? _ = true)%nat.
+    apply Nat.eqb_eq. auto.
+    rewrite H6 in H. rewrite H6 in H0.
+    apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
+    rewrite H. rewrite H0. auto.
+    assert ((a c <? a d)%nat = false).
+    SearchAbout (_ <? _ = false)%nat.
+    apply Nat.ltb_nlt. unfold not. intros.
+    omega. rewrite H5 in H. rewrite H5 in H0.
+    assert ((a c =? a d)%nat = false).
+    SearchAbout (_ =? _ = false).
+    apply Nat.eqb_neq. unfold not. intros. omega.
+    rewrite H6 in H. rewrite H6 in H0.
+    assert ((a d <? a c)%nat = true).
+    apply Nat.ltb_lt. auto. rewrite H7 in H.
+    rewrite H7 in H0.
+    rewrite andb_true_l in H. rewrite andb_true_l in H0.
+    pose proof (zerop (a d)). destruct H8.
+    assert ((0 <? a d)%nat = false).
+    apply Nat.ltb_nlt. unfold not. intros.
+    omega. rewrite H8 in H. rewrite H8 in H0.
+    apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
+    rewrite H. rewrite H0. auto.
+    assert ((0 <? a d)%nat = true).
+    apply Nat.ltb_lt. auto. rewrite H8 in H.
+    rewrite H8 in H0. apply Z.eqb_eq in H.
+    apply Z.eqb_eq in H0. rewrite H. rewrite H0. auto.
+    (* I need functional extensionality. Discuss this with Dirk *)
+    Require Import Coq.Logic.FunctionalExtensionality.
+    assert (p = p0).
+    apply functional_extensionality.
+    intros x. apply functional_extensionality.
+    intros x0. auto.
+    (* End of extensionality *)
+    rewrite H4. apply f_equal. apply IHxs. auto. auto.
+  Qed.
+  
+
+                           
+  Lemma state_true (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
+        (H3 : pbs =  map (fun x => fst (decrypt_ballot_with_zkp
+                                       cand_all privatekey x)) ebs) (* pbs is decryption of ebs *)
+        (H4 : mapping_ballot_pballot bs pbs) :
+    forall (s : State), Count bs s ->
+                   forall (ts : list ballot) (tinbs : list ballot)
+                     (ets : list eballot) (etinbs : list eballot)
+                     (tpbs : list pballot) (etpbs : list pballot)
+                     (em : cand -> cand -> ciphertext)
+                     (H9 : tpbs =  map (fun x => fst (decrypt_ballot_with_zkp
+                                                     cand_all privatekey x)) ets)
+                     (H10 : etpbs = map (fun x => fst (decrypt_ballot_with_zkp
+                                                     cand_all privatekey x)) etinbs)
+                     (H11 : mapping_ballot_pballot ts tpbs)
+                     (H12 : mapping_ballot_pballot tinbs etpbs ),
+                     s = partial (ts, tinbs) (fst (decrypt_ballot_with_zkp
+                                                     cand_all privatekey em)) ->
+                     HCount ebs (hpartial (ets, etinbs) em).
+  Proof.  
+    intros s H. induction H.  
+    intros. inversion H. 
+    pose proof (eax ebs ets em m
+                    (snd (decrypt_ballot_with_zkp cand_all privatekey em))).
+    assert ((forall c d : cand, m c d = fst (decrypt_ballot_with_zkp cand_all privatekey em) c d)).
+    intros. rewrite H5. reflexivity.
+    (* etinbs is empty *)
+    rewrite <- H2 in H12.
+    assert (etpbs = []).
+    destruct etpbs. auto.
+    inversion H12.  rewrite H6 in H10.
+    symmetry in H10. apply map_eq_nil in H10. 
+    rewrite H10. (* eapply eax. *)
+    rewrite H1 in e. rewrite <- e in H4.
+    pose proof (mapping_ballot_pballot_equality ts _ _ H4 H11).
+    rewrite <- H9 in X. rewrite <- H3 in X.
+    symmetry in H7.
+    specialize (X H7 e0 H0 eq_refl). auto.
+   
+    (* Count bs (partial (u :: us, inbs) m) *)
+    intros. inversion H0.  
+    specialize (IHCount (u :: us) inbs).
+    (* Change u to matrix form *) 
+    remember (fun c d =>
+                if (u c <? u d)%nat &&  (0 <? u c )%nat then 1 
+                 else if (u c =? u d)%nat && (0 <? u c)%nat then  0
+                      else  if (u d <? u c)%nat && (0 <? u d)%nat then 0
+                            else -1) as umat.
+    pose proof (connect_validty_of_ballot_pballot u umat). 
+    assert (forall c d : cand, map_ballot_pballot u umat c d = true).
+    intros c d. unfold map_ballot_pballot.
+    remember (umat c d) as tumat.
+    rewrite Hequmat in Heqtumat.
+    destruct ((u c <? u d)%nat && (0 <? u c)%nat) in *.
+    apply Z.eqb_eq in Heqtumat. auto.
+    destruct ((u c =? u d)%nat && (0 <? u c)%nat).
+    apply Z.eqb_eq in Heqtumat. auto.
+    destruct ((u d <? u c)%nat && (0 <? u d)%nat).
+    apply Z.eqb_eq in Heqtumat. auto.
+    apply Z.eqb_eq in Heqtumat. auto.
+    (* valid b <-> valid u *)
+    specialize(H1 H7). destruct H1.
+    destruct (ballot_valid_dec u). simpl in H1.
+    specialize (H1 eq_refl).
+    destruct (matrix_ballot_valid_dec umat). simpl in H1.
+    
+
+    
+    (* At this stage, u is valid and matrix translation of this ballot, umat is also valid *) 
+    specialize (IHCount ((encrypt_ballot cand_all publickey umat) :: ets) etinbs
+                        (umat :: tpbs) etpbs (* replace here em *)
+                        (encrypt_ballot cand_all publickey m)).
+    (* I wish I could think like Dirk. Would I ever be a thinker like him ? *)
+    assert (umat :: tpbs =
+            map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x))
+              (encrypt_ballot cand_all publickey umat :: ets)).
+    simpl.
+    assert (umat = fst (decrypt_ballot_with_zkp cand_all privatekey
+                                                (encrypt_ballot cand_all publickey umat))).
+    pose proof (encrypt_decrypt_identity umat).
+    Require Import Coq.Logic.FunctionalExtensionality.
+    apply functional_extensionality. intros.
+    apply functional_extensionality. intros.
+    pose proof (H13 x x0). auto.
+    rewrite <- H13. apply f_equal. auto.
+    specialize (IHCount H13 H10). clear H13.
+    assert (mapping_ballot_pballot (u :: us) (umat :: tpbs)).
+    rewrite H2. simpl. split. auto. auto.
+    specialize (IHCount H13).
+    rewrite <- H5 in H12.
+    specialize (IHCount H12).
+   
+    assert (m = (fst
+                   (decrypt_ballot_with_zkp cand_all privatekey
+                                            (encrypt_ballot cand_all publickey m)))).
+    apply functional_extensionality. intros.
+    apply functional_extensionality. intros.
+    pose proof (encrypt_decrypt_identity m).
+    auto. rewrite <- H14 in IHCount.
+    specialize (IHCount eq_refl).
+    (* HCount ebs
+              (hpartial (encrypt_ballot cand_all publickey umat :: ets, etinbs)
+                 (encrypt_ballot cand_all publickey m)) From This state
+       I count the ballot umat because it's valid, and move on *)
+    pose proof (ecvalid ebs).
+    remember (encrypt_ballot cand_all publickey umat) as uenc.
+    remember (row_permute_encrypted_ballot cand_all publickey uenc) as Hvenc.
+    destruct Hvenc as (v, zkppermuv).
+    remember (column_permute_encrypted_ballot cand_all publickey v) as Hwenc.
+    destruct Hwenc as (w, zkppermvw).
+    remember (decrypt_ballot_with_zkp cand_all privatekey w) as Hbenc.
+    destruct Hbenc as (b, zkpdecw).
+    
+    specialize (X uenc v w b zkppermuv zkppermvw zkpdecw ets
+                  (encrypt_ballot cand_all publickey m) em etinbs
+                  IHCount).
+    (* At this point I know that matrix_ballot_valid umat -> matrix_ballot_valid b 
+       because b is decryption of w (unec -> v -> w) *)
+    assert (matrix_ballot_valid b).  admit.
+    specialize (X H15).
+    assert ((forall c d : cand, v c d = fst (row_permute_encrypted_ballot cand_all publickey uenc) c d)).
+    intros. rewrite <- HeqHvenc. auto.
+    assert (zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey uenc)).
+    rewrite <- HeqHvenc. auto.
+    assert((forall c d : cand, w c d = fst (column_permute_encrypted_ballot cand_all publickey v) c d)).
+    intros. rewrite <- HeqHwenc. auto.
+    assert (zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v)).
+    rewrite <- HeqHwenc. auto.
+    assert (forall c d : cand, b c d = fst (decrypt_ballot_with_zkp cand_all privatekey w) c d).
+    intros. rewrite <- HeqHbenc. auto.
+    assert (zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w)).
+    rewrite <- HeqHbenc. auto.
+    specialize (X H16 H17 H18 H19 H20 H21).
+    assert ((forall c d : cand,
+                em c d = homomorphic_add_eballots cand_all
+                                                  (encrypt_ballot cand_all publickey m) uenc c d)).
+    intros. specialize (homomorphic_axiom c d
+                                          (encrypt_ballot cand_all publickey m) uenc).
+    intros.  admit.
+    specialize (X H22). auto.
+    (* At this point I have two admitted goals. One the validity of b and 
+       em is decryption of nm so it must be equal to mulitplication of 
+       encryption of two ballots  *)
+    inversion H1. simpl in H1. simpl in H8. assert False.
+    destruct e. pose proof (g x). omega. inversion H13.
+    (* finished valid case *)
+    
+    (* Invalid case is easy because we are not updating the marging *)
+    intros. inversion H0. 
+    remember (fun c d =>
+                if (u c <? u d)%nat &&  (0 <? u c )%nat then 1 
+                 else if (u c =? u d)%nat && (0 <? u c)%nat then  0
+                      else  if (u d <? u c)%nat && (0 <? u d)%nat then 0
+                            else -1) as umat.
+    pose proof (connect_validty_of_ballot_pballot u umat). 
+    assert (forall c d : cand, map_ballot_pballot u umat c d = true).
+    intros c d. unfold map_ballot_pballot.
+    remember (umat c d) as tumat.
+    rewrite Hequmat in Heqtumat.
+    pose proof (zerop (u c)). destruct H7.
+    assert ((0 <? u c)%nat = false).
+    rewrite e0. SearchAbout (_ <? _ = false)%nat.
+    apply Nat.ltb_irrefl.  rewrite H7 in Heqtumat.
+    rewrite andb_false_r in Heqtumat.
+    rewrite andb_false_r in Heqtumat.
+    rewrite H7.
+    rewrite andb_false_r.
+    rewrite andb_false_r.
+    pose proof (zerop (u d)). destruct H8.
+    assert ((0 <? u d)%nat = false). rewrite e1.
+    apply Nat.ltb_irrefl. rewrite H8 in Heqtumat.
+    rewrite H8.  rewrite andb_false_r in Heqtumat.
+    rewrite andb_false_r.
+    SearchAbout ( _ =? _ = true).
+    apply Z.eqb_eq. auto.
+    
+    assert ((u d <? u c)%nat = false).
+    rewrite e0. SearchAbout (_ <? _ )%nat.
+    apply Nat.ltb_nlt. unfold not. intros.
+    omega. rewrite H8 in Heqtumat.
+    rewrite andb_false_l in Heqtumat.
+    rewrite H8.
+    rewrite andb_false_l.
+    apply Z.eqb_eq. auto.
+    assert ((0 <? u c)%nat = true).
+    SearchAbout ( _ <? _ = true)%nat.
+    apply Nat.ltb_lt. auto. rewrite H7 in Heqtumat.
+    rewrite andb_true_r in Heqtumat.
+    rewrite andb_true_r in Heqtumat.
+    rewrite H7.
+    rewrite andb_true_r.
+    rewrite andb_true_r.
+    pose proof (lt_eq_lt_dec (u c) (u d)).
+    destruct H8 as [[H8 | H8] | H8].
+    assert ((u c <? u d)%nat = true).
+    SearchAbout (_ <? _ = true)%nat.
+    apply Nat.ltb_lt. auto. rewrite H13 in Heqtumat.
+    rewrite H13.
+    apply Z.eqb_eq.  auto.
+    assert ((u c <? u d)%nat = false).
+    SearchAbout (_ <? _ = false)%nat.
+    apply Nat.ltb_nlt. unfold not. intros.
+    omega. rewrite H13 in Heqtumat.
+    rewrite H13.
+    assert ((u c =? u d)%nat = true).
+    SearchAbout (_ =? _ = true)%nat.
+    apply Nat.eqb_eq. auto.
+    rewrite H14 in Heqtumat. rewrite H14. 
+    apply Z.eqb_eq. auto.
+    assert ((u c <? u d)%nat = false).
+    SearchAbout (_ <? _ = false)%nat.
+    apply Nat.ltb_nlt. unfold not. intros.
+    omega. rewrite H13 in Heqtumat. rewrite H13. 
+    assert ((u c =? u d)%nat = false).
+    SearchAbout (_ =? _ = false).
+    apply Nat.eqb_neq. unfold not. intros. omega.
+    rewrite H14 in Heqtumat. rewrite H14.
+    assert ((u d <? u c)%nat = true).
+    apply Nat.ltb_lt. auto. rewrite H15 in Heqtumat.
+    rewrite H15.
+    rewrite andb_true_l in Heqtumat. rewrite andb_true_l.
+    pose proof (zerop (u d)). destruct H16.
+    assert ((0 <? u d)%nat = false).
+    apply Nat.ltb_nlt. unfold not. intros.
+    omega. rewrite H16 in Heqtumat. rewrite H16.
+    apply Z.eqb_eq.  auto. 
+    assert ((0 <? u d)%nat = true).
+    apply Nat.ltb_lt. auto.  rewrite H16 in Heqtumat.
+    rewrite H16. apply Z.eqb_eq. auto.
+    specialize (H1 H7). 
+    destruct H1.
+    destruct (ballot_valid_dec u). simpl in H1.
+    assert False. destruct e. pose proof (g x). omega. 
+    inversion H13. 
+    destruct (matrix_ballot_valid_dec umat). 
+    simpl in H1.  simpl in H8. pose proof (H8 eq_refl). inversion H13.
+    simpl in H1. simpl in H8.
+
+    assert (Ht : etpbs <> []).
+    unfold not.  intros. rewrite H13 in H12.
+    rewrite <- H5 in H12. simpl in H12.  inversion H12.
+    assert (forall (A : Type) (l : list A),
+               l <> [] -> existsT t l', l = t :: l').
+    intros. destruct l.  intuition.
+    exists a, l. auto.
+    pose proof (X _ etpbs Ht). destruct X0 as [t [etpbs' Hv]].
+
+    assert (etinbs <> []). rewrite Hv in H10.
+    unfold not. intros. destruct etinbs. 
+    simpl in H10. rewrite <- Hv in H10. intuition.
+    inversion H13. 
+    pose proof (X _ etinbs H13).
+    destruct X0 as [i [etinbs' Hw]].
+    symmetry in H5.
+    rewrite Hv in H10. rewrite Hw in H10.
+    simpl in H10. inversion H10.
+    rewrite H5 in H12. rewrite Hv in H12.
+    simpl in H12. destruct H12 as [H17 H18].
+
+
+    assert (forall c d, umat c d = t c d).
+    intros. pose proof (H7 c d). pose proof (H17 c d).
+    unfold map_ballot_pballot in H12.
+    unfold map_ballot_pballot in H14.
+
+    destruct ((u c <? u d)%nat && (0 <? u c)%nat).
+    apply Z.eqb_eq in H12.
+    apply Z.eqb_eq in H14.
+    rewrite H12.  rewrite H14. auto.
+    destruct ((u c =? u d)%nat && (0 <? u c)%nat).
+    apply Z.eqb_eq in H12.
+    apply Z.eqb_eq in H14.
+    rewrite H12. rewrite H14. auto.
+    destruct ((u d <? u c)%nat && (0 <? u d)%nat).
+    apply Z.eqb_eq in H12.
+    apply Z.eqb_eq in H14.
+    rewrite H12. rewrite H14. auto.
+    apply Z.eqb_eq in H12.
+    apply Z.eqb_eq in H14.
+    rewrite H12. rewrite H14. auto.
+    assert (umat = t).
+    apply functional_extensionality; intros.
+    apply functional_extensionality; intros.
+    specialize (H12 x x0). assumption.
+    
+
+
+    
+    (* Now we are in ecinvalid case *)
+    specialize (IHCount (u :: us) inbs
+                        (i :: ets)
+                        etinbs'
+                        (t :: tpbs) etpbs' em). 
+    assert (t :: tpbs =
+            map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x))
+                (i :: ets)).
+    simpl. rewrite H15. apply f_equal. auto. 
+    specialize (IHCount H19).   
+    assert (mapping_ballot_pballot (u :: us) (t :: tpbs)).
+    simpl. split. auto. rewrite H2. auto.
+    specialize (IHCount H16 H20 H18). 
+    assert (partial (u :: us, inbs) m =
+            partial (u :: us, inbs) (fst (decrypt_ballot_with_zkp cand_all privatekey em)) ).
+    rewrite H6. reflexivity. 
+    specialize (IHCount H21).
+
+
+    pose proof (ecinvalid). 
+    remember (row_permute_encrypted_ballot cand_all publickey i) as Hvenc.
+    destruct Hvenc as (v, zkppermuv).
+    remember (column_permute_encrypted_ballot cand_all publickey v) as Hwenc.
+    destruct Hwenc as (w, zkppermvw).
+    remember (decrypt_ballot_with_zkp cand_all privatekey w) as Hbenc.
+    destruct Hbenc as (b, zkpdecw).
+    specialize (X0 ebs i v w b zkppermuv zkppermvw zkpdecw ets em etinbs' IHCount).
+    assert (~ matrix_ballot_valid b). admit. (* Admit it because 
+     ~ matrix_ballot_valid umat  would lead to not valid b *)
+    specialize (X0 H22).
+    assert ((forall c d : cand, v c d = fst (row_permute_encrypted_ballot cand_all publickey i) c d)).
+    intros. rewrite <- HeqHvenc. auto.
+    assert (zkppermuv = snd (row_permute_encrypted_ballot cand_all publickey i)).
+    rewrite <- HeqHvenc. auto.
+    assert((forall c d : cand, w c d = fst (column_permute_encrypted_ballot cand_all publickey v) c d)).
+    intros. rewrite <- HeqHwenc. auto.
+    assert (zkppermvw = snd (column_permute_encrypted_ballot cand_all publickey v)).
+    rewrite <- HeqHwenc. auto.
+    assert (forall c d : cand, b c d = fst (decrypt_ballot_with_zkp cand_all privatekey w) c d).
+    intros. rewrite <- HeqHbenc. auto.
+    assert (zkpdecw = snd (decrypt_ballot_with_zkp cand_all privatekey w)).
+    rewrite <- HeqHbenc. auto.
+    specialize (X0 H23 H24 H25 H26 H27 H28). rewrite <- Hw in X0. assumption.
+
+    (* winner case *)
+    intros. inversion H0.
+    
+    
+  Lemma final_correctness :
+    forall (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
+      (w : cand -> bool)
+      (H : pbs = map (fun x => fst (decrypt_ballot_with_zkp cand_all privatekey x)) ebs)
+      (H1 : List.length bs = List.length pbs)
+      (H2 : mapping_ballot_pballot bs pbs H1), (* valid b <-> valid pb *)
+      Count bs (winners w) -> HCount ebs (hwinners w).
+  Proof.    
+    intros.  induction X.   
+    (* Encrypt the ballots and go to final state *)
+    remember (encrypt_ballot cand_all publickey (fun _ _ => 0%Z)) as encm.
+    remember (fst (decrypt_ballot_with_zkp cand_all privatekey encm)) as decm.
+    remember (snd (decrypt_ballot_with_zkp cand_all privatekey encm)) as zkpdecm.
+    pose proof (eax ebs ebs encm decm zkpdecm eq_refl). 
+    assert (forall c d : cand, encm c d = encrypt_ballot cand_all publickey (fun _ _ : cand => 0) c d).
+    intros.  rewrite Heqencm. auto.
+    assert (forall c d : cand, decm c d = 0).
+    intros.  rewrite Heqencm in Heqdecm. 
+    rewrite (encrypt_decrypt_identity (fun _ _ => 0) c d).
+    rewrite Heqdecm. auto.
+    assert (forall c d : cand, decm c d = fst (decrypt_ballot_with_zkp cand_all privatekey encm) c d).
+    intros. rewrite Heqdecm. auto.
+    pose proof (X H0 H3 H4 Heqzkpdecm). 
+    (* If I am in  HCount ebs (hpartial (ebs, []) encm) then I can always finish 
+       counting and declaring winner *)
+    pose proof (ppartial_count_all_counted ebs ebs [] encm X0).
+    destruct X1 as [invalid [final_margin Hf]].
+    pose proof (cdecrypt ebs invalid final_margin).
+    remember (fst (decrypt_ballot_with_zkp cand_all privatekey final_margin)) as decmarg.
+    remember (snd (decrypt_ballot_with_zkp cand_all privatekey final_margin)) as zkpmarg.
+    pose proof (X1 decmarg zkpmarg Hf).
+    assert ((forall c d : cand, decmarg c d = decmarg c d)). auto.
+    pose proof (X2 H5 eq_refl).  
+    pose proof (efin ebs  decmarg (c_wins decmarg) (wins_loses_type_dec decmarg) X3
+                     (c_wins_true_type decmarg) (c_wins_false_type decmarg)).
+    
+  
+   
+   (* I need to prove that margin computed from encrypted ballot is 
+      same as margin computed from plaintext ballot *)
+    
+    
+
+
+
+   
+   
+      
+   
+  
+
+    
     
     
 End Encryption.
