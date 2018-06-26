@@ -29,6 +29,7 @@ import ch.bfh.unicrypt.math.algebra.general.interfaces.Element;
 import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModElement;
 import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModPrime;
 import ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModSafePrime;
+import ch.bfh.unicrypt.math.function.classes.GeneratorFunction;
 import ch.bfh.unicrypt.math.function.classes.PermutationFunction;
 import ch.bfh.unicrypt.math.function.classes.PowerFunction;
 import ch.bfh.unicrypt.math.function.interfaces.Function;
@@ -254,24 +255,33 @@ public class HelloWorld {
 		//Setup ElGamal
 		Element<BigInteger> privateKeyElem = group.getZModOrder().getElement(privateKey);
 		
-		//Setup ZKP
-		// Create proof functions
-		Function f1  = PowerFunction.getInstance(group);
-		EqualityPreimageProofSystem equalityPreimageProofSystem = EqualityPreimageProofSystem.getInstance(f1, f1);
-		
 		//Return
 		BallotWithZKP ballot = new BallotWithZKP(b.prefrences.stream().map(i -> {
-			Tuple c = ciphertextConvBItT(elGamal, i);
-			Element encodedMessage =  elGamal.decrypt(privateKeyElem, c);
+			Tuple c = ciphertextConvBItT(elGamal, i);	 // (g^r, y^r*g^m)
+			Element encodedMessage =  elGamal.decrypt(privateKeyElem, c);	 //g^m
 			//System.out.println("Decryted Element: "+elGamal.decrypt(privateKeyElem, c).convertToBigInteger());
-			GStarModElement partialDecryption = (GStarModElement) c.getLast();
-			Pair publicInput = Pair.getInstance(group.power(generator, privateKeyElem), partialDecryption);
-			Pair privateInput = Pair.getInstance(generator, privateKeyElem);
+			GStarModElement partialDecryption = (GStarModElement) c.getLast();	//g^m * y^r
+			partialDecryption = partialDecryption.applyInverse(encodedMessage); //y^r
+			
+			//Setup proof and functions
+			Function g  = GeneratorFunction.getInstance(generator);
+			Function c1  = GeneratorFunction.getInstance(c.getFirst());
+			EqualityPreimageProofSystem equalityPreimageProofSystem = EqualityPreimageProofSystem.getInstance(g, c1); 
+			
+			//Debugging code 
+			//System.out.println(equalityPreimageProofSystem.getResponseSpace());
+			//System.out.println(equalityPreimageProofSystem.getPreimageProofFunction());
+			//System.out.println(equalityPreimageProofSystem.getChallengeGenerator());
+			
+			Pair publicInput = Pair.getInstance(group.power(generator, privateKey), partialDecryption);
+			
+			//Debug code
+			//System.out.println(equalityPreimageProofSystem.verify(equalityPreimageProofSystem.generate(privateKeyElem, publicInput), publicInput));
+			
 			//equalityPreimageProofSystem.generate(privateKeyElem, publicInput)   //Generate (private input and public input
-			return new PrefrenceWithZKP(dLog(generator, encodedMessage),equalityPreimageProofSystem.generate(privateInput, publicInput).toString());
+			return new PrefrenceWithZKP(dLog(generator, encodedMessage),equalityPreimageProofSystem.generate(privateKeyElem, publicInput).toString());
 			}
 		).collect(Collectors.toList()));
-		
 		//System.out.println(ballot.toString());
 		
 		return ballot;
