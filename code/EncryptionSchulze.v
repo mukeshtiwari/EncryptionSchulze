@@ -917,7 +917,7 @@ Section Encryption.
     Definition pballot := cand -> cand -> plaintext.
     (* eballot is encrypted value *)
     Definition eballot := cand -> cand -> ciphertext.
-
+   
     
 
     Inductive HState: Type :=
@@ -945,26 +945,77 @@ Section Encryption.
     Axiom privatekey : Prikey.
     Axiom publickey : Pubkey.
 
-
+    Inductive Group : Type :=
+      group : Prime -> Generator -> Order -> Pubkey -> Group.
+    
     (* This function encrypts the message *)
     Axiom encrypt_message :
-      Prime -> Generator -> Order -> Pubkey -> plaintext -> ciphertext.
+      Group ->  plaintext -> ciphertext.
 
     (* This function decrypts the message *)
     Axiom decrypt_message :
-      Prime -> Generator -> Order -> Prikey -> ciphertext -> plaintext.
+      Group -> Prikey -> ciphertext -> plaintext.
+
+    (* Decryption is deterministic *)
+    Axiom decryption_deterministric :
+      forall (grp : Group) (privatekey : Prikey) (pt : plaintext),
+      decrypt_message grp privatekey (encrypt_message grp pt) = pt.
     
     (* This function returns zero knowledge proof of encrypted message (c1, c2) *)
     Axiom construct_decryption_proof :
-      Prime -> Generator -> Order -> Pubkey -> Prikey -> ciphertext -> string.
+      Group -> Prikey -> ciphertext -> string.
 
     (* This function verifies the zero knowledge proof of plaintext, m, is honest decryption 
        of ciphertext *)
     Axiom verify_decryption_proof :
-      Prime -> Generator -> Order -> Pubkey -> plaintext -> ciphertext -> string -> bool.
+      Group -> plaintext -> ciphertext -> string -> bool.
 
     
+    Axiom verify_true :
+      forall (grp : Group) (pt : plaintext) (ct : ciphertext) (privatekey : Prikey),
+      verify_decryption_proof grp pt ct (construct_decryption_proof grp privatekey ct) = true.
     
+
+    Inductive EState : Type :=
+      epartial : (list eballot * list eballot) ->
+                 (cand -> cand -> ciphertext) -> EState.
+
+   
+    
+    Inductive ECount (bs : list eballot) (grp : Group) : EState -> Type :=
+      ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
+           (decm : cand -> cand -> plaintext)
+           (zkp : cand -> cand -> string) :
+        us = bs ->
+        (forall c d : cand, decm c d = 0) -> 
+        (forall c d, verify_decryption_proof grp (decm c d) (encm c d) (zkp c d) = true)
+        -> ECount bs grp (epartial (us, []) encm). 
+
+    Lemma ecount_all_ballot :
+      forall (bs : list eballot) (grp : Group), existsT us encm, ECount bs grp (epartial (us, []) encm).
+    Proof.
+      intros.  exists bs. exists (fun c d => encrypt_message grp 0).
+      pose proof (ecax bs grp bs (fun c d => encrypt_message grp 0)
+                       (fun c d => 0)
+                       (fun c d => construct_decryption_proof grp privatekey (encrypt_message grp 0))
+                 eq_refl).
+      assert ((forall c d : cand, (fun _ _ : cand => 0) c d = 0)).
+      intros. auto.
+      assert (forall c d : cand,
+                 verify_decryption_proof
+                   grp ((fun _ _ : cand => 0) c d)
+                   ((fun _ _ : cand => encrypt_message grp 0) c d)
+                   ((fun _ _ : cand => construct_decryption_proof
+                                      grp privatekey (encrypt_message grp 0)) c d) =
+                 true).
+      intros. eapply verify_true. pose proof (X H H0). auto.
+    Qed.
+    
+
+      
+
+      
+      
     (* This function is same as encryption function but 
        it encrypts special matrix (initial margin function)
        whose all entries are zero. We are publishing 
