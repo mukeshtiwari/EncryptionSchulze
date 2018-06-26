@@ -929,14 +929,42 @@ Section Encryption.
     (* Public key and private key are integers 
     Definition Pubkey := Z.
     Definition Prikey := Z.*)
+
+    (* Group Definition in Elgamal *)
+    Axiom Prime : Type. 
+    Axiom Generator : Type.
+    Axiom Order : Type.
     Axiom Pubkey : Type.
     Axiom Prikey : Type.
+    
 
     (* private and public key *)
+    Axiom prime : Prime.
+    Axiom gen : Generator.
+    Axiom ord : Order.
     Axiom privatekey : Prikey.
     Axiom publickey : Pubkey.
 
 
+    (* This function encrypts the message *)
+    Axiom encrypt_message :
+      Prime -> Generator -> Order -> Pubkey -> plaintext -> ciphertext.
+
+    (* This function decrypts the message *)
+    Axiom decrypt_message :
+      Prime -> Generator -> Order -> Prikey -> ciphertext -> plaintext.
+    
+    (* This function returns zero knowledge proof of encrypted message (c1, c2) *)
+    Axiom construct_decryption_proof :
+      Prime -> Generator -> Order -> Pubkey -> Prikey -> ciphertext -> string.
+
+    (* This function verifies the zero knowledge proof of plaintext, m, is honest decryption 
+       of ciphertext *)
+    Axiom verify_decryption_proof :
+      Prime -> Generator -> Order -> Pubkey -> plaintext -> ciphertext -> string -> bool.
+
+    
+    
     (* This function is same as encryption function but 
        it encrypts special matrix (initial margin function)
        whose all entries are zero. We are publishing 
@@ -1570,14 +1598,14 @@ Section Encryption.
     inversion H12.  rewrite H6 in H10.
     symmetry in H10. apply map_eq_nil in H10. 
     rewrite H10. (* eapply eax. *)
-    rewrite H1 in e. rewrite <- e in H4.
+    rewrite H1 in e. rewrite <- e in H4. 
     pose proof (mapping_ballot_pballot_equality ts _ _ H4 H11).
-    rewrite <- H9 in X. rewrite <- H3 in X.
+    rewrite <- H9 in X. rewrite <- H3 in X. 
     symmetry in H7.
     specialize (X H7 e0 H0 eq_refl). auto.
-   
+    
     (* Count bs (partial (u :: us, inbs) m) *)
-    intros. inversion H0.  
+    intros. inversion H0. 
     specialize (IHCount (u :: us) inbs).
     (* Change u to matrix form *) 
     remember (fun c d =>
