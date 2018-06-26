@@ -957,7 +957,7 @@ Section Encryption.
       Group -> Prikey -> ciphertext -> plaintext.
 
     (* Decryption is deterministic *)
-    Axiom decryption_deterministric :
+    Axiom decryption_deterministic :
       forall (grp : Group) (privatekey : Prikey) (pt : plaintext),
       decrypt_message grp privatekey (encrypt_message grp pt) = pt.
     
@@ -972,7 +972,8 @@ Section Encryption.
 
     
     Axiom verify_true :
-      forall (grp : Group) (pt : plaintext) (ct : ciphertext) (privatekey : Prikey),
+      forall (grp : Group) (pt : plaintext) (ct : ciphertext) (privatekey : Prikey)
+      (H : pt = decrypt_message grp privatekey ct),
       verify_decryption_proof grp pt ct (construct_decryption_proof grp privatekey ct) = true.
     
 
@@ -1007,8 +1008,11 @@ Section Encryption.
                    ((fun _ _ : cand => encrypt_message grp 0) c d)
                    ((fun _ _ : cand => construct_decryption_proof
                                       grp privatekey (encrypt_message grp 0)) c d) =
-                 true).
-      intros. eapply verify_true. pose proof (X H H0). auto.
+                 true). 
+      intros. eapply verify_true.
+      assert (0 = decrypt_message grp privatekey (encrypt_message grp 0)).
+      symmetry. eapply decryption_deterministic. auto.
+      pose proof (X H H0). auto.
     Qed.
     
 
