@@ -127,7 +127,27 @@ public class CryptoWrapper {
 		return true;
 	}
 
-	
+        // This function would return the g^m and pass it throw the descrete log to get m
+	public static String decryptCiphertext(String safeprime, String gen, String prikey, String pubkey, String ciphertext)
+     	{
+             GStarModPrime group = groupFromSafePrime(safePrimeFromString(safeprime));
+             GStarModElement generator = generatorFromString (group, gen);
+             ElGamalEncryptionScheme elGamal = encryptionSchemeFromGroupGenerator(generator);
+             GStarModElement publickey = generatePublicKeyFromString(group, pubkey);
+             ZModElement privatekey = generatePrivateKeyFromString(group, prikey);
+             String[] ct = ciphertext.split(",");
+             try {
+                     Tuple c = elGamal.getEncryptionSpace().getElementFrom(new BigInteger(ct[0]),
+                              new BigInteger(ct[1]));
+                     Element encodedMessage = elGamal.decrypt(privatekey, c); 
+                     return encodedMessage.convertToBigInteger().toString();
+                 }
+             catch(UniCryptException e)
+             { 
+            	 return "Something went wrong in decryption"; 
+             }
+
+     	}	
 	// Main method to test the code 
 	public static void main(String[] args) {
 		GStarModPrime groupstr = groupFromSafePrime(safePrimeFromString("170141183460469231731687303715884114527"));
@@ -142,6 +162,9 @@ public class CryptoWrapper {
 				"49228593607874990954666071614777776087", 
 				"26361901114993279192003564171198272815,96243812141899119673335679145128031767");		
 		
+		String plaintext = decryptCiphertext ("170141183460469231731687303715884114527",
+	    		"4", "60245260967214266009141128892124363925", "49228593607874990954666071614777776087", 
+	    		ciphertext);
 		System.out.println(groupstr.toString());
 		System.out.println(generatorstr.toString());
 		System.out.println(elGamalstr.toString()); 
@@ -149,6 +172,8 @@ public class CryptoWrapper {
 		System.out.println(privatekeystr.toString());
                 System.out.println(ciphertext);
                 System.out.println(zeroknowledge);
+		System.out.println(plaintext);		
+                
 
 	}
 
