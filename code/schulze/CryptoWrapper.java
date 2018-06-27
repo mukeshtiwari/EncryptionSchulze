@@ -85,9 +85,11 @@ public class CryptoWrapper {
 		GStarModElement generator = generatorFromString (group, gen);
 		ElGamalEncryptionScheme elGamal = encryptionSchemeFromGroupGenerator(generator);
 		GStarModElement publickey = generatePublicKeyFromString(group, pubkey);
-		return elGamal.encrypt(publickey, 
-				generator.power(new BigInteger(message))).toString();
-				
+		Tuple c =  elGamal.encrypt(publickey, 
+					generator.power(new BigInteger(message)));
+		String fs = c.getFirst().convertToBigInteger().toString();
+		String ss = c.getLast().convertToBigInteger().toString();
+		return fs + "," + ss;				
 	}
 
 	public static String constructDecryptionZeroKnowledgeProof(String safeprime, String gen, String prikey, String pubkey, String ciphertext)
@@ -120,7 +122,11 @@ public class CryptoWrapper {
              	}		
 	}
 
-        
+	public static boolean verifyDecryptionZeroKnowledgeProof(String safeprime, String gen, String pubkey, String mess, String cipertext, String zkp)
+	{
+		return true;
+	}
+
 	
 	// Main method to test the code 
 	public static void main(String[] args) {

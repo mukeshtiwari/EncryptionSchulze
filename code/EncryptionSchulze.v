@@ -929,20 +929,18 @@ Section Encryption.
     (* Group Definition in Elgamal *)
     Axiom Prime : Type. 
     Axiom Generator : Type.
-    Axiom Order : Type.
     Axiom Pubkey : Type.
     Axiom Prikey : Type.
-    
+     
 
     (* private and public key *)
     Axiom prime : Prime.
     Axiom gen : Generator.
-    Axiom ord : Order.
     Axiom privatekey : Prikey.
     Axiom publickey : Pubkey.
 
     Inductive Group : Type :=
-      group : Prime -> Generator -> Order -> Pubkey -> Group.
+      group : Prime -> Generator -> Pubkey -> Group.
     
     (* This function encrypts the message *)
     Axiom encrypt_message :
@@ -981,7 +979,7 @@ Section Encryption.
     
    
     
-    Inductive ECount (bs : list eballot) (grp : Group) : EState -> Type :=
+    Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
     | ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
            (decm : cand -> cand -> plaintext)
            (zkp : cand -> cand -> string) :
@@ -989,13 +987,13 @@ Section Encryption.
         (forall c d : cand, decm c d = 0) -> 
         (forall c d, verify_zero_knowledge_decryption_proof
                   grp (decm c d) (encm c d) (zkp c d) = true) ->
-        ECount bs grp (epartial (us, []) encm). 
+        ECount grp bs (epartial (us, []) encm). 
     
     Lemma ecount_all_ballot :
-      forall (bs : list eballot) (grp : Group), existsT encm, ECount bs grp (epartial (bs, []) encm).
+      forall (grp : Group) (bs : list eballot), existsT encm, ECount grp bs (epartial (bs, []) encm).
     Proof. 
       intros.  exists (fun c d => encrypt_message grp 0).
-      pose proof (ecax bs grp bs (fun c d => encrypt_message grp 0)
+      pose proof (ecax grp bs bs (fun c d => encrypt_message grp 0)
                        (fun c d => 0)
                        (fun c d => construct_zero_knowledge_decryption_proof
                                   grp privatekey (encrypt_message grp 0))
@@ -2001,7 +1999,7 @@ Section Encryption.
 
 
    
-   
+End ECount.   
       
    
   
@@ -2011,7 +2009,7 @@ Section Encryption.
     
 End Encryption.
 
-
+Check ecount_all_ballot.
 
 Section Candidate.
 
@@ -2033,54 +2031,12 @@ Section Candidate.
   Lemma cand_not_empty : cand_all <> nil.
   Proof. unfold cand_all. intros H. inversion H.
   Qed.
-
-  (*
-  Inductive KPub : Type :=
-  | pubkey : Z -> KPub.
-
-  Inductive KPriv : Type :=
-  | prikey : Z -> KPriv. 
-
-  Check schulze_winners.
-  
-  Definition b1 : ballot cand :=
-    fun c d => match c, d with
-               | A, A => 0
-               | A, B => 1
-               | B, B => 0
-               | B, A => 0
-               end.
-
-
-  Definition e1 : eballot cand :=
-    fun c d => match c, d with
-               | A, A => (0, 0)
-               | A, B => (1, 0)
-               | B, B => (0, 0)
-               | B, A => (0, 0)
-               end.
-  
-  
-  Definition enc  (v : Pubkey) (b : ballot cand) := e1.
-  Definition dec  (v : Prikey) (e : eballot cand) := b1.
-
-  Definition dummy_fun (e : eballot cand) := (e, 0).
-  Definition add_enc_marging (m : cand -> cand -> ciphertext) (e : eballot cand) :=
-    fun c d : cand => match (m c d), (e c d) with
-                      | (f, _), (s, _) => (f + s, 0)
-                      end.
-  
-  Definition Schulze_all :=
-    (schulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty 0 0
-    enc dec dummy_fun add_enc_marging).
-  
-
-  Check Schulze_all.
-  Definition bs := [e1; e1; e1; e1; e1].
-
-  Definition schulze_win := Schulze_all bs. *)
   
 End Candidate.
-
+(* 
 Definition eschulze_winners_pf :=
-  pschulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
+  pschulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty. *)
+
+Definition unicrypt_encryption_library_call :=
+  ecount_all_ballot cand (group prime gen publickey).
+
