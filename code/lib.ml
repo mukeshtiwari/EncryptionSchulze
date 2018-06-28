@@ -22,6 +22,8 @@ object
         method [@static] encrypt_message_ocaml : string -> string -> string -> string -> string = "encryptMessage"
         (* Prime, generator, privatekey, pubkey, ciphertext, and returns zero knowledge proof string *)
         method [@static] generate_decryption_zero_knowledge_ocaml : string -> string -> string -> string -> string -> string = "constructDecryptionZeroKnowledgeProof"
+        (* prime, generator, publickey, zeroknowledge, message, ciphertext returns bool *)
+        method [@static] verify_decryption_zero_knowledge_ocaml : string -> string -> string -> string -> string -> string -> bool = "verifyDecryptionZeroKnowledgeProof"
 end
 
 
@@ -99,10 +101,10 @@ type 'cand eCount =
     group -> 'a1 eballot list -> ('a1 -> 'a1 -> ciphertext, 'a1 eCount) sigT **)
 
 let ecount_all_ballot grp bs =
-  ExistT ((fun _ _ -> encrypt_message grp Big.zero), (Ecax (bs, (fun _ _ ->
-    encrypt_message grp Big.zero), (fun _ _ -> Big.zero), (fun _ _ ->
-    construct_zero_knowledge_decryption_proof grp privatekey
-      (encrypt_message grp Big.zero)))))
+  let encm = encrypt_message grp Big.zero in 
+  ExistT ((fun _ _ -> encm), (Ecax (bs, (fun _ _ ->
+    encm), (fun _ _ -> Big.zero), (fun _ _ ->
+    construct_zero_knowledge_decryption_proof grp privatekey encm))))
 
 type cand =
 | A
@@ -150,7 +152,7 @@ let show_ballot f =
   String.concat " " (List.map (fun (c, d) -> show_help f c d) (cross_prod_orig cand_all))
 
 let show_enc_pair (f, s) = 
-        "(" ^ Big.to_string f ^ ", " ^ Big.to_string s ^ ")"
+        "(" ^ Big.to_string f ^ "," ^ Big.to_string s ^ ")"
 
 let show_enc_help f c d = show_cand c ^ show_cand d ^ show_enc_pair (f c d)
 
@@ -195,11 +197,20 @@ let show_zkp v =
           " "
           (List.map (fun (x, y) -> "(" ^ (cl2s (v x y)) ^")") (cross_prod_orig  cand_all))
       ^ "]"
- 
+
+let string_cipher (f, s) = Big.to_string f ^ "," ^ Big.to_string s
+
+let show_bool = function 
+  | true -> "true"
+  | false -> "false"
+
+let verify_decryption_zero (Group (prime, gen, pubkey)) encm dm v =
+   List.map (fun (x, y) -> show_bool (Crypto_java.verify_decryption_zero_knowledge_ocaml prime gen pubkey (cl2s (v x y)) (Big.to_string (dm x y)) (string_cipher (encm x y)))) (cross_prod_orig cand_all)   
 
 let show_count l =
   let rec show_count_aux acc = function 
-  | Ecax (_, m, dm, v) -> (underline ("M: " ^ show_enc_marg m ^ ", Decrypted margin " ^ show_marg dm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ show_zkp v)) :: acc 
+  | Ecax (_, m, dm, v) -> (underline ("M: " ^ show_enc_marg m ^ ", Decrypted margin " ^ show_marg dm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ show_zkp v ^ 
+           ", Verification of Zero Knowledge Proof " ^ (String.concat "," (verify_decryption_zero (Group (prime0, gen, publickey)) m dm v)))) :: acc 
   in show_count_aux [] l   
 
 (* Main function *)
