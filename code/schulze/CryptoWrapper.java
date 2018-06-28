@@ -110,11 +110,16 @@ public class CryptoWrapper {
              		Function g  = GeneratorFunction.getInstance(generator);
              		Function c1  = GeneratorFunction.getInstance(c.getFirst());
  			EqualityPreimageProofSystem equalityPreimageProofSystem = EqualityPreimageProofSystem.getInstance(g, c1); 
- 			Pair publicInput = Pair.getInstance(group.power(generator, privatekey), partialDecryption);
+ 			Pair publicInput = Pair.getInstance(publickey /*group.power(generator, privatekey)*/, partialDecryption);
  			//Construct Proof
  			Triple s = equalityPreimageProofSystem.generate(privatekey, publicInput);
- 			// System.out.println(equalityPreimageProofSystem.verify(s, publicInput));
- 			return s.toString();
+ 			Tuple t = (Tuple) s.getFirst();
+ 			String fs = t.getFirst().convertToBigInteger().toString();
+ 			String ss = t.getLast().convertToBigInteger().toString();
+ 			String th = s.getAt(1).convertToBigInteger().toString();
+ 			String fo = s.getAt(2).convertToBigInteger().toString();	
+			
+			return fs + "," + ss + "," + th + "," + fo;
              	}
              	catch(UniCryptException e)
              	{ 
@@ -122,11 +127,44 @@ public class CryptoWrapper {
              	}		
 	}
 
-	public static boolean verifyDecryptionZeroKnowledgeProof(String safeprime, String gen, String pubkey, String mess, String cipertext, String zkp)
-	{
-		return true;
-	}
 
+	 public static boolean verifyDecryptionZeroKnowledgeProof(String safeprime, 
+			 String gen, String pubkey, String proof, String message, String ciphertext)
+	 {
+		GStarModPrime group = groupFromSafePrime(safePrimeFromString(safeprime));
+         	GStarModElement generator = generatorFromString (group, gen);
+         	ElGamalEncryptionScheme elGamal = encryptionSchemeFromGroupGenerator(generator);
+         	GStarModElement publickey = generatePublicKeyFromString(group, pubkey);
+         	String[] prooflist = proof.split(",");
+         	BigInteger a = new BigInteger(prooflist[0]);
+         	BigInteger b = new BigInteger(prooflist[1]);
+         	BigInteger c = new BigInteger(prooflist[2]);
+         	BigInteger d = new BigInteger(prooflist[3]);
+         	Pair p = Pair.getInstance(group.getElement(a), group.getElement(b));
+         	Triple proofdata = Triple.getInstance(p, group.getZModOrder().getElement(c),
+        		 group.getZModOrder().getElement(d));
+        	// System.out.println("proofdata" + proofdata.toString());
+         	String[] ct = ciphertext.split(",");
+         	try 
+         	{
+        		Tuple cp = elGamal.getEncryptionSpace().getElementFrom(new BigInteger(ct[0]), 
+        				 new BigInteger(ct[1]));
+        	 	Element encodedMessage = group.power(generator, new BigInteger(message));
+             		GStarModElement partialDecryption = (GStarModElement) cp.getLast();	
+             		partialDecryption = partialDecryption.applyInverse(encodedMessage);
+             		Function g  = GeneratorFunction.getInstance(generator);
+             		Function c1  = GeneratorFunction.getInstance(cp.getFirst());
+ 			EqualityPreimageProofSystem equalityPreimageProofSystem = EqualityPreimageProofSystem.getInstance(g, c1); 
+ 			Pair publicInput = Pair.getInstance(publickey, partialDecryption);
+ 			return equalityPreimageProofSystem.verify(proofdata, publicInput); 
+         	}
+         	catch(UniCryptException e)
+         	{
+        	 	System.out.println("Something went wrong in proof verification");
+        	 	return false;
+         	}
+		 
+	 }
         // This function would return the g^m and pass it throw the descrete log to get m
 	public static String decryptCiphertext(String safeprime, String gen, String prikey, String pubkey, String ciphertext)
      	{
@@ -150,31 +188,50 @@ public class CryptoWrapper {
      	}	
 	// Main method to test the code 
 	public static void main(String[] args) {
-		GStarModPrime groupstr = groupFromSafePrime(safePrimeFromString("170141183460469231731687303715884114527"));
-		GStarModElement generatorstr = generatorFromString (groupstr, "4");
+                String safeprime = "170141183460469231731687303715884114527";
+		String gen = "4";
+		String publickey = "49228593607874990954666071614777776087";
+		String privatekey = "60245260967214266009141128892124363925";
+		GStarModPrime groupstr = groupFromSafePrime(safePrimeFromString(safeprime));
+		GStarModElement generatorstr = generatorFromString (groupstr, gen);
 		ElGamalEncryptionScheme elGamalstr = encryptionSchemeFromGroupGenerator(generatorstr);
-		GStarModElement publickeystr = generatePublicKeyFromString(groupstr, "49228593607874990954666071614777776087");
-		ZModElement privatekeystr = generatePrivateKeyFromString(groupstr, "60245260967214266009141128892124363925");
-	        String ciphertext = encryptMessage("170141183460469231731687303715884114527", 
-				"4", "49228593607874990954666071614777776087", "1");
-		String zeroknowledge = constructDecryptionZeroKnowledgeProof("170141183460469231731687303715884114527", 
-				"4", "60245260967214266009141128892124363925", 
-				"49228593607874990954666071614777776087", 
-				"26361901114993279192003564171198272815,96243812141899119673335679145128031767");		
-		
-		String plaintext = decryptCiphertext ("170141183460469231731687303715884114527",
-	    		"4", "60245260967214266009141128892124363925", "49228593607874990954666071614777776087", 
+		GStarModElement publickeystr = generatePublicKeyFromString(groupstr, publickey);
+		ZModElement privatekeystr = generatePrivateKeyFromString(groupstr, privatekey);
+		String ciphertext = encryptMessage(safeprime, gen, publickey, "1");
+		String zeroknowledge = constructDecryptionZeroKnowledgeProof(safeprime, 
+				gen, privatekey, 
+				publickey, 
+				ciphertext);
+	    	String plaintext = decryptCiphertext (safeprime,
+	    		gen, privatekey, publickey, 
 	    		ciphertext);
+	    	boolean b = verifyDecryptionZeroKnowledgeProof(
+	    		safeprime,
+	    		gen,
+	    		publickey,
+	    		zeroknowledge,
+	    		"1",
+	    		ciphertext);
+	    	/* Try to cheat and see if you can get away */
+		boolean cheat = verifyDecryptionZeroKnowledgeProof(
+				safeprime,
+				gen,
+				publickey,
+				zeroknowledge,
+				"2",
+				ciphertext); // The ciphertext in encryption of 1
+	    		
+	    		
 		System.out.println(groupstr.toString());
 		System.out.println(generatorstr.toString());
 		System.out.println(elGamalstr.toString()); 
 		System.out.println(publickeystr.toString());
 		System.out.println(privatekeystr.toString());
-                System.out.println(ciphertext);
-                System.out.println(zeroknowledge);
-		System.out.println(plaintext);		
-                
-
+		System.out.println(ciphertext);
+		System.out.println(zeroknowledge);
+		System.out.println(plaintext);
+		System.out.println(b); 
+		System.out.println(cheat);
 	}
 
 }

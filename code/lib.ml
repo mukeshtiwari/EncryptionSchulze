@@ -193,7 +193,7 @@ let cl2s cl = String.concat "" (List.map (String.make 1) cl)
 let show_zkp v =
     "[" ^ String.concat
           " "
-          (List.map (fun (x, y) -> (cl2s (v x y))) (cross_prod_orig  cand_all))
+          (List.map (fun (x, y) -> "(" ^ (cl2s (v x y)) ^")") (cross_prod_orig  cand_all))
       ^ "]"
  
 
