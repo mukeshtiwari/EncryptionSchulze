@@ -165,20 +165,26 @@ public class CryptoWrapper {
          	}
 		 
 	 }
-        // This function would return the g^m and pass it throw the descrete log to get m
-	public static String decryptCiphertext(String safeprime, String gen, String prikey, String pubkey, String ciphertext)
+
+	// Write baby step giant step algorithm or Pollard Rho method to compute discrete logarithm
+	 public static BigInteger dLog(GStarModElement generator, Element<BigInteger> element) {
+			BigInteger dlog = BigInteger.valueOf(IntStream.iterate(0, i -> i+1).filter(i -> generator.power(i).getValue().equals(element.getValue())).findFirst().getAsInt());
+			return dlog;
+	}	
+
+        // This function calls dLog to compute discrete logarithm 
+	public static String decryptCiphertext(String safeprime, String gen, String prikey, String ciphertext)
      	{
              GStarModPrime group = groupFromSafePrime(safePrimeFromString(safeprime));
              GStarModElement generator = generatorFromString (group, gen);
              ElGamalEncryptionScheme elGamal = encryptionSchemeFromGroupGenerator(generator);
-             GStarModElement publickey = generatePublicKeyFromString(group, pubkey);
              ZModElement privatekey = generatePrivateKeyFromString(group, prikey);
              String[] ct = ciphertext.split(",");
              try {
                      Tuple c = elGamal.getEncryptionSpace().getElementFrom(new BigInteger(ct[0]),
                               new BigInteger(ct[1]));
                      Element encodedMessage = elGamal.decrypt(privatekey, c); 
-                     return encodedMessage.convertToBigInteger().toString();
+                     return dLog(generator, encodedMessage).toString();
                  }
              catch(UniCryptException e)
              { 
@@ -203,7 +209,7 @@ public class CryptoWrapper {
 				publickey, 
 				ciphertext);
 	    	String plaintext = decryptCiphertext (safeprime,
-	    		gen, privatekey, publickey, 
+	    		gen, privatekey, 
 	    		ciphertext);
 	    	boolean b = verifyDecryptionZeroKnowledgeProof(
 	    		safeprime,
@@ -220,6 +226,9 @@ public class CryptoWrapper {
 				zeroknowledge,
 				"2",
 				ciphertext); // The ciphertext in encryption of 1
+		String zero = decryptCiphertext (safeprime,
+                        gen, privatekey,
+                        "23076873006426576070214645655013661749,153595722652429578316819664468069947048");
 	    		
 	    		
 		System.out.println(groupstr.toString());
@@ -228,10 +237,11 @@ public class CryptoWrapper {
 		System.out.println(publickeystr.toString());
 		System.out.println(privatekeystr.toString());
 		System.out.println(ciphertext);
-		System.out.println(zeroknowledge);
 		System.out.println(plaintext);
+		System.out.println(zeroknowledge);
 		System.out.println(b); 
 		System.out.println(cheat);
+		System.out.println(zero);
 	}
 
 }
