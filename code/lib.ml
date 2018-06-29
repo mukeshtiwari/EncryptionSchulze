@@ -210,7 +210,7 @@ let verify_decryption_zero (Group (prime, gen, pubkey)) encm dm v =
 let show_count l =
   let rec show_count_aux acc = function 
   | Ecax (_, m, dm, v) -> (underline ("M: " ^ show_enc_marg m ^ ", Decrypted margin " ^ show_marg dm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ show_zkp v ^ 
-           ", Verification of Zero Knowledge Proof " ^ (String.concat "," (verify_decryption_zero (Group (prime0, gen, publickey)) m dm v)))) :: acc 
+           ", Verification of Zero Knowledge Proof [" ^ (String.concat "," (verify_decryption_zero (Group (prime0, gen, publickey)) m dm v)) ^ "]")) :: acc 
   in show_count_aux [] l   
 
 (* Main function *)
@@ -222,6 +222,7 @@ let cc c =
   | _ -> failwith "more candidate"
 
 
+(*
 let balfun l = 
    match l with
    | [(A, A, b1); (A, B, b2); (A, C, b3); (B, A, b4); (B, B, b5); (B, C, b6); (C, A, b7); (C, B, b8); (C, C, b9)] -> 
@@ -239,6 +240,23 @@ let balfun l =
       in  f
    | _ -> failwith "failed to match pattern" 
 
+*)
+(* use the same trick in coq for converting between list and function closure *)
+let cand_eq x y = 
+        match x, y with 
+        | A, A -> true
+        | B, B -> true
+        | C, C -> true 
+        | _, _ -> false
+
+let rec bal_find c d = function
+        | [] -> failwith "error "
+        | (x, y, value) :: rest ->
+                        if cand_eq c x && cand_eq d y then value
+                        else bal_find c d rest
+
+let balfun l = fun c d -> 
+    bal_find c d l
 
 let map f l =
   let rec map_aux acc = function
