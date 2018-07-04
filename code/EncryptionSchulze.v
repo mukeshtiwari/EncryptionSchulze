@@ -152,11 +152,11 @@ Section Encryption.
         | _, _ => linear_search c d t
         end
       end.
-
+ 
 
     Theorem equivalent_m : forall c d m, linear_search c d (listify m) = m c d.
     Proof.
-      unfold listify. intros c d m.
+      unfold listify.  intros c d m.
       assert (H1 : forall c1 c2, In (c1, c2) (all_pairs cand_all)).
       intros c1 c2. apply in_pairs; auto.
       specialize (H1 c d).
@@ -919,6 +919,7 @@ Section Encryption.
     Definition eballot := cand -> cand -> ciphertext.
    
     
+    
 
    
 
@@ -972,40 +973,252 @@ Section Encryption.
           grp pt ct
           (construct_zero_knowledge_decryption_proof grp privatekey ct) = true.
     
-
+    
+    
     Inductive EState : Type :=
     | epartial : (list eballot * list eballot) ->
-                 (cand -> cand -> ciphertext) -> EState.
+                 (cand -> cand -> ciphertext) -> EState
+    | edecrypt : (cand -> cand -> plaintext) -> EState
+    | ewinners : (cand -> bool) -> EState.
     
+    Axiom Permutation : Type.
+    Axiom Commitment : Type.
+    Axiom ZKP : Type.
+    Axiom S : Type. (* This is kind of awkward but needed because we are 
+       returning S from generatePermutation function *)
+
+    (* The idea is for each ballot u, we are going to count 
+       we generate pi, cpi, and zkpcpi. We call row permute function 
+       u and pi and it returns v. Then We call column permutation 
+       on v and pi and it returns w. We decryp w as b with zero knowledge
+       proof. *)
+
+    (* We call a java function which returns permutation*)
+    Axiom generatePermutation :
+      Group -> (* group *)
+      nat -> (* length  *)
+      Permutation.  
+
+    (* Pass the permutation and it returns commitment and S. The S here is bit 
+       awkward but it is need when generating zero knowledge proof of commitment *)
+    Axiom generatePermutationCommitment :
+      Group -> (* group *)
+      nat -> (* length *) 
+      Permutation -> (* pi *)
+      Commitment * S. (* cp and s *)
+
+    (* This function takes Permutation Commitment and S and returns ZKP *)
+    Axiom zkpPermutationCommitment :
+      Group -> (* group *)
+      nat -> (* length *)
+      Permutation -> (* pi *)
+      Commitment -> (* cpi *)
+      S -> (* randomness *)
+      ZKP.
+      
+    Axiom verify_permutation_commitment :
+      Group -> (* group *)
+      nat -> (* length *)
+      Commitment -> (* cpi *)
+      ZKP -> (* zero knowledge proof *)
+      bool. (* pcps.verify offlineProof offlinePublicInpu *)
+
+    Axiom permutation_commitment_axiom :
+      forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
+        (zkppermcommit : ZKP) (H : pi = generatePermutation grp (List.length cand_all))
+        (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
+        (H2 : zkppermcommit = zkpPermutationCommitment
+                                grp (List.length cand_all) pi cpi s),
+        verify_permutation_commitment grp (List.length cand_all)
+                                      cpi zkppermcommit = true.
    
+    Axiom homomorphic_addition :
+      Group -> ciphertext -> ciphertext -> ciphertext.
+
+    (* Property of Homomorphic addition *)
+    Axiom homomorphic_addition_axiom :
+      forall (grp : Group) (c d : cand) (u m : eballot),
+      decrypt_message grp privatekey (homomorphic_addition grp (u c d) (m c d)) =
+      decrypt_message grp privatekey (u c d) + decrypt_message grp privatekey (m c d).
+
+
+    Definition eballot_to_list_ciphertext (e : eballot) :=
+      List.map (fun pr => (fst pr, snd pr, e (fst pr) (snd pr))) (all_pairs cand_all).
+
+    Definition pballot_to_list_plaintext (p : pballot) :=
+      List.map (fun pr => (fst pr, snd pr, p (fst pr) (snd pr))) (all_pairs cand_all).
+
+    (* Write a function which change list_of_ciphertext into eballot data structure. *)
+
+    Theorem list_ciphertext_to_eballot :
+      forall (l : list (cand * cand * ciphertext))
+        (H : map fst l = all_pairs cand_all), cand -> cand -> ciphertext.
+    Proof.
+      intros l H c d. 
+      pose proof (all_pairsin c d cand_all (cand_fin c) (cand_fin d)).
+      rewrite <- H in H0.
+    Admitted.
+     
+         
+    Axiom R : Type.
+   
+    (* eballot is cand -> cand -> ciphertext. Convert this into list ciphertext *)
+    Axiom row_shuffle :
+      Group -> (* group *)
+      nat -> (* length *)
+      list ciphertext -> (* ciphertext *)
+      Permutation -> (* pi *)
+      list ciphertext * R. (* shuffled ciphertext with randomness used for constructing zkp *)
+
+    Axiom row_shuffle_zkp :
+      Group -> (* group *)
+      nat -> (* length *)
+      list ciphertext -> (* cipertext *)
+      list ciphertext -> (* shuffle cipertext *)
+      Permutation -> (* pi *)
+      Commitment -> (* cpi *)
+      S -> (* s, permutation commitment randomness *)
+      R -> (* r, shuffle randomness *)
+      ZKP. (* zero knowledge proof of shuffle *) 
+
+    (* verify shuffle *)
+    Axiom verify_row_shuffle:
+      Group -> (* group *)
+      nat -> (* length *)
+      list ciphertext -> (* cipertext *)
+      list ciphertext -> (* shuffled cipertext *)
+      Commitment -> (* permutation commitment *)
+      ZKP -> (* zero knowledge proof of shuffle *)
+      bool. (* true or false *)
+
+    Axiom verify_row_shuffle_axiom :
+      forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S) (cp : list ciphertext)
+        (shuffledcp : list ciphertext) (r : R) (zkprowshuffle : ZKP)
+        (H : pi = generatePermutation grp (List.length cand_all))
+        (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
+        (H2 : (shuffledcp, r) = row_shuffle grp (List.length cand_all)
+                                            cp pi)
+        (H3 : zkprowshuffle = row_shuffle_zkp grp (List.length cand_all)
+                                              cp shuffledcp pi cpi s r),
+        verify_row_shuffle grp (List.length cand_all)
+                           cp shuffledcp cpi zkprowshuffle = true.
+        
+        
+   
+    (* this function takes group, length, cipertext, permutation and 
+       returns column permuted ciphertext with randomness R *)
+    Axiom col_shuffle :
+      Group -> nat -> list ciphertext -> Permutation -> list ciphertext * R.
+
+ 
+           
+           
+           
+           
+                
+                
+                
+      
+                                                                          
+                                                                      
+  
+
+    Axiom homomorphic_add : Group -> ciphertext -> ciphertext -> ciphertext.
+
+    Axiom row_shuffle_axiom :
+      forall (u : eballot) (pi : Permutation) (cpi : Commitment)
+        (s : S) 
+      verify_row_permutation_ballot (u : eballot)
+          fst (rowShuffle grp cand_all u pi cpi s (length cand_all))
+          cpi
+          snd (rowShuffle grp cand_all u pi cpi s (length cand_all)) = true.
     
+     (* A ballot is valid if all the entries are either 0 or 1 and 
+        there is no cycle in ballot *)
+    Definition matrix_ballot_valid (p : pballot) :=
+      (forall c d : cand, In (p c d) [0; 1]) /\
+      valid cand (fun c d => p c d = 1).
+
+    Definition convert_eballot_to_list := True.
     Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
     | ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
            (decm : cand -> cand -> plaintext)
-           (zkp : cand -> cand -> string) :
+           (zkpdec : cand -> cand -> string) :
         us = bs ->
         (forall c d : cand, decm c d = 0) -> 
+        (forall c d, verify_zero_knowledge_decryption_proof 
+                  grp (decm c d) (encm c d) (zkpdec c d) = true) ->
+        ECount grp bs (epartial (us, []) encm)
+    | ecvalid (u : eballot) (v : eballot) (w : eballot)
+              (b : pballot) (zkppermuv : list ZKP)
+              (zkppermvw : list ZKP) (zkpdecw : cand -> cand -> string)
+              (pi : Permutation)
+              (cpi : Commitment) (zkpcpi : ZKP)
+              (us : list eballot) (m nm : cand -> cand -> ciphertext)
+              (inbs : list eballot) :
+        ECount grp bs (epartial (u :: us, inbs) m) ->
+        matrix_ballot_valid b ->
+        verify_permutation_commitment cpi zkpcpi = true (* commitment proof *) ->
+        verify_row_permutation_ballot u v cpi zkppermuv = true (* cipher shuffled cpi zkp *) ->
+        verify_col_permutation_ballot v w cpi zkppermvw = true (* cipher shuffled cpi zkp *) ->
+        (forall c d, verify_zero_knowledge_decryption_proof 
+                  grp (b c d) (w c d) (zkpdecw c d) = true) (* b is honest decryption of w *) ->
+        (forall c d, nm c d = homomorphic_add (u c d) (m c d)) -> 
+        ECount grp bs (epartial (us, inbs) nm)
+    | ecinvalid (u : eballot) (v : eballot) (w : eballot)
+              (b : pballot) (zkppermuv : list ZKP)
+              (zkppermvw : list ZKP) (zkpdecw : cand -> cand -> string)
+              (pi : Permutation)
+              (cpi : Commitment) (zkpcpi : ZKP)
+              (us : list eballot) (m : cand -> cand -> ciphertext)
+              (inbs : list eballot) :
+        ECount grp bs (epartial (u :: us, inbs) m) ->
+        ~matrix_ballot_valid b ->
+        verify_permutation_commitment cpi zkpcpi = true (* commitment proof *) ->
+        verify_row_permutation_ballot u v cpi zkppermuv = true (* cipher shuffled cpi zkp *) ->
+        verify_col_permutation_ballot v w cpi zkppermvw = true (* cipher shuffled cpi zkp *) ->
+        (forall c d, verify_zero_knowledge_decryption_proof 
+                  grp (b c d) (w c d) (zkpdecw c d) = true) (* b is honest decryption of w *) ->
+        ECount grp bs (epartial (us, (u :: inbs)) m)
+    | ecdecrypt inbs (encm : cand -> cand -> ciphertext)
+                (decm : cand -> cand -> plaintext)
+                (zkp : cand -> cand -> string) :
+        ECount grp bs (epartial ([], inbs) encm) ->
         (forall c d, verify_zero_knowledge_decryption_proof
                   grp (decm c d) (encm c d) (zkp c d) = true) ->
-        ECount grp bs (epartial (us, []) encm). 
+        ECount grp bs (edecrypt decm)
+    | ecfin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
+        ECount grp bs (edecrypt dm) ->
+        (forall c, w c = true <-> (exists x, d c = inl x)) ->
+        (forall c, w c = false <-> (exists x, d c = inr x)) ->
+        ECount grp bs (ewinners w).  
+    
+        
+
     
     Lemma ecount_all_ballot :
       forall (grp : Group) (bs : list eballot), existsT encm, ECount grp bs (epartial (bs, []) encm).
-    Proof. 
-      intros.  exists (fun c d => encrypt_message grp 0).
-      pose proof (ecax grp bs bs (fun c d => encrypt_message grp 0)
+    Proof.
+      intros.
+      remember (encrypt_message grp 0) as encm. exists (fun c d => encm).
+      pose proof (ecax grp bs bs (fun c d => encm)
                        (fun c d => 0)
                        (fun c d => construct_zero_knowledge_decryption_proof
-                                  grp privatekey (encrypt_message grp 0))
-                       eq_refl (fun c d => eq_refl)
-                       (fun _ _ : cand =>
-                          verify_true grp 0 (encrypt_message grp 0) privatekey
-                                      (let H : 0 = decrypt_message
-                                                     grp privatekey (encrypt_message grp 0) :=
-                                           eq_sym (decryption_deterministic grp privatekey 0) in
-                                       H))). auto. 
+                                  grp privatekey encm)
+                       eq_refl (fun c d => eq_refl)).
+      assert (forall c d : cand,
+                 verify_zero_knowledge_decryption_proof
+                   grp ((fun _ _ : cand => 0) c d)
+                   ((fun _ _ : cand => encm) c d)
+                   ((fun _ _ : cand =>
+                       construct_zero_knowledge_decryption_proof grp privatekey encm) c d) =
+                 true).
+      intros. apply verify_true.
+      symmetry. rewrite Heqencm. apply decryption_deterministic.
+      pose proof (X H). auto.
     Qed.
-    
+
+ 
     
  
     (*
