@@ -50,6 +50,18 @@ Proof.
     apply IHl. assumption. assumption.
   }
 Qed.
+
+Theorem length_all_pairs :
+  forall (A : Type) (l : list A), length (all_pairs l)  = (length l * length l)%nat.
+Proof.
+  intros A l. induction l. simpl. auto.
+  simpl. apply f_equal. repeat (rewrite app_length).
+  repeat (rewrite map_length). rewrite IHl.
+  remember (length l) as n. rewrite Nat.mul_succ_r.
+  omega.
+Qed.
+
+
 (* maxlist return the maximum number in list l. 0 in case of empty list *)
 Fixpoint maxlist (l : list Z) : Z :=
   match l with

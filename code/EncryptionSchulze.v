@@ -1041,25 +1041,32 @@ Section Encryption.
       decrypt_message grp privatekey (homomorphic_addition grp (u c d) (m c d)) =
       decrypt_message grp privatekey (u c d) + decrypt_message grp privatekey (m c d).
 
-
+    (* This part is for data structure conversion *)
     Definition eballot_to_list_ciphertext (e : eballot) :=
       List.map (fun pr => (fst pr, snd pr, e (fst pr) (snd pr))) (all_pairs cand_all).
 
     Definition pballot_to_list_plaintext (p : pballot) :=
       List.map (fun pr => (fst pr, snd pr, p (fst pr) (snd pr))) (all_pairs cand_all).
 
+    
     (* Write a function which change list_of_ciphertext into eballot data structure. *)
 
     Theorem list_ciphertext_to_eballot :
       forall (l : list (cand * cand * ciphertext))
-        (H : map fst l = all_pairs cand_all), cand -> cand -> ciphertext.
+        (H : map fst l = all_pairs cand_all) (c d : cand), 
+        existsT (v : ciphertext), In (c, d, v) l.
     Proof.
       intros l H c d. 
       pose proof (all_pairsin c d cand_all (cand_fin c) (cand_fin d)).
       rewrite <- H in H0.
-    Admitted.
-     
-         
+      induction l. admit.
+      simpl in H0. simpl.
+      Admitted.
+
+    (* end of data structure *)
+
+    
+    (* Start of Shuffle code *)     
     Axiom R : Type.
    
     (* eballot is cand -> cand -> ciphertext. Convert this into list ciphertext *)
@@ -1069,7 +1076,7 @@ Section Encryption.
       list ciphertext -> (* ciphertext *)
       Permutation -> (* pi *)
       list ciphertext * R. (* shuffled ciphertext with randomness used for constructing zkp *)
-
+    
     Axiom row_shuffle_zkp :
       Group -> (* group *)
       nat -> (* length *)
@@ -1103,35 +1110,55 @@ Section Encryption.
         verify_row_shuffle grp (List.length cand_all)
                            cp shuffledcp cpi zkprowshuffle = true.
         
-        
+    (* Note: We need some data structure conversion between function closure and 
+       list data structure *)    
    
-    (* this function takes group, length, cipertext, permutation and 
-       returns column permuted ciphertext with randomness R *)
+    (* same for column and most probably we don't need this because we can abstract row_shuffle and 
+       and col_shuffle in one function, but for the moment just keep it *)
+      (* eballot is cand -> cand -> ciphertext. Convert this into list ciphertext *)
     Axiom col_shuffle :
-      Group -> nat -> list ciphertext -> Permutation -> list ciphertext * R.
+      Group -> (* group *)
+      nat -> (* length *)
+      list ciphertext -> (* ciphertext *)
+      Permutation -> (* pi *)
+      list ciphertext * R. (* shuffled ciphertext with randomness used for constructing zkp *)
+    
+    Axiom col_shuffle_zkp :
+      Group -> (* group *)
+      nat -> (* length *)
+      list ciphertext -> (* cipertext *)
+      list ciphertext -> (* shuffle cipertext *)
+      Permutation -> (* pi *)
+      Commitment -> (* cpi *)
+      S -> (* s, permutation commitment randomness *)
+      R -> (* r, shuffle randomness *)
+      ZKP. (* zero knowledge proof of shuffle *) 
 
- 
-           
-           
-           
-           
-                
-                
-                
-      
-                                                                          
-                                                                      
-  
+    (* verify shuffle *)
+    Axiom verify_col_shuffle:
+      Group -> (* group *)
+      nat -> (* length *)
+      list ciphertext -> (* cipertext *)
+      list ciphertext -> (* shuffled cipertext *)
+      Commitment -> (* permutation commitment *)
+      ZKP -> (* zero knowledge proof of shuffle *)
+      bool. (* true or false *)
 
-    Axiom homomorphic_add : Group -> ciphertext -> ciphertext -> ciphertext.
+    Axiom verify_col_shuffle_axiom :
+      forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S) (cp : list ciphertext)
+        (shuffledcp : list ciphertext) (r : R) (zkpcolshuffle : ZKP)
+        (H : pi = generatePermutation grp (List.length cand_all))
+        (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
+        (H2 : (shuffledcp, r) = col_shuffle grp (List.length cand_all) cp pi)
+        (H3 : zkpcolshuffle = col_shuffle_zkp grp (List.length cand_all)
+                                              cp shuffledcp pi cpi s r),
+        verify_col_shuffle grp (List.length cand_all)
+                           cp shuffledcp cpi zkpcolshuffle = true.
 
-    Axiom row_shuffle_axiom :
-      forall (u : eballot) (pi : Permutation) (cpi : Commitment)
-        (s : S) 
-      verify_row_permutation_ballot (u : eballot)
-          fst (rowShuffle grp cand_all u pi cpi s (length cand_all))
-          cpi
-          snd (rowShuffle grp cand_all u pi cpi s (length cand_all)) = true.
+    (* At this point, I am certain that we don't need separate code for row
+       and column shuffle. Focus on data strucutre conversion *)
+                    
+                                                         
     
      (* A ballot is valid if all the entries are either 0 or 1 and 
         there is no cycle in ballot *)
@@ -1139,7 +1166,70 @@ Section Encryption.
       (forall c d : cand, In (p c d) [0; 1]) /\
       valid cand (fun c d => p c d = 1).
 
-    Definition convert_eballot_to_list := True.
+    Lemma dec_pballot :
+      forall (p : pballot), 
+        {forall c d : cand, In (p c d) [0; 1]} +
+        {~(forall c d : cand, In (p c d) [0; 1])}.
+    Proof.
+    Admitted.
+
+
+    Definition map_ballot_pballot
+               (b : ballot) (p : pballot) :=
+      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d =? 1 
+                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d =? 0
+                      else  if (b d <? b c)%nat && (0 <? b d)%nat then p c d =? 0
+                            else p c d =? -1.
+
+    Lemma pballot_valid_dec :
+      forall b : pballot, {valid cand (fun c d => b c d = 1)} +
+                     {~(valid cand (fun c d => b c d = 1))}.
+    Proof.
+      intros b.
+      pose proof (decidable_valid cand (fun c d => b c d = 1) dec_cand).
+      simpl in X. assert (Ht : forall c d : cand, {b c d = 1} + {b c d <> 1}).
+      intros c d. pose proof (Z.eq_dec (b c d) 1). auto.      
+      pose proof (X Ht). unfold finite in X0. apply X0.
+      exists cand_all. assumption.
+    Defined.
+
+    Lemma matrix_ballot_valid_dec :
+        forall p : pballot, {matrix_ballot_valid p} +
+                            {~matrix_ballot_valid p}.
+    Proof.
+      intros p.
+      destruct (dec_pballot p); destruct (pballot_valid_dec p).
+      left. unfold matrix_ballot_valid. intuition.
+      right. unfold matrix_ballot_valid. unfold not. intros.
+      destruct H. pose proof (n H0). auto.
+      right. unfold not. intros; intuition. destruct H.
+      pose proof (n H). auto.
+      right. unfold not. intros. destruct H.
+      pose proof (n H). auto.
+    Defined.
+    
+
+    Definition verify_row_permutation_ballot
+               (u : eballot) (v : eballot)
+               (cpi : Commitment) (zkppermuv : list ZKP) : bool :=
+      (* This function basically transforms eballot to matrix (list (list ciphertext))
+         ulist = [[], [], []], vlist = [[], [], []] and zkpermuv = [zkp1, zkp2,zkp3]
+         and we call verify_row_shuffle with corresponding elements of 
+         ulist, vlist and zkppermuv. If v is row permutation of u by pi (commitment cpi) 
+         and zero knowledge proof of shuffle row_shuffle_zkp then it should return true *)
+      true.
+
+    Definition verify_col_permutation_ballot
+               (v : eballot) (w : eballot)
+               (cpi : Commitment) (zkppermuv  : list ZKP) : bool :=
+      (* Everything like upper function except now 
+         w is column permutation of v. *)
+      true.
+
+    
+    
+ 
+    
     Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
     | ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
            (decm : cand -> cand -> plaintext)
@@ -1152,29 +1242,29 @@ Section Encryption.
     | ecvalid (u : eballot) (v : eballot) (w : eballot)
               (b : pballot) (zkppermuv : list ZKP)
               (zkppermvw : list ZKP) (zkpdecw : cand -> cand -> string)
-              (pi : Permutation)
               (cpi : Commitment) (zkpcpi : ZKP)
               (us : list eballot) (m nm : cand -> cand -> ciphertext)
               (inbs : list eballot) :
         ECount grp bs (epartial (u :: us, inbs) m) ->
         matrix_ballot_valid b ->
-        verify_permutation_commitment cpi zkpcpi = true (* commitment proof *) ->
+        (* commitment proof *)
+        verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true ->
         verify_row_permutation_ballot u v cpi zkppermuv = true (* cipher shuffled cpi zkp *) ->
         verify_col_permutation_ballot v w cpi zkppermvw = true (* cipher shuffled cpi zkp *) ->
         (forall c d, verify_zero_knowledge_decryption_proof 
                   grp (b c d) (w c d) (zkpdecw c d) = true) (* b is honest decryption of w *) ->
-        (forall c d, nm c d = homomorphic_add (u c d) (m c d)) -> 
+        (forall c d, nm c d = homomorphic_addition grp (u c d) (m c d)) -> 
         ECount grp bs (epartial (us, inbs) nm)
     | ecinvalid (u : eballot) (v : eballot) (w : eballot)
               (b : pballot) (zkppermuv : list ZKP)
               (zkppermvw : list ZKP) (zkpdecw : cand -> cand -> string)
-              (pi : Permutation)
               (cpi : Commitment) (zkpcpi : ZKP)
               (us : list eballot) (m : cand -> cand -> ciphertext)
               (inbs : list eballot) :
         ECount grp bs (epartial (u :: us, inbs) m) ->
         ~matrix_ballot_valid b ->
-        verify_permutation_commitment cpi zkpcpi = true (* commitment proof *) ->
+        (* commitment proof *)
+        verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true  ->
         verify_row_permutation_ballot u v cpi zkppermuv = true (* cipher shuffled cpi zkp *) ->
         verify_col_permutation_ballot v w cpi zkppermvw = true (* cipher shuffled cpi zkp *) ->
         (forall c d, verify_zero_knowledge_decryption_proof 
@@ -1218,9 +1308,42 @@ Section Encryption.
       pose proof (X H). auto.
     Qed.
 
- 
-    
- 
+
+     Lemma ppartial_count_all_counted grp bs : forall ts inbs m,
+        ECount grp bs (epartial (ts, inbs) m) -> existsT i nm, (ECount grp bs (epartial ([], i) nm)).
+    Proof.
+      refine (fix F ts {struct ts} :=
+                match ts with
+                | [] => fun inbs m Hc =>
+                          existT _ inbs (existT _ m Hc)
+                | u :: us =>
+                  fun inbs m Hc => _
+                end). 
+     (* The idea is u is valid or not valid which can be shown via u -> (* row permutation *) -> v
+        -> (* colume permutation *) -> w -> (* decryption *) -> b *)
+
+      (* generate permutation *)
+      remember (generatePermutation grp (List.length cand_all)) as pi.
+      (* commit it *)
+      remember (generatePermutationCommitment grp (List.length cand_all) pi) as cpis.
+      destruct cpis as (cpi, s).
+      (* generate zero knowledge proof of commitment *)
+      remember (zkpPermutationCommitment grp (List.length cand_all)
+                                         pi cpi s) as zkpcpi.
+      
+      (* Now row_shuffle *)
+      remember (map (fun x => u x) cand_all) as upart.
+      remember (map (fun f => row_shuffle grp (List.length cand_all)
+                                       (map f cand_all) pi) upart) as rowshuffledwithR.
+      (* collect shuffled text and R *)
+      remember (map fst rowshuffledwithR) as rowshuffled.
+      remember (map snd rowshuffledwithR) as rvalues.
+
+     
+      (* construct zero knowledge proof of shuffle *)
+      
+      
+          
     (*
 
 
