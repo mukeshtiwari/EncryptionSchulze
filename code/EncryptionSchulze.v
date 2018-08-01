@@ -901,7 +901,7 @@ Section Encryption.
 
     
   Require Import Coq.Strings.String.
-  Section ECount.
+  Section ECount. 
 
     (*
     Axiom Plaintext : Type.
@@ -964,7 +964,7 @@ Section Encryption.
        of ciphertext *)
     Axiom verify_zero_knowledge_decryption_proof :
       Group -> plaintext -> ciphertext -> string -> bool.
-
+ 
     
     Axiom verify_true :
       forall (grp : Group) (pt : plaintext) (ct : ciphertext) (privatekey : Prikey)
@@ -1005,7 +1005,7 @@ Section Encryption.
       Group -> (* group *)
       nat -> (* length *) 
       Permutation -> (* pi *)
-      Commitment * S. (* cp and s *)
+      Commitment * S. (* cpi and s *)
 
     (* This function takes Permutation Commitment and S and returns ZKP *)
     Axiom zkpPermutationCommitment :
@@ -1041,6 +1041,7 @@ Section Encryption.
       decrypt_message grp privatekey (homomorphic_addition grp (u c d) (m c d)) =
       decrypt_message grp privatekey (u c d) + decrypt_message grp privatekey (m c d).
 
+    
     (* This part is for data structure conversion *)
     Definition eballot_to_list_ciphertext (e : eballot) :=
       List.map (fun pr => (fst pr, snd pr, e (fst pr) (snd pr))) (all_pairs cand_all).
@@ -1166,6 +1167,7 @@ Section Encryption.
       (forall c d : cand, In (p c d) [0; 1]) /\
       valid cand (fun c d => p c d = 1).
 
+    (* This is decibable *)
     Lemma dec_pballot :
       forall (p : pballot), 
         {forall c d : cand, In (p c d) [0; 1]} +
@@ -1173,7 +1175,9 @@ Section Encryption.
     Proof.
     Admitted.
 
-
+    
+    (* mapping between ballot and pballot. This is to make sure that 
+       when your ballot is valid <-> pballot is valid *)
     Definition map_ballot_pballot
                (b : ballot) (p : pballot) :=
       fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d =? 1 
@@ -1193,6 +1197,7 @@ Section Encryption.
       exists cand_all. assumption.
     Defined.
 
+    (* The decrypted ballot is either valid or not valid *)
     Lemma matrix_ballot_valid_dec :
         forall p : pballot, {matrix_ballot_valid p} +
                             {~matrix_ballot_valid p}.
@@ -1284,7 +1289,7 @@ Section Encryption.
         ECount grp bs (ewinners w).  
     
         
-
+   
     
     Lemma ecount_all_ballot :
       forall (grp : Group) (bs : list eballot), existsT encm, ECount grp bs (epartial (bs, []) encm).
@@ -1309,7 +1314,11 @@ Section Encryption.
     Qed.
 
 
-     Lemma ppartial_count_all_counted grp bs : forall ts inbs m,
+    (* This Lemma states that we will always end up in state where 
+       we have counted all the ballots by taking one ballot, and deciding if it's 
+       valid or not. If valid then add it to encrypted marging otherwise add it invalid  
+       ballot list *)
+    Lemma ppartial_count_all_counted grp bs : forall ts inbs m,
         ECount grp bs (epartial (ts, inbs) m) -> existsT i nm, (ECount grp bs (epartial ([], i) nm)).
     Proof.
       refine (fix F ts {struct ts} :=
@@ -1319,9 +1328,10 @@ Section Encryption.
                 | u :: us =>
                   fun inbs m Hc => _
                 end). 
-     (* The idea is u is valid or not valid which can be shown via u -> (* row permutation *) -> v
+      (* The idea is u is valid or not valid which can be shown via u -> (* row permutation *) -> v
         -> (* colume permutation *) -> w -> (* decryption *) -> b *)
-
+     
+      
       (* generate permutation *)
       remember (generatePermutation grp (List.length cand_all)) as pi.
       (* commit it *)
@@ -1341,8 +1351,52 @@ Section Encryption.
 
      
       (* construct zero knowledge proof of shuffle *)
+    Admitted.
+
+
+     (* for every list of incoming ballots, we can progress the count to a state where all
+     ballots are processed *)
+    Lemma  pall_ballots_counted (grp : Group) (bs : list eballot) :
+      existsT i m, ECount grp bs (epartial ([], i) m).
+    Proof.
+      pose proof (ecount_all_ballot grp bs) as Hs.
+      destruct Hs as [encm Heg].
+      pose proof (ppartial_count_all_counted grp bs bs [] encm Heg).
+      auto. (* Try to see this if anything goes wrong *)
+    Defined.
+    
+
       
-      
+    (* We decrypt the encrypted margin to run the computation *)
+    Lemma decrypt_margin (grp : Group) (bs : list eballot) :
+      existsT m, ECount grp bs (edecrypt m).
+    Proof.
+      remember (pall_ballots_counted grp bs) as Hc.
+      destruct Hc as [i [m Hcount]].
+      remember (fun c d => decrypt_message grp privatekey (m c d)) as decm.
+      remember (fun c d => construct_zero_knowledge_decryption_proof
+                          grp privatekey (m c d)) as zkpdecm. 
+      exists decm.
+      apply ecdecrypt with (inbs := i) (encm := m) (zkp := zkpdecm). 
+      assumption.
+      intros c d. rewrite Heqzkpdecm.
+      apply verify_true.
+      rewrite Heqdecm. reflexivity.
+    Defined.
+
+    (* The main theorem: for every list of ballots, we can find a boolean function that decides
+     winners, together with evidences of the correctness of this determination *)
+    Lemma pschulze_winners (grp : Group) (bs : list eballot) :
+      existsT (f : cand -> bool), ECount grp bs (ewinners f).
+    Proof.
+      destruct (decrypt_margin grp bs) as [dm Hecount].
+      exists (c_wins dm).
+      pose proof (ecfin grp bs dm (c_wins dm) (wins_loses_type_dec dm) Hecount).
+      pose proof (X (c_wins_true_type dm) (c_wins_false_type dm)).
+      auto.
+    Defined.
+
+    
           
     (*
 
