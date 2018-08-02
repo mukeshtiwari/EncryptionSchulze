@@ -1332,7 +1332,7 @@ Section Encryption.
         -> (* colume permutation *) -> w -> (* decryption *) -> b *)
      
       
-      (* generate permutation *)
+      (* generate permutation *) 
       remember (generatePermutation grp (List.length cand_all)) as pi.
       (* commit it *)
       remember (generatePermutationCommitment grp (List.length cand_all) pi) as cpis.
@@ -1396,8 +1396,275 @@ Section Encryption.
       auto.
     Defined.
 
+
+    (* Now Try to prove that result computed by schulze_winner 
+       pschulze_winners are same if ballots match *)
+
+    (* This function connects the ballot and pballot. pballot is decryption of eballot *)
+    (*
+    Inductive mapping_ballot_pballot : list ballot -> list pballot -> Prop :=
+    | firstcons : mapping_ballot_pballot [] []
+    | secondcons h1 h2 t1 t2 :
+        (forall c d, map_ballot_pballot h1 h2 c d = true) -> mapping_ballot_pballot t1 t2 ->
+        mapping_ballot_pballot (h1 :: t1) (h2 :: t2). *)
+   
+    Fixpoint mapping_ballot_pballot (bs : list ballot) (pbs : list pballot) : Prop. 
+    Proof.
+      refine (match bs, pbs with
+              | [], [] => True
+              | [], h :: _ => False 
+              | h :: _, [] => False
+              | h1 :: t1, h2 :: t2 =>
+                ((forall c d, map_ballot_pballot h1 h2 c d = true) /\
+                 mapping_ballot_pballot t1 t2 )
+              end); inversion H.
+    Defined.
+
+    (* Validity connection of ballot and pballot *)
+    Lemma connect_validty_of_ballot_pballot :
+      forall (b : ballot) (p : pballot), (forall c d, map_ballot_pballot b p c d = true) -> 
+        proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = true <->
+        proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec p)) = true.
+    Proof.
+      intros b p Hm. split; intros.
+      destruct (ballot_valid_dec b) as [H1 | H2];
+        destruct (matrix_ballot_valid_dec p) as [Hp1 | Hp2]; simpl in *; try auto.
+      (* This is not valid, because if b c > 0 then it means P c d = 0 \/ P c d = 1*) 
+      unfold map_ballot_pballot in Hm. 
+      destruct Hp2. unfold matrix_ballot_valid. 
+      split. intros.  simpl.
+      pose proof (Hm c d). pose proof (H1 c). Open Scope nat_scope.
+      assert (0 < b c) by omega.
+      pose proof (proj2 (Nat.ltb_lt _ _) H3). 
+      rewrite H4 in H0. rewrite (andb_true_r (b c <? b d)) in H0.
+      pose proof (H1 d). pose proof (lt_eq_lt_dec (b c) (b d)).
+      destruct H6 as [[H6 | H6] | H6].
+      pose proof (proj2 (Nat.ltb_lt _ _) H6).
+      rewrite H7 in H0.  apply Z.eqb_eq in H0. auto.
+      (* since b c = b d it means b c <? b d = false and b c ?= b d = true *)
+      remember (b c <? b d) as v.
+      symmetry in Heqv. destruct v.
+      pose proof (proj1 (Nat.ltb_lt _ _) Heqv). omega.
+      pose proof (proj2 (Nat.eqb_eq _ _) H6).
+      rewrite H7 in H0. simpl in H0.  apply  Z.eqb_eq in H0. auto.
+      assert (b c <? b d = false).
+      apply Nat.ltb_ge. omega. rewrite H7 in H0.
+      assert ((b c =? b d)%nat = false).
+      apply Nat.eqb_neq. omega.
+      rewrite H8 in H0. simpl in H0. 
+      pose proof(proj2 (Nat.ltb_lt _ _) H6).
+      assert (0 < b d) by omega.
+      pose proof (proj2 (Nat.ltb_lt _ _) H10).
+      rewrite H9 in H0. rewrite H11 in H0. simpl in H0. apply Z.eqb_eq in H0. auto.
+           
+      (* discharge the validity *) 
+      exists b.  intros c d. split; intros.
+      pose proof (H1 c). pose proof (H1 d).
+      assert (0 < b c) by omega.
+      pose proof (proj2 (ltb_lt _ _) H4).
+      pose proof (Hm c d).
+      rewrite H5 in H6. 
+      rewrite (andb_true_r (b c <? b d)) in H6.
+      rewrite (andb_true_r (b c =? b d)) in H6.  
+      (* God, give me strength to discharge all the menial proofs *)
+      pose proof (lt_eq_lt_dec (b c) (b d)).
+      destruct H7 as [[H7 | H7] | H7]. auto.
+      rewrite H7 in H6.
+      rewrite (Nat.ltb_irrefl (b d)) in H6.
+      rewrite (Nat.eqb_refl (b d)) in H6.
+      apply Z.eqb_eq in H6.
+      rewrite H6 in H0. inversion H0. 
+      remember (b c <? b d) as v. symmetry in Heqv.
+      destruct v. 
+      pose proof (proj1 (Nat.ltb_lt (b c) (b d)) Heqv). omega.
+      remember (b c =? b d) as v. symmetry in Heqv0.
+      destruct v. apply Z.eqb_eq in H6. rewrite H6 in H0. inversion H0.
+      pose proof (proj2 (Nat.ltb_lt (b d) (b c)) H7). rewrite H8 in H6.
+      assert (0 < b d) by omega.
+      pose proof (proj2 (Nat.ltb_lt 0 (b d)) H9). rewrite H10 in H6.
+      simpl in H6. apply Z.eqb_eq in H6. rewrite H6 in H0. inversion H0.
+      (* Thank you God for giving me strenght *)      
+      pose proof (Hm c d).
+      pose proof (H1 c).
+      pose proof (proj2 (Nat.ltb_lt (b c) (b d)) H0). rewrite H4 in H2.
+      pose proof (proj2 (Nat.ltb_lt 0 (b c))).
+      assert (0 < b c) by omega. pose proof (H5 H6). 
+      rewrite H7 in H2. simpl in H2.  apply Z.eqb_eq in H2. auto.
+        
+      (* Other side of proof. When pballot is valid then ballot is also 
+         valid *)
+      destruct (matrix_ballot_valid_dec p) as [H1 | H2];
+        destruct (ballot_valid_dec b) as [Hp1 | Hp2]; simpl in *; try (auto with arith).
+      (* Now this case invalid because my pballot is valid and b is invalid *)  
+      destruct Hp2. unfold valid in H1. destruct H1 as [Hin [f H1]].
+      unfold map_ballot_pballot in Hm.     
+      pose proof (Hm x).
+      rewrite H0 in H2. 
+      rewrite (Nat.ltb_irrefl 0) in H2. 
+      pose proof (H2 x).  rewrite (andb_false_r (0 <? b x)) in H3.
+      rewrite (andb_false_r (0 =? b x)) in H3.
+      rewrite H0 in H3. simpl in H3. pose proof (Hin x x).
+      destruct H4. apply Z.eqb_eq in H3. rewrite H3 in H4. inversion H4.
+      destruct H4. apply Z.eqb_eq in H3. rewrite H3 in H4. inversion H4. auto.
+    Qed.
     
-          
+    
+    (* One to One correspondence *)
+    Lemma mapping_ballot_pballot_equality :
+      forall (xs : list ballot) (ys : list pballot)
+        (zs : list pballot),
+        mapping_ballot_pballot xs ys -> mapping_ballot_pballot xs zs -> ys = zs.
+    Proof.      
+      induction xs. intros.
+      destruct ys, zs. auto. simpl in H0. inversion H0.
+      simpl in H. inversion H. simpl in H. inversion H.
+      (* Inductive case *)
+      intros. simpl in H. simpl in H0.
+      destruct ys, zs. auto. inversion H. inversion H0.
+      destruct H. destruct H0.
+      assert (forall c d, p c d = p0 c d).
+      intros. specialize (H c d).
+      specialize (H0 c d).
+      unfold map_ballot_pballot in H.
+      unfold map_ballot_pballot in H0.
+      pose proof (zerop (a c)). destruct H3.
+      assert ((0 <? a c)%nat = false).
+      rewrite e. SearchAbout (_ <? _ = false)%nat.
+      apply Nat.ltb_irrefl.  rewrite H3 in H.
+      rewrite H3 in H0.
+      rewrite andb_false_r in H.
+      rewrite andb_false_r in H.
+      rewrite andb_false_r in H0.
+      rewrite andb_false_r in H0.
+      pose proof (zerop (a d)). destruct H4.
+      assert ((0 <? a d)%nat = false). rewrite e0.
+      apply Nat.ltb_irrefl. rewrite H4 in H.
+      rewrite H4 in H0. rewrite andb_false_r in H.
+      rewrite andb_false_r in H0.
+      SearchAbout ( _ =? _ = true).
+      apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
+      rewrite H. rewrite H0. auto.
+      assert ((a d <? a c)%nat = false).
+      rewrite e. SearchAbout (_ <? _ )%nat.
+      apply Nat.ltb_nlt. unfold not. intros.
+      omega. rewrite H4 in H. rewrite H4 in H0.
+      rewrite andb_false_l in H.
+      rewrite andb_false_l in H0.
+      apply Z.eqb_eq in H. apply Z.eqb_eq in  H0.
+      rewrite H. rewrite H0. auto.
+      assert ((0 <? a c)%nat = true).
+      SearchAbout ( _ <? _ = true)%nat.
+      apply Nat.ltb_lt. auto. rewrite H3 in H.
+      rewrite H3 in H0.
+      rewrite andb_true_r in H.
+      rewrite andb_true_r in H.
+      rewrite andb_true_r in H0.
+      rewrite andb_true_r in H0.
+      pose proof (lt_eq_lt_dec (a c) (a d)).
+      destruct H4 as [[H4 | H4] | H4].
+      assert ((a c <? a d)%nat = true).
+      SearchAbout (_ <? _ = true)%nat.
+      apply Nat.ltb_lt. auto. rewrite H5 in H.
+      rewrite H5 in H0.
+      apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
+      rewrite H. rewrite H0. auto.
+      assert ((a c <? a d)%nat = false).
+      SearchAbout (_ <? _ = false)%nat.
+      apply Nat.ltb_nlt. unfold not. intros.
+      omega. rewrite H5 in H.
+      rewrite H5 in H0.
+      assert ((a c =? a d)%nat = true).
+      SearchAbout (_ =? _ = true)%nat.
+      apply Nat.eqb_eq. auto.
+      rewrite H6 in H. rewrite H6 in H0.
+      apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
+      rewrite H. rewrite H0. auto.
+      assert ((a c <? a d)%nat = false).
+      SearchAbout (_ <? _ = false)%nat.
+      apply Nat.ltb_nlt. unfold not. intros.
+      omega. rewrite H5 in H. rewrite H5 in H0.
+      assert ((a c =? a d)%nat = false).
+      SearchAbout (_ =? _ = false).
+      apply Nat.eqb_neq. unfold not. intros. omega.
+      rewrite H6 in H. rewrite H6 in H0.
+      assert ((a d <? a c)%nat = true).
+      apply Nat.ltb_lt. auto. rewrite H7 in H.
+      rewrite H7 in H0.
+      rewrite andb_true_l in H. rewrite andb_true_l in H0.
+      pose proof (zerop (a d)). destruct H8.
+      assert ((0 <? a d)%nat = false).
+      apply Nat.ltb_nlt. unfold not. intros.
+      omega. rewrite H8 in H. rewrite H8 in H0.
+      apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
+      rewrite H. rewrite H0. auto.
+      assert ((0 <? a d)%nat = true).
+      apply Nat.ltb_lt. auto. rewrite H8 in H.
+      rewrite H8 in H0. apply Z.eqb_eq in H.
+      apply Z.eqb_eq in H0. rewrite H. rewrite H0. auto.
+      (* I need functional extensionality. Discuss this with Dirk *)
+      Require Import Coq.Logic.FunctionalExtensionality.
+      assert (p = p0).
+      apply functional_extensionality.
+      intros x. apply functional_extensionality.
+      intros x0. auto.
+      (* End of extensionality *)
+      rewrite H4. apply f_equal. apply IHxs. auto. auto.
+    Qed.
+
+
+    Lemma margin_same_from_both 
+          (grp : Group) (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
+          (Ht : pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+          (H1 : mapping_ballot_pballot bs pbs) :
+      forall (s : State),
+        Count bs s ->
+        forall (ts : list ballot) (tinbs : list ballot)
+          (ets : list eballot) (etinbs : list eballot)
+          (tpbs : list pballot) (etpbs : list pballot)
+          (em : cand -> cand -> ciphertext)
+          (H2 : tpbs =  map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ets)
+          (H3 : etpbs =  map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) etinbs)
+          (H4 : mapping_ballot_pballot ts tpbs)
+          (H5 : mapping_ballot_pballot tinbs etpbs ),
+          s = partial (ts, tinbs) (fun c d => decrypt_message grp privatekey (em c d)) ->
+          ECount grp ebs (epartial (ets, etinbs) em).
+    Proof.
+      intros s H. 
+      (* Induction on strucutre of H *)
+      induction H. intros.  inversion H.
+      (* Now I have to show to one to one correspondence between Count and ECount. 
+         Basically it's more like margins computation is same in both data types *)
+      pose proof (ecax grp ebs ebs em m
+                       (fun c d => construct_zero_knowledge_decryption_proof
+                                  grp privatekey (em c d)) eq_refl e0).
+      simpl in X.
+      assert (forall c d : cand,
+                 verify_zero_knowledge_decryption_proof
+                   grp (m c d) (em c d)
+                   (construct_zero_knowledge_decryption_proof grp privatekey (em c d)) = true).
+      intros. subst. apply verify_true. auto.
+      specialize (X H0).
+      (* Assert that if tinbs is empty then encryption of tinbs i.e. etinbs = [] *)
+    Admitted.
+    
+     
+       
+
+
+    Lemma final_correctness :
+    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
+      (w : cand -> bool)
+      (H : pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+      (H2 : mapping_ballot_pballot bs pbs), (* valid b <-> valid pb *)
+      Count bs (winners w) -> ECount grp ebs (ewinners w).
+    Proof.
+      (* This proof would go through by matching margin at each stage to Counting *)
+    Admitted.
+
+    
+      
+      
+    
     (*
 
 
