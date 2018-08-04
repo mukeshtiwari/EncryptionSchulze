@@ -146,6 +146,9 @@ Lemma matrix_from_list :
                                  List.length (List.hd nil v) = n.
 Proof.
   intros A l n H1 H2.
-  remember (Vector.of_list l) as v. Print v.
+  remember (Vector.of_list l) as v.
+  (* After clearing Heqv, I can rewrite H1 in v, but I don't want to do that *
+  clear Heqv. rewrite H1 in v. *)
+  rewrite H1 in v. (* Getting error Error: Cannot change v, it is used in hypothesis Heqv. *)
   remember (Vec.matrix_from_vector _ _ v) as mt.
   
