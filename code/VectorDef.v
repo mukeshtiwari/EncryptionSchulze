@@ -136,19 +136,25 @@ Module Vec.
   Eval compute in zip_vectors (fun x y => (x, y)) _ example example.
   
   
-  
 End Vec.
 
+   
 
-Lemma matrix_from_list :
-  forall (A : Type) (l : list A) (n : nat) (H1 : List.length l = (n * n)%nat) (H2 : n <> O),
-    existsT (v : list (list A)), List.concat v = l /\ List.length v = n /\
-                                 List.length (List.hd nil v) = n.
+Definition example2 := cons 1 (cons 2  (cons 3 (cons 4 nil))).
+
+
+Fixpoint matrix_from_list {A : Type} (l : list A) (n : nat) :
+  List.length l = (n * n)%nat -> Vector.t (Vector.t A n) n.
 Proof.
-  intros A l n H1 H2.
+  intros H.
   remember (Vector.of_list l) as v.
-  (* After clearing Heqv, I can rewrite H1 in v, but I don't want to do that *
-  clear Heqv. rewrite H1 in v. *)
-  rewrite H1 in v. (* Getting error Error: Cannot change v, it is used in hypothesis Heqv. *)
-  remember (Vec.matrix_from_vector _ _ v) as mt.
-  
+  clear Heqv. rewrite H in v.
+  exact (Vec.matrix_from_vector _ _ v).
+Defined.
+
+
+Lemma H : List.length example2 = 2 * 2.
+  auto.
+Qed.
+
+Eval compute in matrix_from_list example2 2 H. 
