@@ -1,4 +1,3 @@
-Require Import ListLemma.
 
 Notation "'existsT' x .. y , p" :=
   (sigT (fun x => .. (sigT (fun y => p)) ..))
@@ -111,15 +110,16 @@ Module Vec.
       exact (cons _ h _ (transpose_matrix _ _ _ r)).
   Defined.
 
-  Fixpoint zip_vectors {A B C : Type} (f : A -> B -> C) (m : nat) :
-    Vector.t A m -> Vector.t B m -> Vector.t C m.
-    refine (match m as m' return m' = m -> Vector.t A m' -> Vector.t B m' -> Vector.t C m' with
-            | O => fun H v1 v2 => @nil C
-            | S m' => fun H v1 v2 =>
+  Fixpoint zip_vectors {A B C D : Type} (f : A -> B -> C -> D) (m : nat) :
+    Vector.t A m -> Vector.t B m -> Vector.t C m -> Vector.t D m.
+    refine (match m as m' return m' = m -> Vector.t A m' ->
+                                 Vector.t B m' -> Vector.t C m' -> Vector.t D m' with
+            | O => fun H v1 v2 v3 => @nil D
+            | S m' => fun H v1 v2 v3 =>
                      _
             end eq_refl).
-    inversion v1; inversion v2; subst.
-    exact (cons _ (f h h0) _ (zip_vectors _ _ _ f m' X X0)).
+    inversion v1; inversion v2; inversion v3; subst.
+    exact (cons _ (f h h0 h1) _ (zip_vectors _ _ _ _ f m' X X0 X1)).
   Defined.
 
   
@@ -133,7 +133,7 @@ Module Vec.
   Eval compute in matrix_from_vector _ _ example.
   Eval compute in to_matrix _ _ example.
   Eval compute in transpose_matrix _ _ (matrix_from_vector _ _ example).
-  Eval compute in zip_vectors (fun x y => (x, y)) _ example example.
+  Eval compute in zip_vectors (fun x y z => (x, y, z)) _ example example example.
   
   
 End Vec.
@@ -142,6 +142,7 @@ End Vec.
 
 Definition example2 := cons 1 (cons 2  (cons 3 (cons 4 nil))).
 
+Require Import List.
 
 Fixpoint matrix_from_list {A : Type} (l : list A) (n : nat) :
   List.length l = (n * n)%nat -> Vector.t (Vector.t A n) n.

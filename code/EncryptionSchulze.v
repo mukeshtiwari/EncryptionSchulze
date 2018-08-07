@@ -1040,16 +1040,8 @@ Section Encryption.
       forall (grp : Group) (c d : cand) (u m : eballot),
       decrypt_message grp privatekey (homomorphic_addition grp (u c d) (m c d)) =
       decrypt_message grp privatekey (u c d) + decrypt_message grp privatekey (m c d).
-
-    
-    (* This part is for data structure conversion *)
-    Definition eballot_to_list_ciphertext (e : eballot) :=
-      List.map (fun pr => (fst pr, snd pr, e (fst pr) (snd pr))) (all_pairs cand_all).
-
-    Definition pballot_to_list_plaintext (p : pballot) :=
-      List.map (fun pr => (fst pr, snd pr, p (fst pr) (snd pr))) (all_pairs cand_all).
-
-    
+ 
+        
     (* Write a function which change list_of_ciphertext into eballot data structure. *)
 
     Theorem list_ciphertext_to_eballot :
@@ -1057,13 +1049,8 @@ Section Encryption.
         (H : map fst l = all_pairs cand_all) (c d : cand), 
         existsT (v : ciphertext), In (c, d, v) l.
     Proof.
-      intros l H c d. 
-      pose proof (all_pairsin c d cand_all (cand_fin c) (cand_fin d)).
-      rewrite <- H in H0.
-      induction l. admit.
-      simpl in H0. simpl.
-      Admitted.
-
+    Admitted.
+         
     (* end of data structure *)
 
     
@@ -1077,6 +1064,16 @@ Section Encryption.
       list ciphertext -> (* ciphertext *)
       Permutation -> (* pi *)
       list ciphertext * R. (* shuffled ciphertext with randomness used for constructing zkp *)
+
+    (* Vector data structure. The reason for using vectors is it makes life easier 
+       because of length enconded in type system *)
+    Axiom row_shuffle_vector :
+      Group -> (* group *)
+      nat -> (* length *)
+      Vector.t ciphertext (List.length cand_all) -> (* ciphertext *)
+      Permutation -> (* pi *)
+      (Vector.t ciphertext (List.length cand_all)) * R.
+    (* shuffled ciphertext with randomness used for constructing zkp *)
     
     Axiom row_shuffle_zkp :
       Group -> (* group *)
@@ -1087,14 +1084,35 @@ Section Encryption.
       Commitment -> (* cpi *)
       S -> (* s, permutation commitment randomness *)
       R -> (* r, shuffle randomness *)
-      ZKP. (* zero knowledge proof of shuffle *) 
+      ZKP. (* zero knowledge proof of shuffle *)
 
+    Axiom row_shuffle_vector_zkp :
+      Group -> (* group *)
+      nat -> (* length *)
+      Vector.t ciphertext (List.length cand_all) -> (* cipertext *)
+      Vector.t ciphertext (List.length cand_all) -> (* shuffle cipertext *)
+      Permutation -> (* pi *)
+      Commitment -> (* cpi *)
+      S -> (* s, permutation commitment randomness *)
+      R -> (* r, shuffle randomness *)
+      ZKP. (* zero knowledge proof of shuffle *) 
+    
     (* verify shuffle *)
     Axiom verify_row_shuffle:
       Group -> (* group *)
       nat -> (* length *)
       list ciphertext -> (* cipertext *)
       list ciphertext -> (* shuffled cipertext *)
+      Commitment -> (* permutation commitment *)
+      ZKP -> (* zero knowledge proof of shuffle *)
+      bool. (* true or false *)
+
+    (* verify shuffle *)
+    Axiom verify_row_shuffle_vector:
+      Group -> (* group *)
+      nat -> (* length *)
+      Vector.t ciphertext (List.length cand_all) -> (* cipertext *)
+      Vector.t ciphertext (List.length cand_all) -> (* shuffled cipertext *)
       Commitment -> (* permutation commitment *)
       ZKP -> (* zero knowledge proof of shuffle *)
       bool. (* true or false *)
@@ -1110,10 +1128,26 @@ Section Encryption.
                                               cp shuffledcp pi cpi s r),
         verify_row_shuffle grp (List.length cand_all)
                            cp shuffledcp cpi zkprowshuffle = true.
+
+    (* Same as above but with vector data structure *)
+    Axiom verify_row_shuffle_vector_axiom :
+      forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
+        (cp : Vector.t ciphertext (List.length cand_all))
+        (shuffledcp : Vector.t ciphertext (List.length cand_all))
+        (r : R) (zkprowshuffle : ZKP)
+        (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
+        (H2 : (shuffledcp, r) = row_shuffle_vector grp (List.length cand_all)
+                                            cp pi)
+        (H3 : zkprowshuffle = row_shuffle_vector_zkp grp (List.length cand_all)
+                                              cp shuffledcp pi cpi s r),
+        verify_row_shuffle_vector grp (List.length cand_all)
+                           cp shuffledcp cpi zkprowshuffle = true.
         
     (* Note: We need some data structure conversion between function closure and 
        list data structure *)    
-   
+
+    (* 
+    (* We don't need this column shuffle *)
     (* same for column and most probably we don't need this because we can abstract row_shuffle and 
        and col_shuffle in one function, but for the moment just keep it *)
       (* eballot is cand -> cand -> ciphertext. Convert this into list ciphertext *)
@@ -1123,6 +1157,8 @@ Section Encryption.
       list ciphertext -> (* ciphertext *)
       Permutation -> (* pi *)
       list ciphertext * R. (* shuffled ciphertext with randomness used for constructing zkp *)
+
+    
     
     Axiom col_shuffle_zkp :
       Group -> (* group *)
@@ -1157,7 +1193,7 @@ Section Encryption.
                            cp shuffledcp cpi zkpcolshuffle = true.
 
     (* At this point, I am certain that we don't need separate code for row
-       and column shuffle. Focus on data strucutre conversion *)
+       and column shuffle. Focus on data strucutre conversion *) *)
                     
                                                          
     
@@ -1314,24 +1350,23 @@ Section Encryption.
     Qed.
 
 
+    
+      
+
     (* This Lemma states that we will always end up in state where 
        we have counted all the ballots by taking one ballot, and deciding if it's 
        valid or not. If valid then add it to encrypted marging otherwise add it invalid  
        ballot list *)
     Lemma ppartial_count_all_counted grp bs : forall ts inbs m,
         ECount grp bs (epartial (ts, inbs) m) -> existsT i nm, (ECount grp bs (epartial ([], i) nm)).
-    Proof.
-      refine (fix F ts {struct ts} :=
-                match ts with
-                | [] => fun inbs m Hc =>
-                          existT _ inbs (existT _ m Hc)
-                | u :: us =>
-                  fun inbs m Hc => _
-                end). 
-      (* The idea is u is valid or not valid which can be shown via u -> (* row permutation *) -> v
+    Proof.   
+      induction ts as [|u ts IHs].
+      intros inbs m He.
+      exists inbs, m. auto.
+      intros inbs m He. 
+      (* The idea is u valid or not valid which can be shown via u -> (* row permutation *) -> v
         -> (* colume permutation *) -> w -> (* decryption *) -> b *)
      
-      
       (* generate permutation *) 
       remember (generatePermutation grp (List.length cand_all)) as pi.
       (* commit it *)
@@ -1340,18 +1375,56 @@ Section Encryption.
       (* generate zero knowledge proof of commitment *)
       remember (zkpPermutationCommitment grp (List.length cand_all)
                                          pi cpi s) as zkpcpi.
+      (* At this point I can assert that 
+         verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true 
+         using the Axiom permutation_commitment_axiom *)
+      assert (verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true).
+      pose proof (permutation_commitment_axiom
+                    grp pi cpi s zkpcpi Heqpi Heqcpis Heqzkpcpi). auto.
+
+      (* Now the challenge starts. I need to transform the ballot u and v (cand -> cand -> cipertext) 
+         into uvector and vvector of type vector (vector cipertext n) n. 
+         The call row_shuffle   *)
+
+      Require Import VectorDef.
+      (* convert ballot into list *)
+      remember (map (fun '(c, d) => u c d) (all_pairs cand_all)) as ulist.
+      (* What Can I say about ulist. Well, length ulist = (length cand_all) * length (cand_all)
+         cand_all <> [] => ulist is not empty. We can form a matrix of n * n *)
+      assert (Ht : List.length ulist = List.length (all_pairs cand_all)).
+      pose proof (map_length (fun '(c, d) => u c d) (all_pairs cand_all)).
+      rewrite <- Hequlist in H0. assumption. 
+      pose proof (length_all_pairs _ cand_all). rewrite <- Ht in H0.
+      (* convert ulist in matrix of n * n *)
+      remember (matrix_from_list ulist (List.length cand_all) H0) as umat.
+      (* shuffle each row of this matrix to from rowshuffle. T*)
+      remember (Vector.map (fun l => row_shuffle_vector grp (List.length cand_all) l pi)
+                                              umat) as rowshuffledwithR.
+      (* collect rowshuffle and randomness *) 
+      remember (Vector.map fst rowshuffledwithR) as rowshuffled.
+      remember (Vector.map snd rowshuffledwithR) as rvalues.
+      (* construct zero knowledge proof *)
+      Check (Vec.zip_vectors
+               (fun c d =>  _ umat rowshuffled).
+
+
       
       (* Now row_shuffle *)
       remember (map (fun x => u x) cand_all) as upart.
+      remember (map (fun f => map f cand_all) upart) as ulist.
       remember (map (fun f => row_shuffle grp (List.length cand_all)
                                        (map f cand_all) pi) upart) as rowshuffledwithR.
+
       (* collect shuffled text and R *)
       remember (map fst rowshuffledwithR) as rowshuffled.
       remember (map snd rowshuffledwithR) as rvalues.
-
+      (* At this point I have ulist which is orginal list, and rowshuffled which is shuffled list
+         by permutation pi *)
+      (* construct zero knowledge proof *)
+      (* assert that length of ulist 
+      
      
-      (* construct zero knowledge proof of shuffle *)
-    Admitted.
+     
 
 
      (* for every list of incoming ballots, we can progress the count to a state where all
