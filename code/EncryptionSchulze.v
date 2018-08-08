@@ -1350,8 +1350,80 @@ Section Encryption.
     Qed.
 
 
+    (* This function constructs zero knowledge proof from 
+       ballot, shuffled ballot, list of randomness, pi, cpi and s *)
+    Fixpoint construct_zero_knowledge_proof
+             (grp : Group) (n : nat) (blt : list (list ciphertext))
+             (shufblt : list (list ciphertext)) (pi : Permutation)
+             (cpi : Commitment) (s : S) (rvalue : list R) :=
+      match blt, shufblt, rvalue with
+      | [], [], [] => []
+      | [], [], _ :: _ => []
+      | [], _ :: _ , [] => []
+      | _ :: _, [], [] => []
+      | _ :: _, _ :: _ , [] => []
+      | _ :: _, [], _ :: _ => []
+      | [], _ :: _, _ :: _ => []
+      | h1 :: t1, h2 :: t2, r :: rt =>
+        row_shuffle_zkp grp n
+                        h1 h2 pi cpi s r ::
+                        construct_zero_knowledge_proof grp n t1 t2 pi cpi s rt
+      end.
+                           
+
     
-      
+    Lemma list_not_empty :
+      forall (l : list (cand * cand)), l <> [] -> existsT h t, l = h :: t.
+    Proof.
+      destruct l; simpl; intros; try auto.
+      unfold not in H. pose proof (H eq_refl). inversion H0.
+      exists p, l. auto.
+    Qed.
+
+    Lemma every_cand : forall (c d : cand), In (c, d) (all_pairs cand_all).
+    Proof.
+      intros c d. apply  all_pairsin; auto.
+    Qed.
+    
+
+    Lemma pair_cand_dec : forall (c d : cand * cand), {c = d} + {c <> d}.
+    Proof.
+      intros c d. destruct c, d.
+      pose proof (dec_cand c c1).
+      pose proof (dec_cand c0 c2).
+      destruct H, H0. left.
+      subst. reflexivity.
+      right. unfold not. intros. inversion H. pose proof (n H2). inversion H0.
+      right. unfold not. intros. inversion H. pose proof (n H1). inversion H0.
+      right. unfold not. intros. inversion H. pose proof (n H1). inversion H0.
+    Qed.
+    
+    
+    Lemma idx_search : forall (A : Type) (c d : cand) (cl : list (cand * cand))
+                         (l : list A) (Hin : In (c, d) cl)
+                         (H : List.length l = List.length cl), existsT (x : A), In x l.
+    Proof.
+      intros A c d. 
+      induction cl; simpl; intros.
+      - inversion Hin.
+      -  destruct l. inversion H.
+         inversion H.   (* Now I want to destruct  Hin : a = (c, d) \/ In (c, d) cl 
+         Case 1. Hin : a = (c, d) then I will return a0. 
+         Case 2. Hin : In (c, d) l then I will apply the the induction  hypothesis 
+              IHcl l Hin H1 to grab the element from existsT x : A, In x l. 
+              This x is my evidence. 
+              Since I have Type in Goal, so I can't destruct a Prop. 
+              Is it possible to turn a = (c, d) \/ In (c, d) cl into decibable equality ? *)
+         destruct (pair_cand_dec a (c, d)).
+         + exists a0. intuition.
+         + assert (In (c, d) cl).
+           destruct Hin. contradiction. assumption.
+           destruct (IHcl l H0 H1) as  [x Pr].
+           exists x. intuition.
+    Defined.
+ 
+    
+        
 
     (* This Lemma states that we will always end up in state where 
        we have counted all the ballots by taking one ballot, and deciding if it's 
@@ -1382,10 +1454,46 @@ Section Encryption.
       pose proof (permutation_commitment_axiom
                     grp pi cpi s zkpcpi Heqpi Heqcpis Heqzkpcpi). auto.
 
+      (* go with list because of extraction *)
+      (* Construct each row *)
+      remember (map (fun c => u c) cand_all) as partialballot.
+      (* construct the ballot *)
+      remember (map (fun b => map b cand_all) partialballot) as nballot.
+      (* construct suffled ballot. for each row do rowshuffle *)
+      remember (map (fun b => row_shuffle grp (List.length cand_all)
+                                      (map b cand_all) pi) partialballot) as rowShuffledwithR. 
+      remember (map fst rowShuffledwithR) as rowshuffled.
+      remember (map snd rowShuffledwithR) as rvalues.
+      (* Now I have row shuffled ballot by pi, construct zero knowledge proof *)
+      remember (construct_zero_knowledge_proof
+                  grp (List.length cand_all)
+                  nballot rowshuffled pi cpi s rvalues) as zkppermuv.
+      (* Now convert the rowshuffled ballot into function closure *)
+
+      Check (fun (c d : cand) =>   (idx_search _ c d (all_pairs cand_all)
+                                         (List.concat rowshuffled) (every_cand c d))).
+
+      remember (fun (c d : cand) -> idx_search cand) as
+     
+                                               
+      
+      
+
+
+
+
+
+
+
+      
       (* Now the challenge starts. I need to transform the ballot u and v (cand -> cand -> cipertext) 
          into uvector and vvector of type vector (vector cipertext n) n. 
          The call row_shuffle   *)
+      
 
+      
+
+      
       Require Import VectorDef.
       (* convert ballot into list *)
       remember (map (fun '(c, d) => u c d) (all_pairs cand_all)) as ulist.
@@ -1401,28 +1509,19 @@ Section Encryption.
       remember (Vector.map (fun l => row_shuffle_vector grp (List.length cand_all) l pi)
                                               umat) as rowshuffledwithR.
       (* collect rowshuffle and randomness *) 
-      remember (Vector.map fst rowshuffledwithR) as rowshuffled.
+      remember (Vector.map fst rowshuffledwithR) as vmat.
       remember (Vector.map snd rowshuffledwithR) as rvalues.
       (* construct zero knowledge proof *)
-      Check (Vec.zip_vectors
-               (fun c d =>  _ umat rowshuffled).
-
-
+      remember (Vec.zip_vectors
+                  (fun c d r =>
+                     row_shuffle_vector_zkp grp (List.length cand_all)
+                                            c d pi cpi s r) _ umat vmat rvalues) as listzkp.
+      (* So far I have original ballot, umat, each row shuffled by pi, vmat, and 
+         list of zero knowledge proof, listzkp *)
+      (* From vmat, construct v (cand -> cand -> ciphertext ) *)
       
-      (* Now row_shuffle *)
-      remember (map (fun x => u x) cand_all) as upart.
-      remember (map (fun f => map f cand_all) upart) as ulist.
-      remember (map (fun f => row_shuffle grp (List.length cand_all)
-                                       (map f cand_all) pi) upart) as rowshuffledwithR.
-
-      (* collect shuffled text and R *)
-      remember (map fst rowshuffledwithR) as rowshuffled.
-      remember (map snd rowshuffledwithR) as rvalues.
-      (* At this point I have ulist which is orginal list, and rowshuffled which is shuffled list
-         by permutation pi *)
-      (* construct zero knowledge proof *)
-      (* assert that length of ulist 
       
+
      
      
 
