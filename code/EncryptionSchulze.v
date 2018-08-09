@@ -1421,9 +1421,32 @@ Section Encryption.
            destruct (IHcl l H0 H1) as  [x Pr].
            exists x. intuition.
     Defined.
- 
+
     
-        
+    (* Axiom on the row_shuffle. This function does not change the 
+       length of input list *)
+    Axiom row_shuffle_length :
+      forall (grp : Group) (n : nat) (l : list ciphertext) (pi : Permutation),
+        List.length (fst (row_shuffle grp n l pi)) = List.length l. 
+
+    Lemma flat_map_with_map :
+      forall (l1 : list cand) (l2 : list cand ) (u : cand -> cand -> ciphertext)
+        (grp : Group) (pi : Permutation), 
+        List.length
+          (flat_map fst
+                    (map (fun x : cand =>
+                            row_shuffle grp (List.length cand_all) (map (u x) l2) pi)
+                         l1)) = ((List.length l1)%nat * (List.length l2)%nat)%nat.
+    Proof.
+      induction l1; simpl; intros; try auto.
+      rewrite app_length. rewrite row_shuffle_length.
+      rewrite map_length. apply f_equal.
+      (* Induction Hypothesis *)
+      apply IHl1.
+    Qed.
+    
+      
+       
 
     (* This Lemma states that we will always end up in state where 
        we have counted all the ballots by taking one ballot, and deciding if it's 
@@ -1470,10 +1493,22 @@ Section Encryption.
                   nballot rowshuffled pi cpi s rvalues) as zkppermuv.
       (* Now convert the rowshuffled ballot into function closure *)
 
-      Check (fun (c d : cand) =>   (idx_search _ c d (all_pairs cand_all)
-                                         (List.concat rowshuffled) (every_cand c d))).
-
-      remember (fun (c d : cand) -> idx_search cand) as
+      assert (List.length (List.concat rowshuffled) = List.length (all_pairs cand_all)).
+      rewrite Heqrowshuffled. rewrite <- (flat_map_concat_map _ rowShuffledwithR).
+      rewrite HeqrowShuffledwithR. rewrite Heqpartialballot.
+      rewrite (map_map _ _ cand_all).
+      rewrite length_all_pairs.
+      pose proof (flat_map_with_map cand_all cand_all u grp pi). auto.
+      (* Finally, I am feeling good :) *)
+      (* Construct function closure v from rowshuffled list *)
+      remember (fun (c d : cand) =>
+                  match (idx_search _ c d (all_pairs cand_all)
+                                    (List.concat rowshuffled)
+                                    (every_cand c d) H0) with
+                  | existT _  f _ => f
+                  end) as v.
+      (* Now I have rowshuffled ballot in form of function closure, 
+         Now apply column shuffle on this ballot *)
      
                                                
       
