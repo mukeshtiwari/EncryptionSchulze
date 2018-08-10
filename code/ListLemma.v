@@ -13,10 +13,86 @@ Open Scope Z.
 Require Import
         Program Morphisms Relations RelationClasses Permutation.
 
+
+
 Notation "'existsT' x .. y , p" :=
   (sigT (fun x => .. (sigT (fun y => p)) ..))
     (at level 200, x binder, right associativity,
      format "'[' 'existsT' '/ ' x .. y , '/ ' p ']'") : type_scope.
+
+
+
+Fixpoint all_pairs_row_t {A : Type} (l1 : list A) (l2 : list A) : list (A * A) :=
+  match l1 with
+  | [] => []
+  | c :: cs =>
+    map (fun x => (c, x)) l2 ++ all_pairs_row_t cs l2
+  end.
+
+Eval compute in all_pairs_row_t [1;2;3] [4].
+
+Lemma row_t_correctness :
+  forall (A : Type) (a1 a2 : A) (l1 l2 : list A),
+    In a1 l1 -> In a2 l2 -> In (a1, a2) (all_pairs_row_t l1 l2). 
+Proof.
+  intros A a1 a2.
+  induction l1; simpl; intros; try auto.
+  - destruct H; subst.
+    +  apply in_app_iff.  
+       left. apply in_map. auto.
+    +  apply in_app_iff. right. auto.
+Qed.
+
+Definition all_pairs_row {A : Type} (l : list A) : list (A * A) :=
+  all_pairs_row_t l l.
+
+Lemma all_pairs_row_in :
+  forall (A : Type) (a1 a2 : A) (l : list A),
+    In a1 l -> In a2 l -> In (a1, a2) (all_pairs_row l).
+Proof.
+  intros A a1 a2 l H1 H2.
+  unfold all_pairs_row.
+  pose proof (row_t_correctness A a1 a2 l l H1 H2); auto.
+Qed.
+
+
+Fixpoint all_pairs_col_t {A : Type} (l1 : list A) (l2 : list A) : list (A * A) :=
+  match l1 with
+  | [] => []
+  | c :: cs =>
+      map (fun x => (x, c)) l2 ++ all_pairs_col_t cs l2
+  end.
+
+Eval compute in all_pairs_col_t [1;2;3] [4].
+
+
+Lemma col_t_correctness :
+  forall (A : Type) (a1 a2 : A) (l1 l2 : list A),
+    In a1 l1 -> In a2 l2 -> In (a2, a1) (all_pairs_col_t l1 l2). 
+Proof.
+  intros A a1 a2.
+  induction l1; simpl; intros; try auto.
+  - destruct H; subst.
+    +  apply in_app_iff. 
+       left. pose proof (in_map (fun x : A => (x, a1)) l2 a2 H0).
+       simpl in H. auto.
+    +  apply in_app_iff. right. pose proof (IHl1 l2 H H0).
+       auto.
+Qed.
+
+Definition all_pairs_col {A : Type} (l : list A) : list (A * A) :=
+  all_pairs_col_t l l.
+
+Lemma all_pairs_col_in :
+  forall (A : Type) (a1 a2 : A) (l : list A),
+    In a1 l -> In a2 l -> In (a2, a1) (all_pairs_col l).
+Proof.
+  intros A a1 a2 l H1 H2.
+  pose proof (col_t_correctness A a1 a2 l l H1 H2).
+  auto.
+Qed.
+
+
 
 (* all_pairs computes all the pairs of candidates in l *)
 Fixpoint all_pairs {A: Type} (l: list A): list (A * A) :=
@@ -26,6 +102,7 @@ Fixpoint all_pairs {A: Type} (l: list A): list (A * A) :=
                    ++  (map (fun x => (c, x)) cs)
                    ++ (map (fun x => (x, c)) cs)
   end.
+
 
 Lemma all_pairsin: forall {A : Type} (a1 a2 : A) (l : list A),
     In a1 l -> In a2 l -> In (a1, a2) (all_pairs l).
@@ -50,7 +127,7 @@ Proof.
     apply IHl. assumption. assumption.
   }
 Qed.
-
+  
 Theorem length_all_pairs :
   forall (A : Type) (l : list A), length (all_pairs l)  = (length l * length l)%nat.
 Proof.
@@ -61,6 +138,47 @@ Proof.
   omega.
 Qed.
 
+Theorem length_all_pairs_t_row :
+  forall (A : Type) (l1 l2 : list A) ,
+    length (all_pairs_row_t l1 l2) = (length l1 * length l2)%nat.
+Proof.
+  intros A.
+  induction l1; simpl; intros; try auto.
+  rewrite app_length. rewrite map_length.
+  apply f_equal. apply IHl1.
+Qed.
+
+Theorem length_all_pairs_row :
+  forall (A : Type) (l : list A),
+    length (all_pairs_row l) = (length l * length l)%nat.
+Proof.
+  intros A l.
+  pose proof (length_all_pairs_t_row A l l).
+  assumption.
+Qed.
+
+
+
+Theorem length_all_pairs_t_col :
+  forall (A : Type) (l1 l2 : list A) ,
+    length (all_pairs_col_t l1 l2) = (length l1 * length l2)%nat.
+Proof.
+  intros A.
+  induction l1; simpl; intros; try auto.
+  rewrite app_length. rewrite map_length.
+  apply f_equal. apply IHl1.
+Qed.
+
+Theorem length_all_pairs_col :
+  forall (A : Type) (l : list A),
+    length (all_pairs_col l) = (length l * length l)%nat.
+Proof.
+  intros A l.
+  pose proof (length_all_pairs_t_col A l l).
+  assumption.
+Qed.
+
+  
 
 (* maxlist return the maximum number in list l. 0 in case of empty list *)
 Fixpoint maxlist (l : list Z) : Z :=
