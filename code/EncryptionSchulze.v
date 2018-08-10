@@ -1284,12 +1284,22 @@ Section Encryption.
       exists p, l. auto.
     Qed.
 
-    Lemma every_cand : forall (c d : cand), In (c, d) (all_pairs cand_all).
+    Lemma every_cand_t : forall (c d : cand), In (c, d) (all_pairs cand_all).
     Proof.
       intros c d. apply  all_pairsin; auto.
     Qed.
-    
 
+    Lemma every_cand_row : forall (c d : cand), In (c, d) (all_pairs_row cand_all).
+    Proof.
+      intros c d. apply all_pairs_row_in; auto.
+    Qed.
+
+    Lemma every_cand_col : forall (c d : cand), In (c, d) (all_pairs_col cand_all).
+    Proof.
+      intros c d. apply all_pairs_col_in; auto.
+    Qed.
+    
+      
     Lemma pair_cand_dec : forall (c d : cand * cand), {c = d} + {c <> d}.
     Proof.
       intros c d. destruct c, d.
@@ -1328,7 +1338,7 @@ Section Encryption.
 
     
    
-    Lemma flat_map_with_map :
+    Lemma flat_map_with_map_row :
       forall (l1 : list cand) (l2 : list cand ) (u : cand -> cand -> ciphertext)
         (grp : Group) (pi : Permutation), 
         List.length
@@ -1343,6 +1353,26 @@ Section Encryption.
       (* Induction Hypothesis *)
       apply IHl1.
     Qed.
+
+    (* This duplicate lemma is need because of my lamba function *)
+    Lemma flat_map_with_map_col :
+      forall (l1 l2 : list cand) (v : cand -> cand -> ciphertext)
+        (grp : Group) (pi : Permutation),
+        List.length
+          (flat_map fst
+                    (map
+                       (fun c : cand =>
+                          shuffle grp (Datatypes.length cand_all)
+                                  (map (fun d : cand => v d c) l2) pi)
+                       l1)) = ((List.length l1)%nat * (List.length l2)%nat)%nat.
+    Proof.
+      induction l1; simpl; intros; try auto.
+      rewrite app_length. rewrite shuffle_length.
+      rewrite map_length. apply f_equal.
+      apply IHl1.
+    Qed.
+    
+                                                                              
     
       
        
@@ -1376,10 +1406,10 @@ Section Encryption.
       pose proof (permutation_commitment_axiom
                     grp pi cpi s zkpcpi Heqpi Heqcpis Heqzkpcpi). auto.
       
-      (* go with list because of extraction *)
+      (* go with list because of extraction *) 
       (* Construct each row *)
       remember (map (fun c => u c) cand_all) as partialballot.
-      (* construct the ballot *)
+      (* construct the orignal ballot because it's needed for zkp construction *)
       remember (map (fun b => map b cand_all) partialballot) as nballot.
       (* construct suffled ballot. for each row do rowshuffle *)
       remember (map (fun b => shuffle grp (List.length cand_all)
@@ -1392,18 +1422,19 @@ Section Encryption.
                   nballot rowshuffled pi cpi s rvalues) as zkppermuv.
       (* Now convert the rowshuffled ballot into function closure *)
 
-      assert (List.length (List.concat rowshuffled) = List.length (all_pairs cand_all)).
+      assert (List.length (List.concat rowshuffled) = List.length (all_pairs_row cand_all)).
       rewrite Heqrowshuffled. rewrite <- (flat_map_concat_map _ rowShuffledwithR).
       rewrite HeqrowShuffledwithR. rewrite Heqpartialballot.
       rewrite (map_map _ _ cand_all).
-      rewrite length_all_pairs.
-      pose proof (flat_map_with_map cand_all cand_all u grp pi). auto.
+      rewrite length_all_pairs_row.
+      pose proof (flat_map_with_map_row cand_all cand_all u grp pi). auto.
       (* Finally, I am feeling good :) *)
       (* Construct function closure v from rowshuffled list *)
       remember (fun (c d : cand) =>
-                  match (idx_search _ c d (all_pairs cand_all)
-                                    (List.concat rowshuffled)
-                                    (every_cand c d) H0) with
+                  match (idx_search _ c d
+                                    (all_pairs_row cand_all)(* This would generate in row order *)
+                                    (List.concat rowshuffled) (* concat each row *)
+                                    (every_cand_row c d) H0) with
                   | existT _  f _ => f
                   end) as v.
       (* Now I have rowshuffled ballot in form of function closure, 
@@ -1431,8 +1462,23 @@ Section Encryption.
          Write a new function all_pair_col [A, B, C] => 
          [AA, BA,  CA, AB, BB, CB, AC, BC, CC] and call this value with 
          List.concat (colshuffledballot) to make sure that structure presevers. *)
+      (* Now I have solved the problem by writing different functions for row and column *)
+
+      assert (Datatypes.length (concat colShuffledballot) =
+              Datatypes.length (all_pairs_col cand_all)).
+      rewrite HeqcolShuffledballot.
+      rewrite <- (flat_map_concat_map _ colShufflewithR).
+      rewrite HeqcolShufflewithR. rewrite length_all_pairs_col.
+      pose proof (flat_map_with_map_col cand_all cand_all v grp pi). auto.            
+      remember (fun (c d : cand) =>
+                  match (idx_search _ c d
+                                    (all_pairs_col cand_all)(* This would generate in col order *)
+                                    (List.concat colShuffledballot) (* concat each row *)
+                                    (every_cand_col c d) H1 ) with
+                  | existT _  f _ => f
+                  end) as w.
+      (* Now decrypt the ballot w *)
       
-      
 
 
 
@@ -1440,40 +1486,6 @@ Section Encryption.
 
 
 
-      
-      (* Now the challenge starts. I need to transform the ballot u and v (cand -> cand -> cipertext) 
-         into uvector and vvector of type vector (vector cipertext n) n. 
-         The call row_shuffle   *)
-      
-
-      
-
-      
-      Require Import VectorDef.
-      (* convert ballot into list *)
-      remember (map (fun '(c, d) => u c d) (all_pairs cand_all)) as ulist.
-      (* What Can I say about ulist. Well, length ulist = (length cand_all) * length (cand_all)
-         cand_all <> [] => ulist is not empty. We can form a matrix of n * n *)
-      assert (Ht : List.length ulist = List.length (all_pairs cand_all)).
-      pose proof (map_length (fun '(c, d) => u c d) (all_pairs cand_all)).
-      rewrite <- Hequlist in H0. assumption. 
-      pose proof (length_all_pairs _ cand_all). rewrite <- Ht in H0.
-      (* convert ulist in matrix of n * n *)
-      remember (matrix_from_list ulist (List.length cand_all) H0) as umat.
-      (* shuffle each row of this matrix to from rowshuffle. T*)
-      remember (Vector.map (fun l => row_shuffle_vector grp (List.length cand_all) l pi)
-                                              umat) as rowshuffledwithR.
-      (* collect rowshuffle and randomness *) 
-      remember (Vector.map fst rowshuffledwithR) as vmat.
-      remember (Vector.map snd rowshuffledwithR) as rvalues.
-      (* construct zero knowledge proof *)
-      remember (Vec.zip_vectors
-                  (fun c d r =>
-                     row_shuffle_vector_zkp grp (List.length cand_all)
-                                            c d pi cpi s r) _ umat vmat rvalues) as listzkp.
-      (* So far I have original ballot, umat, each row shuffled by pi, vmat, and 
-         list of zero knowledge proof, listzkp *)
-      (* From vmat, construct v (cand -> cand -> ciphertext ) *)
       
       
 
