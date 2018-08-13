@@ -1505,11 +1505,24 @@ Section Encryption.
          u is homomorphically added to margin. 
          If b is not valid then it contains cycle and this reflects back to u *)
       destruct (matrix_ballot_valid_dec b) as [Hb | Hnb].
-      
-      
+      (* Since b is valid so add the ballot u to margin m and call it nm *)
+      remember (fun c d => homomorphic_addition grp (u c d) (m c d)) as nm.
+      assert (Ht4 : forall c d, nm c d = homomorphic_addition grp (u c d) (m c d)).
+      intros c d.  rewrite Heqnm. reflexivity.
+      (* ecvalid *) 
+      pose proof (ecvalid grp bs u v w b zkppermuv zkppermvw
+                          zkpdecw cpi zkpcpi ts m nm inbs He
+                          Hb H Ht1 Ht2 Ht3 Ht4).
+      (* Induction Hypothesis *)
+      destruct (IHs _ _ X) as [inb [mrg T]].
+      exists inb, mrg. assumption.
 
-
-
+      (* ecinvalid *)
+      pose proof (ecinvalid grp bs u v w b zkppermuv zkppermvw
+                            zkpdecw cpi zkpcpi ts m inbs He Hnb H
+                            Ht1 Ht2 Ht3).
+      destruct (IHs (u :: inbs) m X) as [inb [mrg T]].
+      exists inb, mrg. assumption.
 
 
       
