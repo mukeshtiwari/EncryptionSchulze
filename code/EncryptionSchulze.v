@@ -1047,7 +1047,8 @@ Section Encryption.
     (* Start of Shuffle code *)     
     Axiom R : Type.
    
-    (* eballot is cand -> cand -> ciphertext. Convert this into list ciphertext *)
+    (* eballot is cand -> cand -> ciphertext. Convert this into list (list ciphertext) 
+       where each row represents preference for candidate. *)
     Axiom shuffle :
       Group -> (* group *)
       nat -> (* length *)
@@ -1085,8 +1086,7 @@ Section Encryption.
         (shuffledcp : list ciphertext) (r : R) (zkprowshuffle : ZKP)
         (H : pi = generatePermutation grp (List.length cand_all))
         (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
-        (H2 : (shuffledcp, r) = shuffle grp (List.length cand_all)
-                                        cp pi)
+        (H2 : (shuffledcp, r) = shuffle grp (List.length cand_all) cp pi)
         (H3 : zkprowshuffle = shuffle_zkp grp (List.length cand_all)
                                           cp shuffledcp pi cpi s r),
         verify_shuffle grp (List.length cand_all)
@@ -1255,7 +1255,8 @@ Section Encryption.
 
 
     (* This function constructs zero knowledge proof from 
-       ballot, shuffled ballot, list of randomness, pi, cpi and s *)
+       ballot, shuffled ballot, list of randomness r, permutation pi, p
+       permutation commitment cpi and commitment randomness s *)
     Fixpoint construct_zero_knowledge_proof
              (grp : Group) (n : nat) (blt : list (list ciphertext))
              (shufblt : list (list ciphertext)) (pi : Permutation)
@@ -1317,7 +1318,7 @@ Section Encryption.
                          (l : list A) (Hin : In (c, d) cl)
                          (H : List.length l = List.length cl), existsT (x : A), In x l.
     Proof.
-      intros A c d. 
+      intros A c d.  
       induction cl; simpl; intros.
       - inversion Hin.
       -  destruct l. inversion H.
@@ -1348,8 +1349,8 @@ Section Encryption.
                          l1)) = ((List.length l1)%nat * (List.length l2)%nat)%nat.
     Proof.
       induction l1; simpl; intros; try auto.
-      rewrite app_length. rewrite shuffle_length.
-      rewrite map_length. apply f_equal.
+      rewrite app_length, shuffle_length, map_length.
+      apply f_equal.
       (* Induction Hypothesis *)
       apply IHl1.
     Qed.
@@ -1367,14 +1368,14 @@ Section Encryption.
                        l1)) = ((List.length l1)%nat * (List.length l2)%nat)%nat.
     Proof.
       induction l1; simpl; intros; try auto.
-      rewrite app_length. rewrite shuffle_length.
-      rewrite map_length. apply f_equal.
+      rewrite app_length, shuffle_length, map_length.
+      apply f_equal.
       apply IHl1.
     Qed.
     
                                                                               
     
-      
+    
        
 
     (* This Lemma states that we will always end up in state where 
@@ -1408,7 +1409,7 @@ Section Encryption.
       
       (* go with list because of extraction *) 
       (* Construct each row *)
-      remember (map (fun c => u c) cand_all) as partialballot.
+      remember (map (fun c => u c) cand_all) as partialballot. 
       (* construct the orignal ballot because it's needed for zkp construction *)
       remember (map (fun b => map b cand_all) partialballot) as nballot.
       (* construct suffled ballot. for each row do rowshuffle *)
@@ -1420,8 +1421,8 @@ Section Encryption.
       remember (construct_zero_knowledge_proof
                   grp (List.length cand_all)
                   nballot rowshuffled pi cpi s rvalues) as zkppermuv.
+      
       (* Now convert the rowshuffled ballot into function closure *)
-
       assert (List.length (List.concat rowshuffled) = List.length (all_pairs_row cand_all)).
       rewrite Heqrowshuffled. rewrite <- (flat_map_concat_map _ rowShuffledwithR).
       rewrite HeqrowShuffledwithR. rewrite Heqpartialballot.
@@ -1437,6 +1438,12 @@ Section Encryption.
                                     (every_cand_row c d) H0) with
                   | existT _  f _ => f
                   end) as v.
+      (* Show that verify_row_permutation_ballot u v cpi zkppermuv return true.
+         The property here is construct matrix from u and v and comp
+         This is bit tricky so I am leaving it for the moment because we need to 
+         massage the axioms *)
+      assert (Ht1 : verify_row_permutation_ballot u v cpi zkppermuv = true). admit.
+      
       (* Now I have rowshuffled ballot in form of function closure, 
          Now apply column shuffle on this ballot. Change the name of 
          row_shuffle to shuffle to avoid the confusion*)
@@ -1477,10 +1484,29 @@ Section Encryption.
                                     (every_cand_col c d) H1 ) with
                   | existT _  f _ => f
                   end) as w.
-      (* Now decrypt the ballot w *)
+      (*  Show that verify_col_permutation_ballot v w cpi zkppermvw return true. 
+         This is bit tricky so I am leaving it for the moment because we need to 
+         massage the axioms *)
+      assert (Ht2 : verify_col_permutation_ballot v w cpi zkppermvw = true). admit.
       
+      (* Now decrypt the ballot w *)
+      remember (fun c d => decrypt_message grp privatekey (w c d)) as b.
+      (* construct zero knowledge proof of decryption *)
+      remember (fun c d => construct_zero_knowledge_decryption_proof
+                          grp privatekey (w c d)) as zkpdecw.
+      (* Show that the zkpdecw is true b is honest decryption of w *)
+      assert (Ht3 : forall c d, verify_zero_knowledge_decryption_proof
+                              grp (b c d) (w c d) (zkpdecw c d) = true).
+      intros c d. rewrite Heqzkpdecw.
+      apply verify_true. rewrite Heqb. reflexivity.
 
-
+      (* Now connect the validity of b to validity of u. A valid b means 
+         there is no cycle in b which reflects back to ballot u and 
+         u is homomorphically added to margin. 
+         If b is not valid then it contains cycle and this reflects back to u *)
+      destruct (matrix_ballot_valid_dec b) as [Hb | Hnb].
+      
+      
 
 
 
