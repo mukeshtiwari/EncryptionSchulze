@@ -1887,39 +1887,61 @@ Section Encryption.
       apply Z.eqb_eq in Heqtumat. auto.
       specialize (H6 H10).
       (* valid b <-> valid u *)
-
-      
-      destruct (ballot_valid_dec u). simpl in H11.
-      specialize (H11 eq_refl).
-      destruct (matrix_ballot_valid_dec umat).
-      (* At this stage, u is valid ballot and it's matrix transformation is 
-         also valid. Add this to margin *)
-      remember (fun c d => encrypt_message grp (umat c d)) as uenc.
-      specialize (X (uenc :: ets) etinbs
-                    (umat :: tpbs) etpbs
-                    em).
-      assert (umat :: tpbs =
-              map
-                (fun (x : cand -> cand -> ciphertext) (c d : cand) =>
-                   decrypt_message grp privatekey (x c d))
-                (uenc :: ets)).
-      simpl. rewrite Hequenc.
-      assert (umat = (fun c d : cand =>
-                        decrypt_message grp privatekey (encrypt_message grp (umat c d)))).
+      destruct H6 as [H11 H12].
+      (* assert that u is valid *)
+      assert (proj1_sig (bool_of_sumbool (ballot_valid_dec u)) = true).
+      destruct (ballot_valid_dec u); simpl; try auto.
+      destruct e as [c Hu].
+      pose proof (g c); try omega.
+      specialize (H11 H6). 
+      specialize (IHCount (u :: us) inbs
+                          ((fun c d => encrypt_message grp (umat c d)) :: ets) etinbs
+                          (umat :: tpbs) etpbs
+                          (fun c d => encrypt_message grp (m c d))).
+      simpl in IHCount.
+      assert ( umat :: tpbs =
+               (fun c d : cand => decrypt_message grp privatekey (encrypt_message grp (umat c d)))
+                 :: map
+                 (fun (x : cand -> cand -> ciphertext) (c d : cand) =>
+                    decrypt_message grp privatekey (x c d)) ets).
+      assert (umat =
+              (fun c d => decrypt_message grp privatekey (encrypt_message grp (umat c d)))).
       Require Import Coq.Logic.FunctionalExtensionality.
       apply functional_extensionality. intros.
       apply functional_extensionality. intros.
       rewrite decryption_deterministic. auto.
-      rewrite <- H14. apply f_equal. auto.
-      specialize (X H14). clear H14.
-      assert (mapping_ballot_pballot (u :: us) (umat :: tpbs)).
-      simpl. split. auto. 
+      rewrite <- H13. apply f_equal. auto.
+      specialize (IHCount H13 H3). clear H13.
+      assert ((forall c d : cand, map_ballot_pballot u umat c d = true) /\
+              mapping_ballot_pballot us tpbs).
+      split. auto. rewrite <- H7 in H4. auto.
+      specialize (IHCount H13). clear H13.
+      rewrite <- H8 in H5.
+      specialize (IHCount H5).
+      assert (m = (fun c d : cand => decrypt_message grp privatekey (encrypt_message grp (m c d)))).
+      apply functional_extensionality. intros.
+      apply functional_extensionality. intros.
+      rewrite decryption_deterministic. auto.
+      rewrite <- H13 in IHCount.
+      specialize (IHCount eq_refl).
+      (* Now I have contructed 
+          ECount grp ebs
+              (epartial ((fun c d : cand => encrypt_message grp (umat c d)) :: ets, etinbs)
+                 (fun c d : cand => encrypt_message grp (m c d))). 
+         From This state I count the ballot umat because it's valid, and move on 
+         use ecvalid to proceed *)
+      pose proof(ecvalid grp ebs).
+      remember (fun c d : cand => encrypt_message grp (umat c d)) as uenc.
+      (* instantiate u with uenc. *)
       
+
+
+    
       
       
 
       
-      rewrite decryption_deterministic.
+     
 
     Lemma final_correctness :
     forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
