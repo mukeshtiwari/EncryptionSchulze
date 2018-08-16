@@ -1523,7 +1523,8 @@ Section Encryption.
                             Ht1 Ht2 Ht3).
       destruct (IHs (u :: inbs) m X) as [inb [mrg T]].
       exists inb, mrg. assumption.
-
+    Admitted.
+    
 
       
       
@@ -1789,7 +1790,20 @@ Section Encryption.
       rewrite H4. apply f_equal. apply IHxs. auto. auto.
     Qed.
 
+    Lemma map_map_l :
+      forall (A B : Type) (l1 l2 : list A) (f : A -> B),
+        map f l1 = map f l2 -> l1 = l2.
+    Proof.
+      intros A B. induction l1; simpl; intros.
+      - symmetry in H. apply map_eq_nil in H. auto.
+      - destruct l2.
+        -- inversion H.
+        -- simpl in H. inversion H.
+           (* This can't be inferred until function is one one onto function *)
+    Admitted.
+    
 
+      
     Lemma margin_same_from_both 
           (grp : Group) (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
           (Ht : pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs)
@@ -1806,7 +1820,7 @@ Section Encryption.
           (H5 : mapping_ballot_pballot tinbs etpbs ),
           s = partial (ts, tinbs) (fun c d => decrypt_message grp privatekey (em c d)) ->
           ECount grp ebs (epartial (ets, etinbs) em).
-    Proof.
+    Proof. 
       intros s H. 
       (* Induction on strucutre of H *)
       induction H. intros.  inversion H.
@@ -1821,13 +1835,91 @@ Section Encryption.
                    grp (m c d) (em c d)
                    (construct_zero_knowledge_decryption_proof grp privatekey (em c d)) = true).
       intros. subst. apply verify_true. auto.
-      specialize (X H0).
+      specialize (X H0). 
       (* Assert that if tinbs is empty then encryption of tinbs i.e. etinbs = [] *)
-    Admitted.
-    
-     
-       
+      rewrite <- H7 in H5.
+      assert (etpbs = []). destruct etpbs; try auto.
+      inversion H5. rewrite H9 in H3. symmetry in H3.
+      apply map_eq_nil in H3. rewrite H3.
+      assert (ebs = ets).
+      rewrite <- H6 in H4.
+      rewrite <- e in H1.
+      pose proof (mapping_ballot_pballot_equality _ _ _ H1 H4).
+      rewrite Ht in H10. rewrite H2 in H10.
+      (* This goal is not provable because two different lists
+         can be decrypt to same value, not necessary they have to be the 
+         same. I encountered this problem, so rather than assuming 
+         us = bs, 
+         assume they decrypt to same plaintext
+         map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) us = 
+         map (fun x : eballot => fst (decrypt_ballot_with_zkp cand_all privatekey x)) bs.
+         Admit it and discuss with Dirk *)
+      admit.
+      rewrite <- H10. assumption. 
 
+      (*Count bs (partial (u :: us, inbs) m) *)
+      (* Take ballot u, convert it into matrix form, 
+         test the validity of u, show that validity of u connects with 
+         validity of matrix form. 
+       1. If u is valid <-> umat is valid
+          add u to margin m <-> homomorphic add encryption of umat to
+                                encryption of m. *)
+      intros. inversion H0.
+      (* change u to matrix form and decide validity. *)
+      Open Scope Z.
+      remember (fun c d =>
+                  if (u c <? u d)%nat &&  (0 <? u c )%nat then 1 
+                  else if (u c =? u d)%nat && (0 <? u c)%nat then  0
+                       else  if (u d <? u c)%nat && (0 <? u d)%nat then 0
+                             else -1) as umat.
+      (* Show that they are equivalent *)
+      pose proof (connect_validty_of_ballot_pballot u umat).
+      assert (forall c d : cand, map_ballot_pballot u umat c d = true).
+      intros c d. unfold map_ballot_pballot.
+      remember (umat c d) as tumat.
+      rewrite Hequmat in Heqtumat.
+      destruct ((u c <? u d)%nat && (0 <? u c)%nat) in *.
+      apply Z.eqb_eq in Heqtumat. auto.
+      destruct ((u c =? u d)%nat && (0 <? u c)%nat).
+      apply Z.eqb_eq in Heqtumat. auto.
+      destruct ((u d <? u c)%nat && (0 <? u d)%nat).
+      apply Z.eqb_eq in Heqtumat. auto.
+      apply Z.eqb_eq in Heqtumat. auto.
+      specialize (H6 H10).
+      (* valid b <-> valid u *)
+
+      
+      destruct (ballot_valid_dec u). simpl in H11.
+      specialize (H11 eq_refl).
+      destruct (matrix_ballot_valid_dec umat).
+      (* At this stage, u is valid ballot and it's matrix transformation is 
+         also valid. Add this to margin *)
+      remember (fun c d => encrypt_message grp (umat c d)) as uenc.
+      specialize (X (uenc :: ets) etinbs
+                    (umat :: tpbs) etpbs
+                    em).
+      assert (umat :: tpbs =
+              map
+                (fun (x : cand -> cand -> ciphertext) (c d : cand) =>
+                   decrypt_message grp privatekey (x c d))
+                (uenc :: ets)).
+      simpl. rewrite Hequenc.
+      assert (umat = (fun c d : cand =>
+                        decrypt_message grp privatekey (encrypt_message grp (umat c d)))).
+      Require Import Coq.Logic.FunctionalExtensionality.
+      apply functional_extensionality. intros.
+      apply functional_extensionality. intros.
+      rewrite decryption_deterministic. auto.
+      rewrite <- H14. apply f_equal. auto.
+      specialize (X H14). clear H14.
+      assert (mapping_ballot_pballot (u :: us) (umat :: tpbs)).
+      simpl. split. auto. 
+      
+      
+      
+
+      
+      rewrite decryption_deterministic.
 
     Lemma final_correctness :
     forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
