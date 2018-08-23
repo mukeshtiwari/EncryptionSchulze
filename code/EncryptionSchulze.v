@@ -1767,8 +1767,20 @@ Section Encryption.
       apply Z.eqb_eq in Hm. rewrite Hm in H0. inversion H0.
       assert (b c <? b d = false).
       apply Nat.ltb_ge. omega. rewrite H6 in Hm. simpl in Hm.
-      
-      
+      clear H6.  assert ((b c =? b d)%nat = false).
+      apply Nat.eqb_neq. omega.
+      rewrite H6 in Hm. simpl in Hm. rewrite H2 in Hm.
+      apply Nat.ltb_lt in H5. rewrite H5 in Hm. simpl in Hm.
+      apply Z.eqb_eq in  Hm. rewrite Hm in H0. inversion H0.
+
+      specialize (Hm c d). unfold map_ballot_pballot in Hm.
+      pose proof (Hp c). pose proof (proj2 (Nat.ltb_lt (b c) (b d)) H0).
+      rewrite H2 in Hm. pose proof (proj2 (Nat.ltb_lt 0 (b c))).
+      assert (0 < b c) by omega. specialize (H3 H4).
+      rewrite H3 in Hm. simpl in Hm. apply Z.eqb_eq in Hm.
+      assumption.
+    Qed.
+    
 
       
     (* One to One correspondence *)
