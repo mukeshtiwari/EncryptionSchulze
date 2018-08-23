@@ -1968,7 +1968,7 @@ Section Encryption.
                        else  if (u d <? u c)%nat && (0 <? u d)%nat then 0
                              else -1) as umat. 
       (* Show that they are equivalent *)
-      pose proof (connect_validty_of_ballot_pballot u umat).
+      pose proof (connect_validity_of_ballot_pballot u umat).
       assert (forall c d : cand, map_ballot_pballot u umat c d = true).
       intros c d. unfold map_ballot_pballot.
       remember (umat c d) as tumat.
@@ -2180,7 +2180,7 @@ Section Encryption.
                        else  if (u d <? u c)%nat && (0 <? u d)%nat then 0
                              else -1) as umat.
       (* Show that they are equivalent *)
-      pose proof (connect_validty_of_ballot_pballot u umat).
+      pose proof (connect_validity_of_ballot_pballot u umat).
       assert (forall c d : cand, map_ballot_pballot u umat c d = true).
       intros c d. unfold map_ballot_pballot.
       remember (umat c d) as tumat.
@@ -2199,8 +2199,11 @@ Section Encryption.
       assert (proj1_sig (bool_of_sumbool (ballot_valid_dec u)) = false).
       destruct (ballot_valid_dec u); simpl; try auto.
       destruct e as [c Hc]. pose proof (g c). omega.
-      (* At this point I know that my ballot u is not valid so umat also won't be valid *)
-    Admitted.
+      (* At this point I know that my ballot u is not valid so umat also won't be valid so 
+         don't count it and move to invalid list *)
+      pose proof (proj1 (connect_invalidity_of_ballot_pballot _ _ H10) H6).
+      
+    
 
   
       
