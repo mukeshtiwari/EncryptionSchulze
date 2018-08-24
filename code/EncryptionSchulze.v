@@ -1959,7 +1959,7 @@ Section Encryption.
        1. If u is valid <-> umat is valid
           add u to margin m <-> homomorphic add encryption of umat to
                                 encryption of m. *)
-      intros. inversion H0. 
+      intros. inversion H0.  
       (* change u to matrix form and decide validity.*)
       Open Scope Z.
       remember (fun c d =>
@@ -2132,7 +2132,7 @@ Section Encryption.
       assert (Ht3 : forall c d, verify_zero_knowledge_decryption_proof
                               grp (b c d) (w c d) (zkpdecw c d) = true).
       intros c d. rewrite Heqzkpdecw.
-      apply verify_true. rewrite Heqb. reflexivity.
+      apply verify_true. rewrite Heqb. reflexivity. 
       (* At this point we need Axioms which connects the validity of umat to b 
           H11 : proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec umat)) = true <-> 
           to   Heqb : b = (fun c d : cand => decrypt_message grp privatekey (w c d))
@@ -2171,7 +2171,7 @@ Section Encryption.
          the validity of matrix contructed from u *)
       (*  H : Count bs (partial (u :: us, inbs) m)
           e : exists c : cand, u c = 0%nat *)
-
+  
       intros. inversion H0.
       (* Change u to matrix form umat *)
        remember (fun c d =>
@@ -2195,17 +2195,76 @@ Section Encryption.
       specialize (H6 H10).
       (* valid b <-> valid u *)
       destruct H6 as [H11 H12].
-      (* Assert that u is not valid *)
+      (* Assert that u is not valid *) 
       assert (proj1_sig (bool_of_sumbool (ballot_valid_dec u)) = false).
       destruct (ballot_valid_dec u); simpl; try auto.
       destruct e as [c Hc]. pose proof (g c). omega.
       (* At this point I know that my ballot u is not valid so umat also won't be valid so 
          don't count it and move to invalid list *)
       pose proof (proj1 (connect_invalidity_of_ballot_pballot _ _ H10) H6).
-      
-    
+      (* so u is not valid then umat is also not valid so don't add it. *)
+      clear H11. clear H12.  
 
-  
+      assert (forall (A : Type) (l : list A),
+                 l <> [] -> existsT t l', l = t :: l').
+      intros. destruct l.  intuition.
+      exists a, l. auto.
+      assert (tinbs <> []). unfold not; intros.
+      destruct tinbs. inversion H8. inversion H11.
+      destruct (X _ tinbs H11) as [t [tinbs' Hinbs']].
+      clear H11.
+
+      rewrite Hinbs' in H5.
+      (* now assert etpbs <> [] *)
+      assert (etpbs <> []). unfold not; intros.
+      rewrite H11 in H5. simpl in H5. inversion H5.
+      destruct (X _ etpbs H11) as [et [etpbs' Hetpbs']].
+      clear H11.
+      (* assert einbs <> [] *)
+      assert (etinbs <> []). unfold not; intros.
+      rewrite H11 in H3. simpl in H3. rewrite Hetpbs' in H3.
+      inversion H3.
+      destruct (X _ etinbs H11) as [eti [etinbs' Hetinbs']].
+      clear H11.
+      rewrite Hinbs' in H8. inversion H8.
+      rewrite Hetpbs' in H5. simpl in H5. destruct H5.
+      rewrite Hetpbs' in H3. rewrite Hetinbs' in H3. simpl in H3.
+      inversion H3.
+
+      specialize (IHCount (u :: us) tinbs'
+                          ((fun c d => encrypt_message grp (umat c d)) :: ets) etinbs'
+                          (umat :: tpbs) etpbs'
+                          (fun c d => encrypt_message grp (m c d))).
+      simpl in IHCount.
+                          
+      assert (umat :: tpbs =
+              (fun c d : cand => decrypt_message grp privatekey (encrypt_message grp (umat c d)))
+              :: map (fun (x : cand -> cand -> ciphertext) (c d : cand) => decrypt_message grp privatekey (x c d))
+              ets).
+      assert (umat = (fun c d : cand => decrypt_message grp privatekey (encrypt_message grp (umat c d)))).
+      apply functional_extensionality. intros.
+      apply functional_extensionality. intros.
+      rewrite decryption_deterministic. auto.
+      rewrite <- H15. apply f_equal. auto.
+      specialize (IHCount H15 H17). clear H15.
+      assert ((forall c d : cand, map_ballot_pballot u umat c d = true) /\ mapping_ballot_pballot us tpbs).
+      split; try auto.
+      rewrite <- H7 in H4. auto.
+      specialize (IHCount H15 H11). clear H15.
+
+      assert (m = (fun c d : cand => decrypt_message grp privatekey (encrypt_message grp (m c d)))).
+      apply functional_extensionality. intros.
+      apply functional_extensionality. intros.
+      rewrite decryption_deterministic. auto.
+      rewrite <- H15 in IHCount.
+      rewrite <- H14 in IHCount.
+      specialize (IHCount eq_refl). 
+      (* Now I am in state 
+          IHCount : ECount grp ebs
+              (epartial ((fun c d : cand => encrypt_message grp (umat c d)) :: ets, etinbs')
+                 (fun c d : cand => encrypt_message grp (m c d))) *)
+      clear H3. clear H8. clear X.
+
       
       
       
