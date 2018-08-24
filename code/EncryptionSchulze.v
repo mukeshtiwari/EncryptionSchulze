@@ -2418,6 +2418,22 @@ Section Encryption.
       apply Z.eqb_eq in H20.
       apply Z.eqb_eq in H21.
       rewrite H20. auto.
+      (* But there is no way to prove that encryption of umat would be equal to 
+         encryption of et because encryption is random *)
+      assert (uenc = eti). admit.
+      rewrite <- H21.
+      assert (em = (fun c d : cand => encrypt_message grp (m c d))).
+      apply functional_extensionality. intros c.
+      apply functional_extensionality. intros d.
+      rewrite H9. (* This is also not provable because if you decrypt em and encrypt it, 
+                     you will get something different because encryption is random *)
+      admit.
+      rewrite H22. assumption.
+      (* finished ecinvalid with couple of assumption. Discuss with Dirk *)
+      intros.  inversion H0.
+    Admitted.
+    
+      
       
 
       
