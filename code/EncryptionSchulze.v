@@ -2440,8 +2440,48 @@ Section Encryption.
       
 
       
+    Lemma inc_dec_identity :
+      forall grp etpbs, 
+       etpbs =
+       map
+         (fun (x : cand -> cand -> plaintext) (c d : cand) =>
+            decrypt_message grp privatekey (encrypt_message grp (x c d))) etpbs.
+    Proof.
+      intros grp. induction etpbs.
+      -- simpl. auto.
+      -- simpl.
+         --- assert (a =
+                     (fun c d : cand => decrypt_message
+                                       grp privatekey (encrypt_message grp (a c d)))).
+             apply functional_extensionality. intros.
+             apply functional_extensionality. intros.
+             rewrite decryption_deterministic. auto.
+             rewrite <- H. apply f_equal. assumption.
+    Qed.
+    
+    Lemma mat_correspondence :
+      forall (inb : list ballot),
+        mapping_ballot_pballot
+          inb
+          (map
+             (fun (u : cand -> nat) (c d : cand) =>
+                if (u c <? u d)%nat && (0 <? u c)%nat
+                then 1
+                else
+                  if (u c =? u d)%nat && (0 <? u c)%nat
+                  then 0
+                  else if (u d <? u c)%nat && (0 <? u d)%nat then 0 else -1) inb).
+    Proof.
+      induction inb. simpl. apply I.
+      simpl. split. intros.
+      unfold map_ballot_pballot.
       
+      assumption.
+    Admitted.
+    
+       
 
+             
     Lemma final_correctness :
     forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
       (w : cand -> bool)
@@ -2453,12 +2493,14 @@ Section Encryption.
       (* Show that margin computed from bs is same as ebs *)
       intros grp bs pbs ebs w H0 H1 H2.
       destruct (all_ballots_counted bs) as [inb [fm Hm]].
-      destruct (pall_ballots_counted grp ebs) as [einbs [em Hem]].
+      (* destruct (pall_ballots_counted grp ebs) as [einbs [em Hem]]. *)
       pose proof (margin_same_from_both grp bs ebs
                                         pbs H0 H1 _ Hm [] inb []).
-      (* At this point, etinbs = ? , 
+
+
+      (* At this point, etinbs = convert inb into matrix form and encrypt them , 
          tpbs = [], 
-         etps = ?,
+         etpbs = ?,
          em = fun c d => encrypt_message grp (fm c d)
          feeding all the values in X would 
           partial ([], inb) fm =
@@ -2470,6 +2512,57 @@ Section Encryption.
             ECount grp ebs (epartial ([], etinbs) (fun c d => encrypt_message grp (fm c d)))
      This is almost done. Try to connect ballots *)
 
+       
+      remember (fun (u : cand -> nat) c d =>
+                  if (u c <? u d)%nat &&  (0 <? u c )%nat then 1 
+                  else if (u c =? u d)%nat && (0 <? u c)%nat then  0
+                       else  if (u d <? u c)%nat && (0 <? u d)%nat then 0
+                             else -1) as umat. 
+      remember (map umat inb) as etpbs.
+      remember (map (fun u c d => encrypt_message grp (u c d)) etpbs) as etinbs.
+      specialize (X etinbs [] etpbs (fun c d => encrypt_message grp (fm c d)) eq_refl). 
+      assert (etpbs =
+              map
+                (fun (x : cand -> cand -> ciphertext)
+                   (c d : cand) => decrypt_message grp privatekey (x c d))
+                etinbs).
+      rewrite Heqetinbs.
+      rewrite map_map.  simpl in X.
+      pose proof (inc_dec_identity grp etpbs). assumption.
+      specialize (X H I). clear H.
+      assert (mapping_ballot_pballot inb etpbs). 
+      rewrite Heqetpbs. rewrite Hequmat.
+      pose proof (mat_correspondence inb). auto.
+      specialize (X H).
+      assert (H5 :  fm =
+                    (fun c d : cand =>
+                       decrypt_message grp privatekey (encrypt_message grp (fm c d)))).
+      apply functional_extensionality. intros.
+      apply functional_extensionality. intros.
+      rewrite decryption_deterministic. auto.
+      simpl in X. rewrite <- H5 in X.
+      specialize (X eq_refl).
+
+      pose proof (ecdecrypt grp ebs etinbs
+                            (fun c d : cand => encrypt_message grp (fm c d))
+                            fm
+                 (fun c d => construct_zero_knowledge_decryption_proof
+                            grp privatekey (encrypt_message grp (fm c d))) X).
+      simpl in X0.
+      assert (forall c d : cand,
+                 verify_zero_knowledge_decryption_proof
+                   grp (fm c d) (encrypt_message grp (fm c d))
+                   (construct_zero_knowledge_decryption_proof
+                      grp privatekey (encrypt_message grp (fm c d))) =
+                 true).
+      intros. apply verify_true. symmetry.
+      rewrite decryption_deterministic. auto.
+      specialize (X0 H3). clear H3.
+      pose proof (ecfin grp ebs fm (c_wins fm) (wins_loses_type_dec fm) X0
+                         (c_wins_true_type fm) (c_wins_false_type fm)).
+      pose proof (fin bs fm inb (c_wins fm) (wins_loses_type_dec fm) Hm
+                 (c_wins_true_type fm) (c_wins_false_type fm)).
+      
 
 
       
