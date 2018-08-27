@@ -2239,9 +2239,11 @@ Section Encryption.
                           
       assert (umat :: tpbs =
               (fun c d : cand => decrypt_message grp privatekey (encrypt_message grp (umat c d)))
-              :: map (fun (x : cand -> cand -> ciphertext) (c d : cand) => decrypt_message grp privatekey (x c d))
-              ets).
-      assert (umat = (fun c d : cand => decrypt_message grp privatekey (encrypt_message grp (umat c d)))).
+                :: map (fun (x : cand -> cand -> ciphertext) (c d : cand) =>
+                          decrypt_message grp privatekey (x c d))
+                ets).
+      assert (umat = (fun c d : cand => decrypt_message grp privatekey
+                                                     (encrypt_message grp (umat c d)))).
       apply functional_extensionality. intros.
       apply functional_extensionality. intros.
       rewrite decryption_deterministic. auto.
@@ -2388,7 +2390,8 @@ Section Encryption.
       specialize (X uenc v w b zkppermuv zkppermvw zkpdecw
                     cpi zkpcpi ets (fun c d : cand => encrypt_message grp (m c d)) etinbs' IHCount
                     H19 H3 Ht1 Ht2 Ht3).
-      (*  X : ECount grp ebs (epartial (ets, uenc :: etinbs') (fun c d : cand => encrypt_message grp (m c d))) *)
+      (*  X : ECount grp ebs (epartial (ets, uenc :: etinbs') 
+                         (fun c d : cand => encrypt_message grp (m c d))) *)
       rewrite Hetinbs'.
       (* Now I need to assert eti is same as uenc *)
       (*  uenc = (fun c d : cand => encrypt_message grp (umat c d)) 
@@ -2446,10 +2449,73 @@ Section Encryption.
       (H2 : mapping_ballot_pballot bs pbs), (* valid b <-> valid pb *)
       Count bs (winners w) -> ECount grp ebs (ewinners w).
     Proof.
-      (* This proof would go through by matching margin at each stage to Counting *)
-    Admitted.
 
-    
+      (* Show that margin computed from bs is same as ebs *)
+      intros grp bs pbs ebs w H0 H1 H2.
+      destruct (all_ballots_counted bs) as [inb [fm Hm]].
+      destruct (pall_ballots_counted grp ebs) as [einbs [em Hem]].
+      pose proof (margin_same_from_both grp bs ebs
+                                        pbs H0 H1 _ Hm [] inb []).
+      (* At this point, etinbs = ? , 
+         tpbs = [], 
+         etps = ?,
+         em = fun c d => encrypt_message grp (fm c d)
+         feeding all the values in X would 
+          partial ([], inb) fm =
+      partial ([], inb) (fun c d : cand => decrypt_message grp privatekey (em c d))
+    => 
+       partial ([], inb) fm =
+      partial ([], inb) (fun c d : cand => decrypt_message grp privatekey
+                 (encrypt_message grp (fm c d))) -> 
+            ECount grp ebs (epartial ([], etinbs) (fun c d => encrypt_message grp (fm c d)))
+     This is almost done. Try to connect ballots *)
+
+
+
+      
+      (* Proof is induction on Count bs (winners w) and show that margin computed in 
+         each stage correspondence to ECount *)
+      
+      intros grp bs pbs ebs w H H2 H3.
+      induction H3.
+      
+      
+      remember (encrypt_message grp 0) as encm.
+      pose proof (ecax grp ebs ebs (fun c d => encm)
+                       (fun c d => 0)
+                       (fun c d => construct_zero_knowledge_decryption_proof
+                                  grp privatekey encm)
+                       eq_refl (fun c d => eq_refl)).
+      assert (forall c d : cand,
+                 verify_zero_knowledge_decryption_proof
+                   grp ((fun _ _ : cand => 0) c d)
+                   ((fun _ _ : cand => encm) c d)
+                   ((fun _ _ : cand =>
+                       construct_zero_knowledge_decryption_proof grp privatekey encm) c d) =
+                 true).
+      intros. apply verify_true.
+      symmetry. rewrite Heqencm.
+      apply decryption_deterministic.
+      specialize (X H0). clear H0. 
+      (* If I am in  ECount grp ebs (epartial (ebs, []) (fun _ _ : cand => encm)) 
+         then I can always finish 
+         counting and declaring winner *)
+      pose proof (ppartial_count_all_counted grp ebs ebs [] (fun c d => encm) X).
+      destruct X0 as [invalid [final_margin Hf]]. 
+      pose proof (ecdecrypt grp ebs invalid final_margin).
+      remember (fun c d => decrypt_message grp privatekey (final_margin c d)) as decm.
+      remember (fun c d => construct_zero_knowledge_decryption_proof
+                 grp privatekey (final_margin c d)) as zkpdecm.
+      specialize (X0 decm zkpdecm Hf).
+      assert (forall c d : cand,
+                 verify_zero_knowledge_decryption_proof
+                   grp
+                   (decm c d) (final_margin c d) (zkpdecm c d) = true).
+      intros. rewrite Heqzkpdecm.  apply verify_true.
+      rewrite Heqdecm. auto.
+      specialize (X0 H0). clear H0.
+      pose proof (ecfin grp ebs  decm (c_wins decm) (wins_loses_type_dec decm) X0
+                        (c_wins_true_type decm) (c_wins_false_type decm)).
       
       
     
