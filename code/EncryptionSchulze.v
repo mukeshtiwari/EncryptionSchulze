@@ -919,7 +919,7 @@ Section Encryption.
     Definition eballot := cand -> cand -> ciphertext.
    
     
-     
+      
    
     
       
@@ -1898,6 +1898,227 @@ Section Encryption.
     Admitted. 
     
 
+     Lemma margin_same_from_both_existential 
+          (grp : Group) (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
+          (Ht : pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+          (H1 : mapping_ballot_pballot bs pbs) :
+       forall (s : State),
+         Count bs s ->
+         forall (ts : list ballot) (tinbs : list ballot)
+           (m : cand -> cand -> Z), (* valid ballot, invalid ballot, running margin *)
+           s = partial (ts, tinbs) m ->
+           existsT 
+             (ets : list eballot) (etinbs : list eballot)
+             (tpbs : list pballot) (etpbs : list pballot)
+             (em : cand -> cand -> ciphertext),
+      (ECount grp ebs (epartial (ets, etinbs) em) *
+       (m = fun c d => decrypt_message grp privatekey (em c d)) *
+           (tpbs =  map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ets) *
+           (etpbs =  map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) etinbs) * 
+           mapping_ballot_pballot ts tpbs *
+           mapping_ballot_pballot tinbs etpbs)%type.
+    Proof.
+      intros s H.
+      (* induction on structure of H *)
+      induction H. intros. inversion H.
+      remember (fun c d => encrypt_message grp (m c d)) as em.
+      exists ebs, [], pbs, [], em.
+      pose proof (ecax grp ebs ebs em m
+                       (fun c d => construct_zero_knowledge_decryption_proof
+                                  grp privatekey (em c d)) eq_refl e0).
+      simpl in X.
+      assert (forall c d : cand,
+                 verify_zero_knowledge_decryption_proof
+                   grp (m c d) (em c d)
+                   (construct_zero_knowledge_decryption_proof grp privatekey (em c d)) = true).
+      intros. subst. apply verify_true. rewrite decryption_deterministic. auto.
+      specialize (X H0). clear H0.
+      repeat split. assumption.
+      rewrite Heqem.
+      apply functional_extensionality. intros.
+      apply functional_extensionality. intros.
+      rewrite decryption_deterministic. rewrite H4. auto.
+      assumption. rewrite H2 in e. rewrite <- e in H1.
+      assumption.
+      (* first case finished *)
+ 
+      (*  Count bs (partial (u :: us, inbs) m) and u is valid 
+           g : forall c : cand, u c > 0 *)
+      intros. inversion H0. 
+      specialize (IHCount (u :: us) inbs m eq_refl). 
+      destruct IHCount as [ets [etinbs [tbps [etpbs [em H6]]]]].
+      destruct H6. destruct p. destruct p. destruct p. destruct p.
+      (* From m2 we can infer that tbps <> [] and it can be written as 
+         tbps = t :: tpbs'. From this statement we can infer that ets <> [] using e0.
+         ets = e :: ets'. 
+         u is valid => t valid => it's decryption is also valid 
+         go for ecvalid case *)
+
+      assert (forall (A : Type) (l : list A),
+                 l <> [] -> existsT t l', l = t :: l').
+      intros. destruct l.  intuition. exists a0, l. auto.
+      assert (tbps <> []). unfold not. intros. destruct tbps.
+      simpl in m2. inversion m2. inversion H2.
+      destruct (X _ _ H2) as [t [tbps' Htpbs']]. clear H2.
+      rewrite Htpbs' in e0.
+      assert (ets <> []). unfold not. intros.
+      destruct ets. simpl in e0. inversion e0. inversion H2.
+      destruct (X _ _ H2) as [en [ets' Hets']]. clear H2.
+      rewrite Hets' in e0. inversion e0. clear e0. clear X.
+      rewrite Htpbs' in m2. simpl in m2. destruct m2.
+      rewrite Hets' in e1. 
+      (*  ECount grp ebs (epartial (en :: ets', etinbs) em) 
+          and u is valid then t is valid and it's encryption is valid *)
+      pose proof (ecvalid grp ebs).
+      (* u = en, v = row permutation of u, w is column permutation of v *)
+      (* generate permutation *)  
+      remember (generatePermutation grp (List.length cand_all)) as pi.
+      (* commit it *)
+      remember (generatePermutationCommitment grp (List.length cand_all) pi) as cpis.
+      destruct cpis as (cpi, s).
+      (* generate zero knowledge proof of commitment *)
+      remember (zkpPermutationCommitment grp (List.length cand_all)
+                                         pi cpi s) as zkpcpi. 
+      (* At this point I can assert that 
+         verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true 
+         using the Axiom permutation_commitment_axiom *)
+      assert (verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true).
+      pose proof (permutation_commitment_axiom
+                    grp pi cpi s zkpcpi Heqpi Heqcpis Heqzkpcpi). auto.
+      (* Construct each row *)
+      remember (map (fun c => en c) cand_all) as partialballot. 
+      (* construct the orignal ballot because it's needed for zkp construction *)
+      remember (map (fun b => map b cand_all) partialballot) as nballot.
+      (* construct suffled ballot. for each row do rowshuffle *)
+      remember (map (fun b => shuffle grp (List.length cand_all)
+                                   (map b cand_all) pi) partialballot) as rowShuffledwithR. 
+      remember (map fst rowShuffledwithR) as rowshuffled.
+      remember (map snd rowShuffledwithR) as rvalues.
+      (* Now I have row shuffled ballot by pi, construct zero knowledge proof *)
+      remember (construct_zero_knowledge_proof
+                  grp (List.length cand_all)
+                  nballot rowshuffled pi cpi s rvalues) as zkppermuv.
+      (* Now convert the rowshuffled ballot into function closure *)
+      assert (List.length (List.concat rowshuffled) = List.length (all_pairs_row cand_all)).
+      rewrite Heqrowshuffled. rewrite <- (flat_map_concat_map _ rowShuffledwithR).
+      rewrite HeqrowShuffledwithR. rewrite Heqpartialballot.
+      rewrite (map_map _ _ cand_all).
+      rewrite length_all_pairs_row.
+      pose proof (flat_map_with_map_row cand_all cand_all en grp pi). auto.
+      (* Construct function closure v from rowshuffled list *)
+      remember (fun (c d : cand) =>
+                  match (idx_search _ c d
+                                    (all_pairs_row cand_all)(* This would generate in row order *)
+                                    (List.concat rowshuffled) (* concat each row *)
+                                    (every_cand_row c d) H10) with
+                  | existT _  f _ => f
+                  end) as v.
+      (* Show that verify_row_permutation_ballot en v cpi zkppermuv return true.
+         The property here is construct matrix from u and v and comp
+         This is bit tricky so I am leaving it for the moment because we need to 
+         massage the axioms *)
+      assert (Ht1 : verify_row_permutation_ballot en v cpi zkppermuv = true). admit.
+      (* Construct the normal ballot in column form for zero knowledge proof construction *)
+      remember (map (fun c => map (fun d => v d c) cand_all) cand_all) as colballot.
+      remember (map (fun c =>
+                       shuffle grp
+                               (List.length cand_all)
+                               (map (fun d => v d c) cand_all) pi) cand_all) as colShufflewithR.
+      remember (map fst colShufflewithR) as colShuffledballot.
+      remember (map snd colShufflewithR) as rcolvalues.
+      remember (construct_zero_knowledge_proof
+                  grp (List.length cand_all)
+                  colballot colShuffledballot pi cpi s rcolvalues) as zkppermvw.
+      assert (Datatypes.length (concat colShuffledballot) =
+              Datatypes.length (all_pairs_col cand_all)).
+      rewrite HeqcolShuffledballot.
+      rewrite <- (flat_map_concat_map _ colShufflewithR).
+      rewrite HeqcolShufflewithR. rewrite length_all_pairs_col.
+      pose proof (flat_map_with_map_col cand_all cand_all v grp pi). auto.            
+      remember (fun (c d : cand) =>
+                  match (idx_search _ c d
+                                    (all_pairs_col cand_all)(* This would generate in col order *)
+                                    (List.concat colShuffledballot) (* concat each row *)
+                                    (every_cand_col c d) H11) with
+                  | existT _  f _ => f
+                  end) as w.
+      (*  Show that verify_col_permutation_ballot v w cpi zkppermvw return true. 
+         This is bit tricky so I am leaving it for the moment because we need to 
+         massage the axioms *)
+      assert (Ht2 : verify_col_permutation_ballot v w cpi zkppermvw = true). admit.
+      (* Now decrypt the ballot w *)
+      remember (fun c d => decrypt_message grp privatekey (w c d)) as b.
+      (* construct zero knowledge proof of decryption *)
+      remember (fun c d => construct_zero_knowledge_decryption_proof
+                          grp privatekey (w c d)) as zkpdecw.
+      (* Show that the zkpdecw is true b is honest decryption of w *)
+      assert (Ht3 : forall c d, verify_zero_knowledge_decryption_proof
+                              grp (b c d) (w c d) (zkpdecw c d) = true).
+      intros c d. rewrite Heqzkpdecw.
+      apply verify_true. rewrite Heqb. reflexivity. 
+      (* At this point we need Axioms which connects the validity of en to b 
+         g : forall c : cand, u c > 0 
+         H2 : forall c d : cand, map_ballot_pballot u t c d = true
+         H6 : t = (fun c d : cand => decrypt_message grp privatekey (en c d)) 
+         u is valid and it infers that t is also valid. 
+         t is valid then it's encryption en is also valid *)
+      pose proof (proj1 (connect_validity_of_ballot_pballot u t H2)).
+      (* I know that u is valid (Hypothesis g) *)
+      assert (proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec t)) = true).
+      destruct (ballot_valid_dec u). simpl in H12. 
+      specialize (H12 eq_refl). auto.
+      destruct e0. pose proof (g x). omega.
+      clear H12. destruct (matrix_ballot_valid_dec t); swap 1 2.
+      inversion H13. clear H13.
+      (* Now I have m2 : matrix_ballot_valid t => en should be valid 
+         and row and column permutation *)     
+      assert (matrix_ballot_valid b). admit.
+      specialize (X en v w b zkppermuv zkppermvw zkpdecw cpi
+                    zkpcpi ets' em
+                    (fun c d : cand => homomorphic_addition
+                                      grp (en c d) (em c d))
+                    etinbs e1 H12 H9 Ht1 Ht2 Ht3).
+      simpl in X.
+      assert ((forall c d : cand,
+                  homomorphic_addition grp (en c d) (em c d) =
+                  homomorphic_addition grp (en c d) (em c d))).
+      auto.
+      specialize (X H13).
+      (*  ECount grp ebs
+        (epartial (ets', etinbs) (fun c d : cand => homomorphic_addition grp (en c d) (em c d))) *)
+      exists ets', etinbs, tbps', etpbs, (fun c d : cand => homomorphic_addition grp (en c d) (em c d)).
+      repeat split. auto.
+      apply functional_extensionality. intros.
+      apply functional_extensionality. intros.
+      pose proof (homomorphic_addition_axiom grp x x0 en em).
+      rewrite H14.
+      (*  m = (fun c d : cand => decrypt_message grp privatekey (em c d))
+           H6 : t = (fun c d : cand => decrypt_message grp privatekey (en c d)) *)
+      
+      
+
+
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+      
+         
       
     Lemma margin_same_from_both 
           (grp : Group) (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
@@ -1916,7 +2137,7 @@ Section Encryption.
           s = partial (ts, tinbs) (fun c d => decrypt_message grp privatekey (em c d)) ->
           ECount grp ebs (epartial (ets, etinbs) em).
     Proof. 
-      intros s H.  
+      intros s H.   
       (* Induction on strucutre of H *)
       induction H. intros.  inversion H.
       (* Now I have to show to one to one correspondence between Count and ECount. 
@@ -1940,7 +2161,7 @@ Section Encryption.
       rewrite <- H6 in H4.
       rewrite <- e in H1.
       pose proof (mapping_ballot_pballot_equality _ _ _ H1 H4).
-      rewrite Ht in H10. rewrite H2 in H10.  
+      rewrite Ht in H10. rewrite H2 in H10. 
       (* This goal is not provable because two different lists
          can be decrypt to same value, not necessary they have to be the 
          same. I encountered this problem, so rather than assuming 
@@ -2476,7 +2697,7 @@ Section Encryption.
       simpl. split. intros.
       unfold map_ballot_pballot.
       (* It's all manipulation of lemma. Learn ltac once you finish this project *)
-      
+    Admitted.
       
        
 
@@ -2489,7 +2710,7 @@ Section Encryption.
       Count bs (winners w) -> ECount grp ebs (ewinners w).
     Proof.
       (* Show that margin computed from bs is same as ebs *)
-      intros grp bs pbs ebs w H0 H1 H2.
+      intros grp bs pbs ebs w H0 H1 H2. 
       destruct (all_ballots_counted bs) as [inb [fm Hm]].
       (* destruct (pall_ballots_counted grp ebs) as [einbs [em Hem]]. *)
       pose proof (margin_same_from_both grp bs ebs
@@ -2560,7 +2781,9 @@ Section Encryption.
                          (c_wins_true_type fm) (c_wins_false_type fm)).
       pose proof (fin bs fm inb (c_wins fm) (wins_loses_type_dec fm) Hm
                  (c_wins_true_type fm) (c_wins_false_type fm)).
-      
+       
+      assert (w = c_wins fm).
+      apply functional_extensionality. intros.
       
      
       
