@@ -164,6 +164,20 @@ Section Cand.
 
      (* time to go right *)
      right. intros x Hx.
-     
+     destruct (lt_eq_lt_dec (f a0) (f x)) as [[H1 | H1] | H1].
+     pose proof (H a0 x (in_eq a0 l) (or_intror Hx)).
+     right. split. firstorder. firstorder.
 
-   
+     (* f 0 can not be equal to f x *)
+     unfold not in n. assert False. apply n.
+     rewrite H1. Check in_map.
+     pose proof (in_map f l x Hx). assumption.
+     inversion H0.
+
+     pose proof (H x a0 (or_intror Hx) (in_eq a0 l)).
+     firstorder.
+
+     (* finished first half of the proof *)
+     
+     destruct H as [[f H1] [Ht [Hcd [Ht1 [[a [H2 H3]] | H2]]]]].
+     
