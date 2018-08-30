@@ -1108,7 +1108,7 @@ Section Encryption.
     Definition matrix_ballot_valid (p : pballot) :=
       (forall c d : cand, In (p c d) [0; 1]) /\
       valid cand (fun c d => p c d = 1).
-
+    Print valid.
     (* This is decibable *)
     Lemma dec_pballot :
       forall (p : pballot), 
@@ -2094,7 +2094,22 @@ Section Encryption.
       rewrite H14.
       (*  m = (fun c d : cand => decrypt_message grp privatekey (em c d))
            H6 : t = (fun c d : cand => decrypt_message grp privatekey (en c d)) *)
+      assert (t x x0 = decrypt_message grp privatekey (en x x0)).
+      rewrite H6. auto.
+      assert (m x x0 = decrypt_message grp privatekey (em x x0)).
+      rewrite e2. auto.
+      rewrite <- H15. rewrite <- H16.
+      rewrite <- H5.
+      destruct (a x x0) as [H17 [H18 H19]].
+      pose proof (H2 x x0). unfold map_ballot_pballot in H20.
+      pose proof (g x). pose proof (g x0).
+      assert (0 < u x) by omega.
+      assert (0 < u x0) by omega.
       
+      
+
+      auto. auto. rewrite H3 in H8. auto.
+      rewrite H4 in m1. auto.
       
 
 
