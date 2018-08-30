@@ -41,4 +41,17 @@ Section Cand.
                           (if (f d <? f c)%nat then P c d = -1
                            else if (f c =? f d)%nat then P c d = 0
                                 else  P c d = -1).
-          
+
+
+   Lemma validity_after_remove_cand :
+    forall (l : list A) (a0 : A),
+      vl (a0 :: l) <->
+      vl l /\ P a0 a0 = 0 /\
+      (forall (c d e : A), In c (a0 :: l) -> In d (a0 :: l) -> In e (a0 :: l) ->
+                           P c d = 1 -> P d e = 1 -> P c e = 1) /\
+      (forall (c e : A), In c l -> In e l ->  P c a0 = 1 -> P a0 e = 1 -> P c e = 1) /\
+      ((exists (a0' : A), In a0' l /\ forall (x : A), In x l -> (P a0 x = 1 <-> P a0' x = 1) /\
+                                                    (P x a0 = 1 <-> P x a0' = 1 )) \/
+       (* forall (x : A), In x l -> P x a0 \/ P a0 x *)
+       (forall (x : A), In x l -> (P x a0 = 1 /\ P a0 x = -1)
+                            \/ (P a0 x = 1 /\ P x a0 = -1))).
