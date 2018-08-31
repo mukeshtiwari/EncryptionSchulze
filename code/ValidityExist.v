@@ -81,16 +81,29 @@ Section Cand.
    Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
       vl (a0 :: l) <->
-      vl l /\ P a0 a0 = 0 /\ 
+      vl l /\ P a0 a0 = 0 /\
       (forall (c d e : A), In c (a0 :: l) -> In d (a0 :: l) -> In e (a0 :: l) ->
-                           P c d = 1 -> P d e = 1 -> P c e = 1) /\
-      (forall (c e : A), In c l -> In e l ->  P c a0 = 1 -> P a0 e = 1 -> P c e = 1) /\
+                      (P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                      (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                      (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                      (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                      (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                      (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                      (P c d = -1 -> P d e = -1 -> P c e = -1)) /\
+      (forall (c e : A), In c l -> In e l ->
+                    (P c a0 = 1 -> P a0 e = 1 -> P c e = 1) /\
+                    (P c a0 = 1 -> P a0 e = 0 -> P c e = 1) /\
+                    (P c a0 = 0 -> P a0 e = 1 -> P c e = 1) /\
+                    (P c a0 = 0 -> P a0 e = 0 -> P c e = 0) /\
+                    (P c a0 = 0 -> P a0 e = -1 -> P c e = -1) /\
+                    (P c a0 = -1 -> P a0 e = 0 -> P c e = -1) /\
+                    (P c a0 = -1 -> P a0 e = -1 -> P c e = -1)) /\
       ((exists (a0' : A), In a0' l /\ forall (x : A), In x l ->
                                            (P a0 x = P a0' x) /\
                                            (P x a0 = P x a0')) \/
        (forall (x : A), In x l -> (P x a0 = 1 /\ P a0 x = -1)
                             \/ (P a0 x = 1 /\ P x a0 = -1))).
-   Proof.
+   Proof. 
      unfold vl; split; intros.
      destruct H as [f H].
      split.
@@ -103,7 +116,8 @@ Section Cand.
      destruct H as [H1 [H2 H3]].
      specialize ((proj2 H2) eq_refl). intros. assumption.
 
-     split. intros.
+
+     repeat (split; intros).
      pose proof (H c d H0 H1).
      pose proof (H d e H1 H2).
      destruct H5 as [H5 [H7 H8]].
@@ -111,18 +125,150 @@ Section Cand.
      specialize ((proj1 H5) H3); intros.
      specialize ((proj1 H6) H4); intros.
      assert (f c < f e)%nat by lia.
-     pose proof (H c e H0 H2). destruct H14. apply H14. assumption.
+     pose proof (H c e H0 H2). destruct H14.
+     apply H14. assumption.
 
-     split. intros.
+     
+     pose proof (H c d H0 H1).
+     pose proof (H d e H1 H2).
+     destruct H5 as [H5 [H7 H8]].
+     destruct H6 as [H6 [H9 H10]]. 
+     specialize ((proj1 H5) H3); intros.
+     specialize ((proj1 H9) H4); intros.
+     assert (f c < f e)%nat by lia.
+     pose proof (H c e H0 H2). destruct H14.
+     apply H14.  assumption.
+
+     (* Learn bloody LTac *)
+
+     pose proof (H c d H0 H1).
+     pose proof (H d e H1 H2).
+     destruct H5 as [H5 [H7 H8]].
+     destruct H6 as [H6 [H9 H10]].
+     specialize ((proj1 H7) H3); intros.
+     specialize ((proj1 H6) H4); intros.
+     assert (f c < f e)%nat by lia.
+     pose proof (H c e H0 H2). destruct H14.
+     apply H14. assumption.
+
+    
+     
+     pose proof (H c d H0 H1).
+     pose proof (H d e H1 H2).
+     destruct H5 as [H5 [H7 H8]].
+     destruct H6 as [H6 [H9 H10]].
+     apply H7 in H3. apply H9 in H4.
+     rewrite H4 in H3.
+     pose proof (H c e H0 H2).
+     destruct H11. destruct H12. apply H12.
+     assumption.
+
+
+     pose proof (H c d H0 H1).
+     pose proof (H d e H1 H2).
+     destruct H5 as [H5 [H7 H8]].
+     destruct H6 as [H6 [H9 H10]].
+     apply H7 in H3. apply H10 in H4.
+     assert (f c  > f e)%nat by lia.
+     pose proof (H c e H0 H2).
+     destruct H12.  destruct H13. apply H14.
+     assumption.
+
+     pose proof (H c d H0 H1).
+     pose proof (H d e H1 H2).
+     destruct H5 as [H5 [H7 H8]].
+     destruct H6 as [H6 [H9 H10]].
+     apply H8 in H3. apply H9 in H4.
+     assert (f c  > f e)%nat by lia.
+     pose proof (H c e H0 H2).
+     destruct H12.  destruct H13. apply H14.
+     assumption.
+
+     pose proof (H c d H0 H1).
+     pose proof (H d e H1 H2).
+     destruct H5 as [H5 [H7 H8]].
+     destruct H6 as [H6 [H9 H10]].
+     apply H8 in H3. apply H10 in H4.
+     assert (f c  > f e)%nat by lia.
+     pose proof (H c e H0 H2).
+     destruct H12.  destruct H13. apply H14.
+     assumption.
+
      pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
      pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
      destruct H4 as [H6 [H7 H8]].
-     destruct H5 as [H11 [H9 H10]].
-     specialize ((proj1 H6) H2); intros.
-     specialize ((proj1 H11) H3); intros.
+     destruct H5 as [H9 [H10 H11]].
+     apply H6 in H2. apply H9 in H3.
      assert (f c < f e)%nat by lia.
      pose proof (H c e (or_intror H0) (or_intror H1)).
-     destruct H13. apply H13. assumption.
+     destruct H5. destruct H12.
+     apply H5. assumption.
+
+     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
+     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
+     destruct H4 as [H6 [H7 H8]].
+     destruct H5 as [H9 [H10 H11]].
+     apply H6 in H2. apply H10 in H3.
+     assert (f c < f e)%nat by lia.
+     pose proof (H c e (or_intror H0) (or_intror H1)).
+     destruct H5. destruct H12.
+     apply H5. assumption.
+
+
+
+     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
+     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
+     destruct H4 as [H6 [H7 H8]].
+     destruct H5 as [H9 [H10 H11]].
+     apply H7 in H2. apply H9 in H3.
+     assert (f c < f e)%nat by lia.
+     pose proof (H c e (or_intror H0) (or_intror H1)).
+     destruct H5. destruct H12.
+     apply H5. assumption.
+
+     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
+     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
+     destruct H4 as [H6 [H7 H8]].
+     destruct H5 as [H9 [H10 H11]].
+     apply H7 in H2. apply H10 in H3.
+     assert (f c = f e)%nat by lia.
+     pose proof (H c e (or_intror H0) (or_intror H1)).
+     destruct H5. destruct H12.
+     apply H12. assumption.
+
+
+     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
+     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
+     destruct H4 as [H6 [H7 H8]].
+     destruct H5 as [H9 [H10 H11]].
+     apply H7 in H2. apply H11 in H3.
+     assert (f c > f e)%nat by lia.
+     pose proof (H c e (or_intror H0) (or_intror H1)).
+     destruct H5. destruct H12.
+     apply H13. assumption.
+
+
+     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
+     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
+     destruct H4 as [H6 [H7 H8]].
+     destruct H5 as [H9 [H10 H11]].
+     apply H8 in H2. apply H10 in H3.
+     assert (f c > f e)%nat by lia.
+     pose proof (H c e (or_intror H0) (or_intror H1)).
+     destruct H5. destruct H12.
+     apply H13. assumption.
+
+
+     pose proof (H c a0 (in_cons _ c l H0) (in_eq a0 l)).
+     pose proof (H a0 e (in_eq a0 l) (in_cons _ e l H1)).
+     destruct H4 as [H6 [H7 H8]].
+     destruct H5 as [H9 [H10 H11]].
+     apply H8 in H2. apply H11 in H3.
+     assert (f c > f e)%nat by lia.
+     pose proof (H c e (or_intror H0) (or_intror H1)).
+     destruct H5. destruct H12.
+     apply H13. assumption.
+
 
      assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
      pose proof (in_dec Hnat (f a0) (map f l)).  clear Hnat.
@@ -177,7 +323,26 @@ Section Cand.
      pose proof (H x a0 (or_intror Hx) (in_eq a0 l)).
      firstorder.
 
-     (* finished first half of the proof *)
+     (* finished first half of the proof *) 
      
      destruct H as [[f H1] [Ht [Hcd [Ht1 [[a [H2 H3]] | H2]]]]].
+     (* from H3 I know that f a = f a0  so I am going to supply same function  *)
+     exists (fun c => if Adec c a0 then f a else f c). intros c d H4 H5. destruct H4, H5. 
+     split; split; intros. 
+     rewrite <- H in H4. rewrite <- H0 in H4.
+     omega.
+     rewrite <- H0 in H4. rewrite <- H in H4.
+     firstorder.
+
+     split; intros. subst. firstorder.
+     subst. auto.
+
+     split; intros. subst. omega.
+     subst. firstorder.
+
+     split.
+     split; intros.
+     rewrite  <- H. rewrite <- H in H4.
+     
+     
      
