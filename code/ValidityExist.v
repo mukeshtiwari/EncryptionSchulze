@@ -322,27 +322,199 @@ Section Cand.
 
      pose proof (H x a0 (or_intror Hx) (in_eq a0 l)).
      firstorder.
-
+     
      (* finished first half of the proof *) 
      
-     destruct H as [[f H1] [Ht [Hcd [Ht1 [[a [H2 H3]] | H2]]]]].
+     destruct H as [[f H1] [Ht [Hcd [Ht1 [[a [H2 H3]] | H2]]]]].  
      (* from H3 I know that f a = f a0  so I am going to supply same function  *)
-     exists (fun c => if Adec c a0 then f a else f c). intros c d H4 H5. destruct H4, H5. 
-     split; split; intros. 
-     rewrite <- H in H4. rewrite <- H0 in H4.
-     omega.
-     rewrite <- H0 in H4. rewrite <- H in H4.
-     firstorder.
+     exists (fun c => if Adec c a0 then f a else f c). intros c d H4 H5. destruct H4, H5.  
 
-     split; intros. subst. firstorder.
-     subst. auto.
-
-     split; intros. subst. omega.
      subst. firstorder.
+     split.
+     split; intros.
+     subst. destruct (Adec c c); destruct (Adec d c); try congruence.
+     pose proof (H3 d H0).
+     destruct H. clear H5.
+     assert (P a d = 1) by lia.
+     pose proof (H1 a d H2 H0). firstorder.
+
+     subst. destruct (Adec c c); destruct (Adec d c);
+              try congruence; try lia.
+     pose proof (H1 a d H2 H0). firstorder.
 
      split.
      split; intros.
-     rewrite  <- H. rewrite <- H in H4.
+     subst. destruct (Adec c c); destruct (Adec d c);
+              try congruence; try lia.
+     pose proof (H3 d H0). assert (P a d = 0) by lia.
+     pose proof (H1 a d H2 H0).  firstorder.
+     subst. destruct (Adec c c); destruct (Adec d c);
+              try congruence; try lia.
+     pose proof (H1 a d H2 H0).
+     pose proof (H3 d H0).
+     destruct H. destruct H6. apply H6 in H4.
+     destruct H5. rewrite H4 in H5.  assumption.
+
+     split; intros.
+     subst. destruct (Adec c c); destruct (Adec d c);
+              try congruence; try lia.
+     pose proof (H3 d H0).
+     pose proof (H1 a d H2 H0).
+     assert (P a d = -1) by lia. firstorder.
+     subst. destruct (Adec c c); destruct (Adec d c);
+              try congruence; try lia.
+     pose proof (H3 d H0).
+     pose proof (H1 a d H2 H0).
+     destruct H5. 
+     destruct H6. apply H7 in H4.
+     assert (P c d = -1) by lia.
+     assumption.
+
+     split.
+     split; intros.
+     subst. destruct (Adec c d); destruct (Adec d d);
+              try congruence; try lia.
+     pose proof (H3 c H). assert (P c a = 1) by lia.
+     pose proof (H1 c a H H2). firstorder.
+     subst. destruct (Adec c d); destruct (Adec d d);
+              try congruence; try lia.
+     pose proof (H3 c H).
+     pose proof (H1 c a H H2).
+     destruct H5. destruct H6.
+     apply H5 in H4. destruct H0.
+     rewrite H4 in H8. assumption.
+
+     split.
+     split; intros.
+     subst. destruct (Adec c d); destruct (Adec d d); try congruence;
+              try lia.
+     pose proof (H3 c H).
+     assert (P c a = 0) by lia.
+     pose proof (H1 c a H H2). firstorder.
+     subst. destruct (Adec c d); destruct (Adec d d);
+              try congruence; try lia.
+     pose proof (H3 c H). destruct H0.
+     pose proof (H1 c a H H2). destruct H6.
+     destruct H7. apply H7 in H4. rewrite H4 in H5.
+     assumption.
+
+     split; intros.
+     subst. destruct (Adec c d); destruct (Adec d d); try congruence;
+              try lia.
+     pose proof (H3 c H).
+     assert (P c a = -1) by lia.
+     pose proof (H1 c a H H2). firstorder.
+     subst. destruct (Adec c d); destruct (Adec d d);
+              try congruence; try lia.
+     pose proof (H3 c H). destruct H0.
+     pose proof (H1 c a H H2). destruct H6.
+     destruct H7. apply H8 in H4. rewrite H4 in H5.
+     assumption.
+
+
+     split. 
+     split; intros. 
+     subst. destruct (Adec c a0); destruct (Adec d a0); try congruence;
+              try lia.
+     subst. pose proof (H3 d H0).
+     destruct H5. assert (P a d = 1) by lia.
+     pose proof (H1 a d H2 H0).
+     destruct H8. apply H8. assumption.
+     subst. pose proof (H3 c H).
+     destruct H5. assert (P c a = 1) by lia.
+     pose proof (H1 c a H H2). destruct H8.
+     apply H8. assumption.
+
+     pose proof (H1 c d H H0). firstorder.
+     destruct (Adec c a0); destruct (Adec d a0);
+       try congruence; try lia.
+     subst.
+     pose proof (H1 a d H2 H0).
+     pose proof (H3 d H0). destruct H6.
+     destruct H5. destruct H8. apply H5 in H4.
+     rewrite H4 in H6. assumption.
+
+     subst. pose proof (H1 c a H H2).
+     destruct H5. apply H5 in H4.
+     pose proof (H3 c H). assert (P c a0 = 1) by lia.
+     assumption.
+
+     pose proof (H1 c d H H0). destruct H5.
+     apply H5. assumption.
+
+
+     split.
+     split; intros.
+     destruct (Adec c a0); destruct (Adec d a0);
+       try congruence; try lia.
+     subst. pose proof (H3 d H0).
+     destruct H5. pose proof (H1 a d H2 H0).
+     destruct H7. destruct H8. apply H8.
+     rewrite H4 in H5. congruence.
+
+     subst. pose proof (H3 c H).
+     destruct H5.
+     pose proof (H1 c a H H2).
+     destruct H7. destruct H8.
+     apply H8. rewrite H4 in H6.
+     congruence.
+
+     pose proof (H1 c d H H0). destruct H5.
+     destruct H6. apply H6. assumption.
+     destruct (Adec c a0); destruct (Adec d a0);
+       try congruence; try lia.
+     subst. pose proof (H3 d H0).
+     destruct H5. pose proof (H1 a d H2 H0).
+     destruct H7. destruct H8.
+     apply H8 in H4. rewrite H4 in H5.
+     assumption.
+
+     subst. pose proof (H3 c H).
+     destruct H5. pose proof (H1 c a H H2).
+     destruct H7. destruct H8.
+     apply H8 in H4. rewrite H4 in H6.
+     assumption.
+
+     pose proof (H1 c d H H0).
+     destruct H5. destruct H6.
+     apply H6. assumption.
+
+     split; intros.
+     destruct (Adec c a0); destruct (Adec d a0);
+       try congruence; try lia.
+     subst. pose proof (H3 d H0).
+     destruct H5. pose proof (H1 a d H2 H0).
+     destruct H7. destruct H8. apply H9.
+     rewrite H4 in H5. congruence.
+
+     subst. pose proof (H3 c H).
+     destruct H5. pose proof (H1 c a H H2).
+     destruct H7. destruct H8.
+     apply H9. rewrite H4 in H6. congruence.
+
+     pose proof (H1 c d H H0). destruct H5.
+     destruct H6. apply H7. assumption.
+
+     destruct (Adec c a0); destruct (Adec d a0);
+       try congruence; try lia.
+     subst. pose proof (H3 d H0).
+     destruct H5. pose proof (H1 a d H2 H0).
+     destruct H7. destruct H8.
+     apply H9 in H4. rewrite H4 in H5. assumption.
+
+     subst. pose proof (H1 c a H H2).
+     destruct H5. destruct H6.
+     pose proof (H3 c H). destruct H8.
+     apply H7 in H4. rewrite H4 in H9.
+     assumption.
+
+     pose proof (H1 c d H H0). destruct H5.
+     destruct H6. apply H7. assumption.
+
+     (* finished equivalent function *)
+     
+    
+
      
      
-     
+              
