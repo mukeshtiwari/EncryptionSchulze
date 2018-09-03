@@ -862,6 +862,59 @@ Section Cand.
      (* In c l, In d l *)
      pose proof (H1 c d H0 H3).
      destruct H5 as [H6 [H7 H8]].
+     destruct (Adec c a0); destruct (Adec d a0);
+       try auto; try congruence.
+     pose proof (H2 d H3). 
+     destruct H5 as [[Ht5 Ht6] | [Ht5  Ht6]];
+       try omega.
+     rewrite Ht6. simpl.
+     rewrite e in H0, H4, H8.
+     omega.
+     rewrite e in H4. omega.
+     pose proof (H2 c H0).
+     destruct H5 as [[Ht5 Ht6] | [Ht5 Ht6]];
+       try auto; try omega.
+     rewrite Ht6. simpl.
+     rewrite e in H4. omega.
+     rewrite Ht5. simpl.
+     assert ((if in_dec Adec c l then true else false) = true).
+     destruct (in_dec Adec c l). auto. congruence.
+     rewrite H5. clear H5. rewrite e in H4. omega.
+     (* P c d = 0 mean they are equally ranked. 
+       P a0 c =? 1 -> P a0 d =? 1 and vice versa *)
+     assert ((if in_dec Adec c l then true else false) = true).
+     destruct (in_dec Adec c l). auto. congruence.
+     rewrite H5. clear H5.
+     assert ((if in_dec Adec d l then true else false) = true).
+     destruct (in_dec Adec d l). auto. congruence.
+     rewrite H5. clear H5.
+     pose proof (H2 c H0). destruct H5 as [[Ht5 Ht6] | [Ht5 Ht6]];
+                             try omega. 
+     rewrite Ht6. simpl. 
+     pose proof ((proj1 H7) H4).
+     destruct (H2 d H3); try auto;
+       try congruence.
+     destruct H9 as [H9 H10].
+     rewrite H10. simpl. auto.
+     destruct H9. rewrite H9. simpl.
+     pose proof (Ht1 c d H0 H3).
+     destruct H11. specialize (H11 Ht5 H9).
+     rewrite H4 in H11. inversion H11.
+
+     rewrite Ht5. simpl.
+     pose proof ((proj1 H7) H4).
+     destruct (H2 d H3); try auto;
+       try congruence.
+     destruct H9 as [H9 H10].
+     rewrite H10. simpl.
+     pose proof (Ht1 d c H3 H0).
+     destruct H11. specialize (H11 H9 Ht5).
+     clear H12.
+     pose proof (H1 d c H3 H0). destruct H12.
+     apply H12 in H11.
+     rewrite H5 in H11. omega.
+     destruct H9. rewrite H9. simpl. omega.
+
      
      
-     
+    
