@@ -831,5 +831,37 @@ Section Cand.
      destruct (in_dec Adec d l). auto. congruence.
      rewrite H5 in H4. clear H5. 
      pose proof (H1 c d H0 H3). destruct H5. apply H5. omega.
+ 
+     (* P c d = 0 *)
 
+     split.
+     split; intros.
+     destruct H0; destruct H3.
+
+     (* c = a0, d = a0 *)
+     rewrite <- H0. rewrite <- H3.
+     rewrite <- H0 in H4. rewrite <- H3 in H4.
+     destruct (Adec a0 a0); try auto; try congruence.
+
+     (*c = a0, In d l *)
+     rewrite <- H0. rewrite <- H0 in H4.
+     destruct (Adec a0 a0); destruct (Adec d a0);
+       try auto; try congruence.
+     pose proof (H2 d H3).
+     destruct H5 as [[Ht5 Ht6] | [Ht5 Ht6]];
+       try omega.
+
+     (* In c l, d = a0 *)
+     rewrite <- H3. rewrite <- H3 in H4.
+     destruct (Adec c a0); destruct (Adec a0 a0);
+       try auto; try congruence.
+     pose proof (H2 c H0).
+     destruct H5 as [[Ht5 Ht6] | [Ht5 Ht6]];
+       try omega.
+
+     (* In c l, In d l *)
+     pose proof (H1 c d H0 H3).
+     destruct H5 as [H6 [H7 H8]].
+     
+     
      
