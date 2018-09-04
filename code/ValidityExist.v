@@ -1034,6 +1034,74 @@ Section Cand.
      omega.
 
      (* In c l and In d l *)
+     assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
+     intros. apply H1.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l y H). apply H7.
+     firstorder.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l x H). apply H7.
+     firstorder.
+     apply Ht1.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l y H). apply H7.
+     firstorder.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l x H). apply H7.
+     firstorder. firstorder. firstorder.
+
+     destruct (Adec c a0). 
+     rewrite e in H0. pose proof (H2 a0 H0).
+     firstorder.
+
+     pose proof (H2 c H0). destruct H5 as [[Htt5 Htt6] | [Htt5 Htt6]].
+     rewrite Htt6 in H4. simpl in H4.
+     destruct (Adec d a0).  rewrite e in H3.
+     firstorder.
+
+     pose proof (H2 d H3). destruct H5 as [[Htt7 Htt8] | [Htt7 Htt8]].
+     rewrite Htt8 in H4. simpl in H4.
+     pose proof (H1 c d H0 H3). destruct H5. destruct H6. apply H6. auto.
+     rewrite Htt7 in H4. simpl in H4.
+
+     assert ((if in_dec Adec d l then true else false) = true).
+     destruct (in_dec Adec d l). auto. congruence.
+     rewrite H5 in H4. clear H5.
+     assert (In c l1).
+     rewrite Heql1. rewrite Heqf1.
+     apply filter_In. split. auto.
+     rewrite Htt5. auto.
+     assert (In d l2).
+     rewrite Heql2. rewrite Heqg1.
+     apply filter_In. split. auto.
+     rewrite Htt7. auto.
+     pose proof (Ht5 c H5 d H6). omega.
+     
+
+     rewrite Htt5 in H4. simpl in H4.
+     assert ((if in_dec Adec c l then true else false) = true).
+     destruct (in_dec Adec c l). auto. congruence.
+     rewrite H5 in H4. clear H5. destruct (Adec d a0).
+     rewrite e in H3. firstorder.
+     pose proof (H2 d H3). destruct H5 as [[Htt7 Htt8] | [Htt7 Htt8]].
+     rewrite Htt8 in H4. simpl in H4.
+     assert (In d l1).
+     rewrite Heql1. rewrite Heqf1.
+     apply filter_In. split. auto.
+     rewrite Htt7. auto.
+     assert (In c l2).
+     rewrite Heql2. rewrite Heqg1.
+     apply filter_In. split. auto.
+     rewrite Htt5. auto.
+     pose proof (Ht5 d H5 c H6). omega.
+
+     rewrite Htt7 in H4. simpl in H4.
+     assert ((if in_dec Adec d l then true else false) = true).
+     destruct (in_dec Adec d l). auto. congruence.
+     rewrite H5 in H4. clear H5. 
+     pose proof (H1 c d H0 H3). destruct H5. destruct H6.
+     apply H6. omega.
+
      
      
      
