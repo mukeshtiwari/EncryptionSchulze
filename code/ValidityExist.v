@@ -1102,9 +1102,40 @@ Section Cand.
      pose proof (H1 c d H0 H3). destruct H5. destruct H6.
      apply H6. omega.
 
+     (* Finish P c d = 0 case *)
+
+     (* Starting P c d = -1 *) 
+     split; intros.
+      assert (forall (n m : nat), (n < m)%nat -> (m > n)%nat)
+       by auto with arith. apply H5. clear H5.
+     destruct H0; destruct H3;
+       try congruence; try auto; try omega.
      
+     (* c = a0, In d l *)
+     rewrite <- H0. rewrite <- H0 in H4.
+     destruct (Adec a0 a0).
+     destruct (Adec d a0). congruence.
+     rewrite H4.  simpl.
+
+     pose proof Permutation_in. 
+     pose proof (H5 A l (l1 ++ l2) d H H3).
+     apply in_app_iff in H6. destruct H6.
+     pose proof (Ht2 d H6).
+     rewrite <- Heqf1.
+     rewrite <- Heql1.  
+     pose proof (listmax_upperbound l1 d f H6). omega. 
+     pose proof (Ht3 d H6). omega. congruence.
+
+     (* In c l, d = a0 *)
+     rewrite <- H3. rewrite <- H3 in H4.
+     destruct (Adec a0 a0).
+     destruct (Adec c a0). congruence.
+     pose proof (H2 c H0); try congruence.
+     destruct H5. destruct H5.
+     try congruence. destruct H5. 
+     rewrite H5.  simpl.
+     assert ((if in_dec Adec c l then true else false) = true).
+     destruct (in_dec Adec c l). auto. congruence.
+     rewrite H7. clear H7. apply lt_n_S.
+     rewrite <- Heqf1. rewrite <- Heql1.
      
-     
-     
-     
-    
