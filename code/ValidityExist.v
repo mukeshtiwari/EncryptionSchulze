@@ -77,6 +77,8 @@ Section Cand.
     pose proof (IHl d f H).
     omega. omega.
   Qed.
+
+     
  
    Lemma validity_after_remove_cand :
     forall (l : list A) (a0 : A),
@@ -568,7 +570,7 @@ Section Cand.
      subst. 
      (* c = a0 and d = a0 *)
      congruence. 
-
+ 
      (* c = a0 and In d l *)
      rewrite <- H0. rewrite <- H0 in H4.
      destruct (Adec a0 a0).
@@ -576,7 +578,7 @@ Section Cand.
      rewrite H4. simpl.
      destruct (in_dec Adec d l).
      simpl. apply lt_n_S.
-
+ 
      clear e.  clear i. clear n.
      pose proof Permutation_in. 
      pose proof (H5 A l (l1 ++ l2) d H H3).
@@ -584,7 +586,7 @@ Section Cand.
      pose proof (Ht2 d H6). firstorder.
      rewrite <- Heqf1.
      rewrite <- Heql1.
- 
+  
      assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
      intros. apply H1.
      apply Permutation_sym in H. 
@@ -600,10 +602,10 @@ Section Cand.
      apply Permutation_sym in H.
      pose proof (H5 A (l1 ++ l2) l x H). apply H9.
      firstorder. firstorder. firstorder.
-
+  
      clear H. clear H5. clear Heql1. clear Ht2.
      induction l1. simpl. omega.
-     simpl. destruct l1.
+     simpl. destruct l1. 
      pose proof (Ht5 a (in_eq a []) d H6). omega.
      apply Nat.max_lub_lt_iff. split.
      pose proof (Ht5 a (in_eq a (a1 :: l1)) d H6).
@@ -778,7 +780,7 @@ Section Cand.
      rewrite max_r. rewrite max_r in H4.
      apply IHl1.  omega. firstorder. omega. omega.
      omega. congruence.
-
+ 
      (* In c l and In d l *)
      assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
      intros. apply H1.
@@ -837,7 +839,7 @@ Section Cand.
      split.
      split; intros.
      destruct H0; destruct H3.
-
+ 
      (* c = a0, d = a0 *)
      rewrite <- H0. rewrite <- H3.
      rewrite <- H0 in H4. rewrite <- H3 in H4.
@@ -847,7 +849,7 @@ Section Cand.
      rewrite <- H0. rewrite <- H0 in H4.
      destruct (Adec a0 a0); destruct (Adec d a0);
        try auto; try congruence.
-     pose proof (H2 d H3).
+     pose proof (H2 d H3);
      destruct H5 as [[Ht5 Ht6] | [Ht5 Ht6]];
        try omega.
 
@@ -889,7 +891,7 @@ Section Cand.
      destruct (in_dec Adec d l). auto. congruence.
      rewrite H5. clear H5.
      pose proof (H2 c H0). destruct H5 as [[Ht5 Ht6] | [Ht5 Ht6]];
-                             try omega. 
+                             try omega.  
      rewrite Ht6. simpl. 
      pose proof ((proj1 H7) H4).
      destruct (H2 d H3); try auto;
@@ -912,9 +914,70 @@ Section Cand.
      clear H12.
      pose proof (H1 d c H3 H0). destruct H12.
      apply H12 in H11.
-     rewrite H5 in H11. omega.
+     rewrite H5 in H11. omega. 
      destruct H9. rewrite H9. simpl. omega.
 
+
+     pose proof Permutation_in as Hp.
+     destruct H0; destruct H3; try auto;
+       try congruence.
+      
+     (* c = a0, In d l *)
+     rewrite <- H0. rewrite <- H0 in H4.
+     destruct (Adec a0 a0); destruct (Adec d a0);
+       try auto; try congruence.
+     assert ((if in_dec Adec d l then true else false) = true).
+     destruct (in_dec Adec d l). auto. congruence.
+     rewrite H5 in H4. clear H5. rewrite andb_true_r in H4.
+     destruct (H2 d H3); try omega.
+     destruct H5 as [Ht5 Ht6].
+     rewrite Ht6 in H4. simpl in *.
+
+     assert (In d l1).
+     rewrite Heql1. rewrite Heqf1.
+     apply filter_In. split. auto.
+     rewrite Ht5. auto. rewrite Heql1 in H5.
+     rewrite Heqf1 in H5.
+     pose proof (listmax_upperbound
+                   (filter (fun y : A => if P y a0 =? 1 then true else false) l)
+                   d f H5). omega.
+     destruct H5. rewrite H5 in H4. simpl in H4.
+     inversion H4. clear H4.
+     assert (In d l2).
+     rewrite Heql2. rewrite Heqg1.
+     apply filter_In. split.  auto.
+     rewrite H5. auto.
+     assert (forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
+     intros. apply H1.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l y H). apply H10. firstorder.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l x H). apply H10. firstorder.
+     assert (In x l). apply Permutation_sym in H.
+     pose proof (Hp _ _ _ x H). apply H10. firstorder.
+     assert (In y l). apply Permutation_sym in H.
+     pose proof (Hp _ _ _ y H). apply H11. firstorder.
+     pose proof (Ht1 y x H11 H10). destruct H12.
+     destruct H13. destruct H14. destruct H15.
+     destruct H16. destruct H17.
+     pose proof (Ht2 x H7). pose proof (Ht3 y H9).
+     destruct H19. destruct H20.
+     pose proof (H18 H22 H21). auto.
+     (* At this point, you grab the element x0 in list l1 which is equal to mx. 
+        and give this as evidence in H7 *)
+     rewrite <- Heqf1 in H8.
+     rewrite <- Heql1 in H8.
+     assert ((listmax f l1 < S (f d))%nat).
+     clear H. clear H5. clear Heql1. clear Ht2. clear H8. 
+     induction l1. simpl. omega.
+     simpl. destruct l1. 
+     pose proof (H7 a (in_eq a []) d H4). omega.
+     apply Nat.max_lub_lt_iff. split.
+     pose proof (H7 a (in_eq a (a1 :: l1)) d H4).
+     omega. apply IHl1. firstorder.
+     omega.
+
+     
      
      
     
