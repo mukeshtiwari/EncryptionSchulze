@@ -1223,7 +1223,104 @@ Section Cand.
      apply Nat.max_lub_lt_iff. split.
      pose proof (H9 a (in_eq a (a1 :: l1)) c H8).
      omega. apply IHl1. firstorder.
-     omega. 
+     omega.
+
+     (* d <> a0 and c = a0. Play the same trick *)
+
+     pose proof (H2 d H3).
+     destruct H6. destruct H6.
+     rewrite H7. simpl.
+     rewrite <- Heqf1. rewrite <- Heql1.
+     rewrite e in H4. 
+     assert (In d l1).
+     rewrite Heql1. rewrite Heqf1.
+     apply filter_In. split.  auto.
+     rewrite H6. auto.
+ 
+     assert (forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
+     intros. apply H1.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l y H). apply H11. firstorder.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l x H). apply H11. firstorder.
+     assert (In x l). apply Permutation_sym in H.
+     pose proof (Hp _ _ _ x H). apply H11. firstorder.
+     assert (In y l). apply Permutation_sym in H.
+     pose proof (Hp _ _ _ y H). apply H12. firstorder.
+     pose proof (Ht1 y x H12 H11). destruct H13.
+     destruct H14. destruct H15. destruct H16.
+     destruct H17. destruct H18.
+     pose proof (Ht2 x H9). pose proof (Ht3 y H10).
+     destruct H20. destruct H21.
+     pose proof (H19 H23 H22). auto.
+     pose proof (listmax_upperbound l1 d f H8). omega.
+     destruct H6. congruence.
+
+     (* In c l and In d l *)
+     assert (Ht5: forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
+     intros. apply H1.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l y H). apply H8.
+     firstorder.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l x H). apply H8.
+     firstorder.
+     apply Ht1.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l y H). apply H8.
+     firstorder.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l x H). apply H8.
+     firstorder. firstorder. firstorder.
+
+  
+
+     pose proof (H2 c H0). destruct H6 as [[Htt5 Htt6] | [Htt5 Htt6]].
+     rewrite Htt6. simpl. 
+
+     pose proof (H2 d H3). destruct H6 as [[Htt7 Htt8] | [Htt7 Htt8]].
+     rewrite Htt8. simpl.
+     pose proof (H1 c d H0 H3). destruct H6. destruct H7.
+     pose proof ((proj1 H8) H4). omega.
+
+     assert ((if in_dec Adec d l then true else false) = true).
+     destruct (in_dec Adec d l). auto. congruence.
+     rewrite H6. clear H6.
+     assert (In c l1).
+     rewrite Heql1. rewrite Heqf1.
+     apply filter_In. split. auto.
+     rewrite Htt5. auto.
+     assert (In d l2).
+     rewrite Heql2. rewrite Heqg1.
+     apply filter_In. split. auto.
+     rewrite Htt7. auto. rewrite Htt7. simpl.
+     pose proof (Ht5 c H6 d H7). omega.
+     
+
+     rewrite Htt5. simpl. 
+     assert ((if in_dec Adec c l then true else false) = true).
+     destruct (in_dec Adec c l). auto. congruence.
+     rewrite H6. clear H6.
+     pose proof (H2 d H3). destruct H6 as [[Htt7 Htt8] | [Htt7 Htt8]].
+     rewrite Htt8. simpl. 
+     assert (In d l1).
+     rewrite Heql1. rewrite Heqf1.
+     apply filter_In. split. auto.
+     rewrite Htt7. auto.
+     assert (In c l2).
+     rewrite Heql2. rewrite Heqg1.
+     apply filter_In. split. auto.
+     rewrite Htt5. auto.
+     pose proof (Ht5 d H6 c H7). omega.
+
+     rewrite Htt7. simpl. 
+     assert ((if in_dec Adec d l then true else false) = true).
+     destruct (in_dec Adec d l). auto. congruence.
+     rewrite H6. clear H6. 
+     pose proof (H1 c d H0 H3). destruct H6. destruct H7.
+     pose proof ((proj1 H8) H4). omega.
+     
+     
 
      
 
