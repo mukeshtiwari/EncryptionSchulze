@@ -511,7 +511,7 @@ Section Cand.
      assumption.
 
      pose proof (H1 c d H H0). destruct H5.
-     destruct H6. apply H7. assumption.
+     destruct H6. apply H7. assumption. 
 
      (* finished equivalent function *)
 
@@ -562,8 +562,8 @@ Section Cand.
                         (if (in_dec Adec x l) then true else false)
                 then plus (S (S O)) (f x)
                 else  (f x)
-              end).
-
+              end). 
+ 
      split.
      split; intros.
      destruct H0, H3.
@@ -696,7 +696,7 @@ Section Cand.
      pose proof (H1 c d H0 H3).
      destruct H7. apply H7. assumption.
      congruence.
-
+ 
      pose proof Permutation_in as Hp.
      destruct H0, H3.
      (* c = a0 and d = a0 *)
@@ -1104,6 +1104,7 @@ Section Cand.
 
      (* Finish P c d = 0 case *)
 
+     pose proof Permutation_in as Hp.
      (* Starting P c d = -1 *) 
      split; intros.
       assert (forall (n m : nat), (n < m)%nat -> (m > n)%nat)
@@ -1138,4 +1139,95 @@ Section Cand.
      destruct (in_dec Adec c l). auto. congruence.
      rewrite H7. clear H7. apply lt_n_S.
      rewrite <- Heqf1. rewrite <- Heql1.
+ 
+     assert (In c l2).
+     rewrite Heql2. rewrite Heqg1.
+     apply filter_In. split.  auto.
+     rewrite H5. auto.
+
+     assert (forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
+     intros. apply H1.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l y H). apply H10. firstorder.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l x H). apply H10. firstorder.
+     assert (In x l). apply Permutation_sym in H.
+     pose proof (Hp _ _ _ x H). apply H10. firstorder.
+     assert (In y l). apply Permutation_sym in H.
+     pose proof (Hp _ _ _ y H). apply H11. firstorder.
+     pose proof (Ht1 y x H11 H10). destruct H12.
+     destruct H13. destruct H14. destruct H15.
+     destruct H16. destruct H17.
+     pose proof (Ht2 x H8). pose proof (Ht3 y H9).
+     destruct H19. destruct H20.
+     pose proof (H18 H22 H21). auto.
+
+     (* At this point, you grab the element x0 in list l1 which is equal to mx. 
+        and give this as evidence in H7 *) 
+     assert ((listmax f l1 < S (f c))%nat).
+     clear H. clear H5. clear Heql1. clear Ht2.
+     induction l1. simpl. omega.
+     simpl. destruct l1.
+     pose proof (H8 a (in_eq a []) c H7). omega.
+     apply Nat.max_lub_lt_iff. split.
+     pose proof (H8 a (in_eq a (a1 :: l1)) c H7).
+     omega. apply IHl1. firstorder.
+     omega. congruence.
+
+
+     (* P c d = -1 *)
+
+     pose proof (H1 c d H0 H3). 
+     destruct (Adec d a0); destruct (Adec c a0);
+       try congruence.
+     rewrite e in H3.
+     pose proof (H2 c H0).
+     destruct H6. destruct H6.
+     rewrite H7. simpl.
+     rewrite <- Heqf1. rewrite <- Heql1.
+     rewrite e in H4. congruence.
+     destruct H6. rewrite H6. rewrite e in H4.
+     simpl.
+     assert ((if in_dec Adec c l then true else false) = true).
+     destruct (in_dec Adec c l). auto. congruence. 
+     rewrite H8. clear H8.  apply lt_n_S.
+     rewrite <- Heqf1. rewrite <- Heql1.
+     assert (In c l2).
+     rewrite Heql2. rewrite Heqg1.
+     apply filter_In. split.  auto.
+     rewrite H6. auto.
+ 
+     assert (forall x, In x l1 -> forall y, In y l2 -> (f x < f y)%nat).
+     intros. apply H1.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l y H). apply H11. firstorder.
+     apply Permutation_sym in H.
+     pose proof (Hp A (l1 ++ l2) l x H). apply H11. firstorder.
+     assert (In x l). apply Permutation_sym in H.
+     pose proof (Hp _ _ _ x H). apply H11. firstorder.
+     assert (In y l). apply Permutation_sym in H.
+     pose proof (Hp _ _ _ y H). apply H12. firstorder.
+     pose proof (Ht1 y x H12 H11). destruct H13.
+     destruct H14. destruct H15. destruct H16.
+     destruct H17. destruct H18.
+     pose proof (Ht2 x H9). pose proof (Ht3 y H10).
+     destruct H20. destruct H21.
+     pose proof (H19 H23 H22). auto.
+     (* At this point, you grab the element x0 in list l1 which is equal to mx. 
+        and give this as evidence in H7 *)
+     assert ((listmax f l1 < S (f c))%nat).
+     clear H. clear H5. clear Heql1. clear Ht2. 
+     induction l1. simpl. omega.
+     simpl. destruct l1.
+     pose proof (H9 a (in_eq a []) c H8). omega.
+     apply Nat.max_lub_lt_iff. split.
+     pose proof (H9 a (in_eq a (a1 :: l1)) c H8).
+     omega. apply IHl1. firstorder.
+     omega. 
+
+     
+
+     
+     
+    
      
