@@ -1640,8 +1640,92 @@ Section Cand.
       right. intuition.
     Qed.
 
+    Theorem transitive_dec_third_fn :
+      forall c l1 l2,
+        {(forall d e, In d l1 -> In e l2 -> 
+                 ((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                  (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                  (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                  (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                  (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                  (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                  (P c d = -1 -> P d e = -1 -> P c e = -1)))} +
+        {~(forall d e, In d l1 -> In e l2 -> 
+                  ((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                   (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                   (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                   (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                   (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                   (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                   (P c d = -1 -> P d e = -1 -> P c e = -1)))}.
+    Proof.
+      intros.
+      induction l1.
+      left; intuition.
+      destruct IHl1.
+      pose proof (transitive_dec_second_fn c a l2).
+      destruct H.
+      left. intros. destruct H. subst. firstorder.
+      specialize (a0  d e H H0). firstorder.
+      right. unfold not. intros. apply n. intros. firstorder.
+      right. unfold not; intros. firstorder.
+    Qed.
+
+    Theorem transitive_dec_fourth_fn :
+      forall l1 l2 l3,
+        {(forall c d e, In c l1 -> In d l2 -> In e l3 ->
+                   ((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                    (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                    (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                    (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                    (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                    (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                    (P c d = -1 -> P d e = -1 -> P c e = -1)))} +
+        {~(forall c d e, In c l1 -> In d l2 -> In e l3 ->
+                   ((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                    (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                    (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                    (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                    (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                    (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                    (P c d = -1 -> P d e = -1 -> P c e = -1)))}.
+    Proof.
+      intros.
+      induction l1.
+      left; intuition.
+      destruct IHl1.
+      pose proof (transitive_dec_third_fn a l2 l3).
+      destruct H.
+      left. intros. destruct H. subst. firstorder.
+      specialize (a0 c d e H H0 H1). firstorder.
+      right. firstorder.
+      right. firstorder.
+    Qed.
+
+    Theorem transitive_dec_fn :
+      forall l,
+        {(forall c d e, In c l -> In d l -> In e l ->
+                   ((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                    (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                    (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                    (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                    (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                    (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                    (P c d = -1 -> P d e = -1 -> P c e = -1)))} +
+        {~(forall c d e, In c l -> In d l -> In e l ->
+                   ((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                    (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                    (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                    (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                    (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                    (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                    (P c d = -1 -> P d e = -1 -> P c e = -1)))}.
+    Proof.
+      intros.
+      pose proof (transitive_dec_fourth_fn l l l). auto.
+    Qed.
     
-      
+    
       
       
 
