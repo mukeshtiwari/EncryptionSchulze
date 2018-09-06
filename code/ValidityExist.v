@@ -1575,6 +1575,123 @@ Section Cand.
       destruct (phi_two_dec a l l), (phi_one_dec a l); intuition.
     Qed.
 
+    Lemma not_in_list : forall (a : A) (l : list A) (f : A -> nat),
+        ~In (f a) (map f l) -> (forall x, In x l -> f a <> f x).  
+    Proof.
+      intros a l f Hnin x Hx.
+      pose proof (in_map f l x Hx).
+      pose proof (not_equal_elem _ (f x) (f a) (map f l)  H Hnin).
+      auto.
+    Qed.
+
+    Theorem transitive_dec_first_fn :
+      forall c d e,
+        {((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+          (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+          (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+          (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+          (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+          (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+          (P c d = -1 -> P d e = -1 -> P c e = -1))} +
+        {~((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+          (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+          (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+          (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+          (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+          (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+          (P c d = -1 -> P d e = -1 -> P c e = -1))}.   
+    Proof.
+      intros.
+       destruct (Pdec c d) as [[H | H] | H],
+                            (Pdec d e) as [[H1 | H1] | H1],
+                                          (Pdec c e) as [[H2 | H2] | H2];
+         firstorder.
+    Qed.
+
+    Theorem transitive_dec_second_fn :
+      forall c d l,
+        {(forall e, In e l ->
+               ((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                (P c d = -1 -> P d e = -1 -> P c e = -1)))} +
+        {~(forall e, In e l ->
+                ((P c d = 1 -> P d e = 1 -> P c e = 1) /\
+                 (P c d = 1 -> P d e = 0 -> P c e = 1) /\
+                 (P c d = 0 -> P d e = 1 -> P c e = 1) /\
+                 (P c d = 0 -> P d e = 0 -> P c e = 0) /\
+                 (P c d = 0 -> P d e = -1 -> P c e = -1) /\
+                 (P c d = -1 -> P d e = 0 -> P c e = -1) /\
+                 (P c d = -1 -> P d e = -1 -> P c e = -1)))}.
+    Proof.
+      intros. induction l.
+      left; intuition.
+      destruct IHl. 
+      destruct (transitive_dec_first_fn c d a) as [H | H]. 
+      left. intros.  destruct H0; subst; firstorder.
+      right. unfold not. intros. apply H.
+      pose proof (H0 a (in_eq a l)). firstorder.
+
+      destruct (transitive_dec_first_fn c d a) as [H | H].
+      right. unfold not. intros. apply n. intuition.
+      right. intuition.
+    Qed.
+
+    
+      
+      
+      
+
+    Lemma vl_or_notvl : forall l : list A, vl l + ~vl l.
+    Proof. 
+      induction l.
+      left; exists (fun _ => 0)%nat; intros; intuition.
+      destruct IHl. 
+      pose proof (validity_after_remove_cand l a).
+      
+
+
+
+
+      
+
+    Definition valid := exists (f : A -> nat), forall (c d : A),
+          ((P c d = 1 <-> (f c < f d)%nat) /\
+           (P c d = 0 <-> (f c = f d)%nat) /\
+           (P c d = -1 <-> (f c > f d)%nat)).
+
+    Lemma from_vl_to_valid : forall (l : list A), ((forall a : A, In a l) -> valid <-> vl l).
+    Proof.
+      intros l Ha. split; intros.
+      unfold valid in H.
+      unfold vl.
+      destruct H as [f H].
+      firstorder.
+      unfold vl in H. unfold valid.
+      destruct H as [f H].
+      exists f. split; intros.
+      apply H; auto.
+      apply H; auto.
+    Qed.
+
+
+    Lemma decidable_valid : finite -> {valid} + {~valid}.
+    Proof.
+      unfold finite, valid.
+      intros H. destruct H as [l Hin].
+      pose proof (vl_or_notvl l).
+      pose proof (from_vl_to_valid l Hin).
+      destruct H.
+      left. pose proof (proj2 H0 v). assumption.
+      right. unfold not. intros.
+      apply n. clear n.
+      pose proof (proj1 H0 H). assumption.
+    Qed.
+
+    Definition perm (sig : A -> A) (c d : A) := P (sig c) (sig d).
     
        
       
