@@ -1461,12 +1461,14 @@ Section Cand.
      apply H7. omega.
    Qed.
 
+
+
+   (* Two different ranked candidates *)
    Definition phi_one a l :=
      (forall (x : A), In x l -> (P x a = 1 /\ P a x = -1)
-                          \/ (P x a = 0 /\ P a x = 0)
                           \/ (P x a = -1 /\ P a x = 1)).
 
-
+   (* Same ranked *)
    Definition phi_two a l0 l1 :=
      exists (a0' : A), In a0' l0 /\
                   (forall (x : A), In x l1 ->
@@ -1476,8 +1478,8 @@ Section Cand.
           
    Lemma phi_one_helper :
      forall x a,
-       {((P x a = 1 /\ P a x = -1) \/ (P x a = 0 /\ P a x = 0) \/ (P x a = -1 /\ P a x = 1))} +
-       {~((P x a = 1 /\ P a x = -1) \/ (P x a = 0 /\ P a x = 0) \/ (P x a = -1 /\ P a x = 1))}.
+       {((P x a = 1 /\ P a x = -1) \/ (P x a = -1 /\ P a x = 1))} +
+       {~((P x a = 1 /\ P a x = -1) \/ (P x a = -1 /\ P a x = 1))}.
    Proof.
      intros x a.
      destruct (Pdec x a) as [[H | H] | H];
@@ -1735,6 +1737,92 @@ Section Cand.
       left; exists (fun _ => 0)%nat; intros; intuition.
       destruct IHl. 
       pose proof (validity_after_remove_cand l a).
+      pose proof (Pdec a a) as [[H1 | H1] | H1].
+      right. firstorder.
+      pose proof (transitive_dec_fn (a :: l)).
+      destruct H0.
+      pose proof (phi_decidable a l).
+      destruct H0.
+      left. apply H. split. auto. split. auto.
+      split. auto. split. intros.
+      pose proof (a0 c a e (or_intror H0) (in_eq a l) (or_intror H2)). auto.
+      unfold phi in p. unfold phi_two, phi_one in p.
+      destruct p. left. auto.
+      right. intros. specialize (H0 x H2). destruct H0.
+      left. auto. right. destruct H0. split. auto. auto.
+
+      right. unfold not. intros. apply n. unfold vl in H0.
+      destruct H0 as [f Hf]. unfold phi. unfold phi_two, phi_one.
+
+      assert (Hnat : forall x y : nat, {x = y} + {x <> y}) by (auto with arith).
+      
+      pose proof (in_dec Hnat (f a) (map f l)).  clear Hnat.
+      destruct H0.
+      apply in_map_iff in i. destruct i as [x [Hl Hr]].
+
+      
+      left. exists x. split. auto.
+      intros. split.   
+      pose proof (Hf a x0 (in_eq a l) (or_intror H0)).
+      pose proof (Hf x x0 (or_intror Hr) (or_intror H0)).
+      destruct H2. destruct H4.
+      destruct H3. destruct H6.
+      destruct (Pdec a x0) as [[H8 | H8] | H8];
+        destruct (Pdec x x0) as [[H9 | H9] | H9].
+      rewrite H8, H9. auto.
+      apply H5 in H8. apply H6 in H9.
+      rewrite <- Hl in H8.
+      rewrite H9 in H8. 
+      apply gt_irrefl in H8. inversion H8.
+      apply H5 in H8. apply H3 in H9.
+      rewrite <- Hl in H8. 
+      apply gt_asym in H8. 
+      assert (f x0 > f x)%nat by omega.
+      unfold not in H8. apply H8 in H10. inversion H10.
+      apply H4 in H8. apply H7 in H9. rewrite <- Hl in H8. omega.
+      rewrite H8, H9. auto.
+      rewrite H4 in H8. rewrite H3 in H9.
+      rewrite Hl in H9. omega.
+      rewrite H2 in H8. rewrite H7 in H9.
+      rewrite Hl in H9. omega.
+      rewrite H2 in H8. rewrite H6 in H9.
+      rewrite Hl in H9. omega.
+      rewrite H8, H9. auto.
+
+      pose proof (Hf x0 a (or_intror H0) (in_eq a l)).
+      pose proof (Hf x0 x (or_intror H0) (or_intror Hr)).
+      destruct H2. destruct H4.
+      destruct H3. destruct H6.
+      destruct (Pdec x0 a) as [[H8 | H8] | H8];
+        destruct (Pdec x0 x) as [[H9 | H9] | H9].
+      rewrite H8, H9. auto.
+      apply H5 in H8. apply H6 in H9.
+      rewrite <- Hl in H8.
+      rewrite H9 in H8. 
+      apply gt_irrefl in H8. inversion H8.
+      apply H5 in H8. apply H3 in H9.
+      rewrite <- Hl in H8. 
+      apply gt_asym in H8.  
+      assert (f x > f x0)%nat by omega.
+      unfold not in H8. apply H8 in H10. inversion H10.
+      apply H4 in H8. apply H7 in H9. rewrite <- Hl in H8.
+      rewrite H8 in H9. apply gt_irrefl in H9. inversion H9.
+      rewrite H8, H9. auto.
+      rewrite H4 in H8. rewrite H3 in H9.
+      rewrite Hl in H9. rewrite H8 in H9.
+      apply lt_irrefl in H9. inversion H9. 
+      rewrite H2 in H8. rewrite H7 in H9.
+      rewrite Hl in H9.  apply gt_asym in H9.
+      (* it might shut here *)
+      assert (f a > f x0)%nat by omega.
+      apply H9 in H10. inversion H10.
+      rewrite H2 in H8. rewrite H6 in H9.
+      rewrite Hl in H9. rewrite H9 in H8.
+      apply lt_irrefl in H8. inversion H8.
+      rewrite H8, H9. auto.
+
+      
+     
       
 
 
