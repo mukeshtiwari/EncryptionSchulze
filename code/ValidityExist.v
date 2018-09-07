@@ -1820,15 +1820,52 @@ Section Cand.
       rewrite Hl in H9. rewrite H9 in H8.
       apply lt_irrefl in H8. inversion H8.
       rewrite H8, H9. auto.
+ 
+      right. intros x Hx.
+      destruct (lt_eq_lt_dec (f a) (f x)) as [[H2 | H2] | H2].
+      pose proof (Hf a x (in_eq a l) (or_intror Hx)).
+      destruct H0.
+      right.
+      pose proof (Hf x a (or_intror Hx) (in_eq a l)).
+      destruct H4. destruct H5.
+      split.  apply H6. firstorder.
+      apply H0. firstorder.
+      pose proof (not_in_list a l f n0 x Hx). firstorder.      
 
-      
-     
-      
+      left. pose proof (Hf x a (or_intror Hx) (in_eq a l)).
+      destruct H0. destruct H3. split. apply H0. assumption.
+      pose proof (Hf a x (in_eq a l) (or_intror Hx)). destruct H5.
+      destruct H6. apply H7. firstorder.
 
 
-
-
-      
+      right. unfold vl. unfold not. intros. apply n. 
+      intros. destruct H0 as [f Hv].  clear n.
+      destruct (Hv c d H2 H3) as [H6 [H7 H8]].
+      destruct (Hv d e H3 H4) as [H9 [H10 H11]].
+      destruct (Hv c e H2 H4) as [H12 [H13 H14]].
+      split. intros. apply H6 in H0. apply H9 in H5.
+      apply H12. eapply Nat.lt_trans with (f d).
+      assumption. assumption.
+      split. intros. apply H6 in H0. apply H10 in H5.
+      apply H12. rewrite H5 in H0. assumption.
+      split. intros. apply H7 in H0. apply H9 in H5.
+      apply H12. rewrite <- H0 in H5. assumption.
+      split. intros. apply H7 in H0. apply H10 in H5.
+      apply H13. rewrite <- H0 in H5.  assumption.
+      split. intros. apply H7 in H0. apply H11 in H5.
+      apply H14. rewrite <- H0 in H5. assumption.
+      split. intros. apply H8 in H0. apply H10 in H5. 
+      apply H14.  rewrite H5 in H0. assumption.
+      intros. apply H8 in H0. apply H11 in H5.
+      apply H14. eapply gt_trans with (f d).
+      assumption. assumption.
+      (* P a a = 1 which is invalid *)
+      right.  unfold not.  intros.
+      apply H in H0.  destruct H0 as [Hv [Hp Hrest]].
+      rewrite H1 in Hp. inversion Hp.
+      right. firstorder.
+    Qed.
+          
 
     Definition valid := exists (f : A -> nat), forall (c d : A),
           ((P c d = 1 <-> (f c < f d)%nat) /\
