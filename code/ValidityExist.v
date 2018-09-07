@@ -1905,3 +1905,82 @@ Section Cand.
 End Cand.
  
 Require Import Coq.Logic.FinFun. 
+
+ 
+Lemma validity_perm :
+  forall (A : Type) (P : A -> A -> Z)
+    (Adec : forall (c d : A), {c = d} + {c <> d})
+    (Pdec : forall c d, {P c d = 1} + {P c d = 0} + {P c d = -1})
+    (sig : A -> A) (Hsig : Bijective sig), 
+    valid A P -> valid A (perm A P sig).
+Proof.
+  intros A P Adec Pdec sig Hsig.
+  unfold valid. intros.
+  destruct H as [f H].
+  unfold perm. exists (fun c => f (sig c)).
+  intros. split; intros;  apply H; auto.
+Qed.
+
+
+Lemma not_validity_perm :
+   forall (A : Type) (P : A -> A -> Z)
+     (Adec : forall (c d : A), {c = d} + {c <> d})
+     (Pdec : forall c d, {P c d = 1} + {P c d = 0} + {P c d = -1}) (sig : A -> A)
+     (Hsig : Bijective sig), 
+     ~valid A P -> ~valid A (perm A P sig).
+Proof. 
+  intros A P Adec Pdec sig Hsig.
+  intros. unfold not in *.
+  intros. apply H. unfold valid in *.
+  unfold perm in H0. destruct H0 as [g H0].
+  unfold Bijective in Hsig.
+  destruct Hsig as [sig_inv [Hsigx Hsigy]].
+
+  (* Here  I need to give inverse of sig function to so that 
+     I have sig (sig_inverse a) = a *)
+  exists (fun c => g (sig_inv c)). intros.
+  split; intros. destruct (H0 (sig_inv c) (sig_inv d)) as [Ht1 [Ht2 Ht3]].
+  rewrite Hsigy in Ht1. rewrite Hsigy in Ht1. assumption.
+  split; intros.  destruct (H0 (sig_inv c) (sig_inv d)) as [Ht1 [Ht2 Ht3]].
+  rewrite Hsigy in Ht2. rewrite Hsigy in Ht2. assumption.
+  destruct (H0 (sig_inv c) (sig_inv d)) as [Ht1 [Ht2 Ht3]].
+  rewrite Hsigy in Ht3. rewrite Hsigy in Ht3. assumption.
+Qed.
+
+
+Lemma perm_presv_validity :
+  forall (A : Type) (P : A -> A -> Z)
+         (Adec : forall (c d : A), {c = d} + {c <> d})
+         (Pdec : forall c d, {P c d = 1} + {P c d = 0} + {P c d = -1}) (sig : A -> A)
+         (Hsig : Bijective sig), 
+    valid A P <-> valid A (perm A P sig).
+Proof.
+  intros. split; intros.
+  apply validity_perm; auto.
+  unfold valid, perm in *.
+  destruct H as [f H]. destruct Hsig as [g [Hx Hy]].
+  exists (fun c => f (g c)).
+  split; intros.
+  destruct (H (g c) (g d)) as [Ht1 [Ht2 Ht3]].
+  rewrite Hy in Ht1. rewrite Hy in Ht1.  assumption.
+  split; intros.
+  destruct (H (g c) (g d)) as [Ht1 [Ht2 Ht3]].
+  rewrite Hy in Ht2. rewrite Hy in Ht2.  assumption.
+  destruct (H (g c) (g d)) as [Ht1 [Ht2 Ht3]].
+  rewrite Hy in Ht3. rewrite Hy in Ht3.  assumption.
+Qed.
+
+
+Lemma not_perm_persv_validity :
+  forall (A : Type) (P : A -> A -> Z)
+    (Adec : forall (c d : A), {c = d} + {c <> d})
+    (Pdec : forall c d, {P c d = 1} + {P c d = 0} + {P c d = -1}) (sig : A -> A)
+    (Hsig : Bijective sig),
+    ~valid A P <-> ~valid A (perm A P sig).
+Proof.
+  intros. split; intros.
+  apply not_validity_perm; auto.
+  unfold not in *. intros. apply H.
+  apply validity_perm; auto.
+Qed.
+
