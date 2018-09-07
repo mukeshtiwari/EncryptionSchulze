@@ -1901,7 +1901,7 @@ Section Cand.
     Qed.
 
     Definition perm (sig : A -> A) (c d : A) := P (sig c) (sig d).
-    
-       
-      
-      
+
+End Cand.
+ 
+Require Import Coq.Logic.FinFun. 
