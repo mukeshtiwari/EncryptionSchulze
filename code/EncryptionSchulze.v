@@ -1,5 +1,5 @@
 Require Import Notations.
-Require Import Coq.Lists.List.
+Require Import Coq.Lists.List. 
 Require Import Coq.Arith.Le.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Arith.Compare_dec.
@@ -9,7 +9,7 @@ Require Import Bool.Bool.
 Require Import Coq.Logic.ConstructiveEpsilon.
 Require Import Coq.ZArith.ZArith.
 Require Import ListLemma.
-Require Import Existfun.
+Require Import ValidityExist.
 Import ListNotations.
 Open Scope Z.
 
@@ -902,7 +902,7 @@ Section Encryption.
     
   Require Import Coq.Strings.String.
   Section ECount. 
-
+ 
     (*
     Axiom Plaintext : Type.
     Axiom Ciphertext : Type. *)
@@ -1103,48 +1103,95 @@ Section Encryption.
     (* end of axioms about shuffle. Discuss with Dirk, and Thomas *)     
                                                          
     
-     (* A ballot is valid if all the entries are either 0 or 1 and 
+     (* A ballot is valid if all the entries are either -1, 0 or 1 and 
         there is no cycle in ballot *)
+
+    Lemma pair_cand_dec : forall (c d : cand * cand), {c = d} + {c <> d}.
+    Proof.
+      intros c d. destruct c, d.
+      pose proof (dec_cand c c1).
+      pose proof (dec_cand c0 c2).
+      destruct H, H0. left.
+      subst. reflexivity.
+      right. unfold not. intros. inversion H. pose proof (n H2). inversion H0.
+      right. unfold not. intros. inversion H. pose proof (n H1). inversion H0.
+      right. unfold not. intros. inversion H. pose proof (n H1). inversion H0.
+    Qed.
+
+    Lemma every_cand_t : forall (c d : cand), In (c, d) (all_pairs cand_all).
+    Proof.
+      intros c d. apply  all_pairsin; auto.
+    Qed.
+
+    
     Definition matrix_ballot_valid (p : pballot) :=
-      (forall c d : cand, In (p c d) [0; 1]) /\
-      valid cand (fun c d => p c d = 1).
-    Print valid.
+      (forall c d : cand, In (p c d) [-1; 0; 1]) /\
+      valid cand p. 
+
+         
+    
     (* This is decibable *)
     Lemma dec_pballot :
       forall (p : pballot), 
-        {forall c d : cand, In (p c d) [0; 1]} +
-        {~(forall c d : cand, In (p c d) [0; 1])}.
+        {forall c d : cand, In (p c d) [-1; 0; 1]} +
+        {~(forall c d : cand, In (p c d) [-1; 0; 1])}.
     Proof.
     Admitted.
-
     
-    (* mapping between ballot and pballot. This is to make sure that 
-       when your ballot is valid <-> pballot is valid *)
-    Definition map_ballot_pballot
-               (b : ballot) (p : pballot) :=
-      fun c d => if (b c <? b d)%nat &&  (0 <? b c )%nat then p c d =? 1 
-                 else if (b c =? b d)%nat && (0 <? b c)%nat then p c d =? 0
-                      else  if (b d <? b c)%nat && (0 <? b d)%nat then p c d =? 0
-                            else p c d =? -1.
+    
 
+    Lemma finiteness : forall (l : list (cand * cand)) (H : forall c d , In (c, d) l)
+                         (b : cand -> cand -> Z),
+        (forall c d, {b c d = -1} + {b c d = 0} + {b c d = 1}) +
+        (exists c d, b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
+    Proof.
+      induction l1; intros. 
+      +  left; intros. specialize (H c d ).
+         inversion H.
+      +  destruct a as (c, d).
+         pose proof (H c d).
+         simpl in H0. destruct (pair_cand_dec (c, d) (c, d)) as [H1 | H2].
+         admit.  assert (In (c, d) l). destruct H0. congruence. assumption.
+    Admitted. 
+       
+      
+    
+    
     Lemma pballot_valid_dec :
-      forall b : pballot, {valid cand (fun c d => b c d = 1)} +
-                     {~(valid cand (fun c d => b c d = 1))}.
+      forall b : pballot, {valid cand b} +
+                     {~(valid cand b)}.
+     Proof.
+       intros b. pose proof (decidable_valid cand b dec_cand).
+       pose proof (finiteness (all_pairs cand_all) every_cand_t b) as Ht. destruct Ht.
+       pose proof (X s).
+       unfold finite in X0. apply X0. exists cand_all. auto.
+       right.  unfold valid, not; intros. destruct H as [f Hf].
+       destruct e as [c [d [He1 [He2 He3]]]]. pose proof (Hf c d).
+       destruct H. destruct H0.
+       destruct (lt_eq_lt_dec (f c) (f d)) as [[H2 | H2] | H2].
+       apply H in H2. congruence. apply H0 in H2. congruence.
+       assert (f c > f d)%nat by omega. apply H1 in H3. congruence.
+     Qed.
+     
+     (*   
+    Lemma pballot_valid_dec :
+      forall b : pballot, {valid cand b} +
+                     {~(valid cand b)}.
     Proof.
       intros b.
-      pose proof (decidable_valid cand (fun c d => b c d = 1) dec_cand).
-      simpl in X. assert (Ht : forall c d : cand, {b c d = 1} + {b c d <> 1}).
+      pose proof (decidable_valid cand b dec_cand).
+      simpl in X. assert (Ht : forall c d : cand, {b c d = 1} + {b c d = 0} + {b c d = -1}).
       intros c d. pose proof (Z.eq_dec (b c d) 1). auto.      
       pose proof (X Ht). unfold finite in X0. apply X0.
       exists cand_all. assumption.
-    Defined.
+    Defined.  *)
 
     (* The decrypted ballot is either valid or not valid *)
     Lemma matrix_ballot_valid_dec :
         forall p : pballot, {matrix_ballot_valid p} +
                             {~matrix_ballot_valid p}.
     Proof.
-      intros p.
+      intros p. 
       destruct (dec_pballot p); destruct (pballot_valid_dec p).
       left. unfold matrix_ballot_valid. intuition.
       right. unfold matrix_ballot_valid. unfold not. intros.
@@ -1154,7 +1201,17 @@ Section Encryption.
       right. unfold not. intros. destruct H.
       pose proof (n H). auto.
     Defined.
+
+
+    (* connection between ballot and pballot *)
     
+    Definition map_ballot_pballot (b : ballot) (p : pballot) :=
+      ((exists c,  b c = 0)%nat /\ ~matrix_ballot_valid p) \/
+      (matrix_ballot_valid p /\ (forall c, b c > 0)%nat /\
+       (forall c d, p c d = 1 <-> (b c < b d)%nat /\
+                           p c d = 0 <-> (b c = b d)%nat /\
+                                       p c d = -1 <-> (b c > b d)%nat)).
+
 
     Definition verify_row_permutation_ballot
                (u : eballot) (v : eballot)
@@ -1287,10 +1344,7 @@ Section Encryption.
       exists p, l. auto.
     Qed.
 
-    Lemma every_cand_t : forall (c d : cand), In (c, d) (all_pairs cand_all).
-    Proof.
-      intros c d. apply  all_pairsin; auto.
-    Qed.
+  
 
     Lemma every_cand_row : forall (c d : cand), In (c, d) (all_pairs_row cand_all).
     Proof.
@@ -1303,17 +1357,7 @@ Section Encryption.
     Qed.
     
       
-    Lemma pair_cand_dec : forall (c d : cand * cand), {c = d} + {c <> d}.
-    Proof.
-      intros c d. destruct c, d.
-      pose proof (dec_cand c c1).
-      pose proof (dec_cand c0 c2).
-      destruct H, H0. left.
-      subst. reflexivity.
-      right. unfold not. intros. inversion H. pose proof (n H2). inversion H0.
-      right. unfold not. intros. inversion H. pose proof (n H1). inversion H0.
-      right. unfold not. intros. inversion H. pose proof (n H1). inversion H0.
-    Qed.
+  
     
     
     Lemma idx_search : forall (A : Type) (c d : cand) (cl : list (cand * cand))
@@ -1588,7 +1632,7 @@ Section Encryption.
     | secondcons h1 h2 t1 t2 :
         (forall c d, map_ballot_pballot h1 h2 c d = true) -> mapping_ballot_pballot t1 t2 ->
         mapping_ballot_pballot (h1 :: t1) (h2 :: t2). *)
-   
+    
     Fixpoint mapping_ballot_pballot (bs : list ballot) (pbs : list pballot) : Prop. 
     Proof.
       refine (match bs, pbs with
@@ -1885,17 +1929,7 @@ Section Encryption.
       rewrite H4. apply f_equal. apply IHxs. auto. auto.
     Qed.
 
-    Lemma map_map_l :
-      forall (A B : Type) (l1 l2 : list A) (f : A -> B),
-        map f l1 = map f l2 -> l1 = l2.
-    Proof.
-      intros A B. induction l1; simpl; intros.
-      - symmetry in H. apply map_eq_nil in H. auto.
-      - destruct l2.
-        -- inversion H.
-        -- simpl in H. inversion H.
-           (* This can't be inferred until function is one one onto function *)
-    Admitted. 
+ 
     
 
      Lemma margin_same_from_both_existential 
@@ -2130,6 +2164,10 @@ Section Encryption.
 
 
 
+
+
+
+      
 
       
       
