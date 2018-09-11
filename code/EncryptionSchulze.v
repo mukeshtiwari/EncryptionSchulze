@@ -1103,9 +1103,8 @@ Section Encryption.
     (* end of axioms about shuffle. Discuss with Dirk, and Thomas *)     
                                                          
     
-     (* A ballot is valid if all the entries are either -1, 0 or 1 and 
-        there is no cycle in ballot *)
-
+  
+    (* Decidability of pair of cand *)
     Lemma pair_cand_dec : forall (c d : cand * cand), {c = d} + {c <> d}.
     Proof.
       intros c d. destruct c, d.
@@ -1123,7 +1122,8 @@ Section Encryption.
       intros c d. apply  all_pairsin; auto.
     Qed.
 
-    
+    (* A ballot is in matrix with all the entries are
+       -1, 0 and 1 with no cyles *)
     Definition matrix_ballot_valid (p : pballot) :=
       (forall c d : cand, In (p c d) [-1; 0; 1]) /\
       valid cand p. 
@@ -1138,22 +1138,42 @@ Section Encryption.
     Proof.
     Admitted.
     
-    
 
-    Lemma finiteness : forall (l : list (cand * cand)) (H : forall c d , In (c, d) l)
-                         (b : cand -> cand -> Z),
-        (forall c d, {b c d = -1} + {b c d = 0} + {b c d = 1}) +
-        (exists c d, b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
+        
+
+    Lemma partition_integer : forall (b : Z),
+        ({b = -1} + {b = 0} + {b = 1}) + {b <> -1 /\ b <> 0 /\ b <> 1}.
     Proof.
-      induction l1; intros. 
-      +  left; intros. specialize (H c d ).
-         inversion H.
-      +  destruct a as (c, d).
-         pose proof (H c d).
-         simpl in H0. destruct (pair_cand_dec (c, d) (c, d)) as [H1 | H2].
-         admit.  assert (In (c, d) l). destruct H0. congruence. assumption.
-    Admitted. 
-       
+      intros b.
+      destruct (Z_le_dec b (-2)). right.  omega.
+      destruct (Z_ge_dec b 2). right. omega.
+      left. assert (b > -2) by omega.
+      assert (b < 2) by omega.  clear n. clear n0.
+      destruct (Z_eq_dec b (-1)). left. left. auto.
+      destruct (Z_eq_dec b 0). left. right.  auto.
+      assert (b = 1) by omega. right.  auto.
+    Qed.
+    
+      
+    Lemma  finiteness : forall (l : list (cand * cand))  (H : forall c d, In (c, d) l)
+                          (b : cand -> cand -> Z),
+        (forall c d,  {b c d = -1} + {b c d = 0} + {b c d = 1}) +
+        (exists c d,  b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
+    Proof. 
+      induction l; intros.
+      + left; intros. pose proof (H c d); inversion H0.
+      + destruct a as (c, d).  
+        (* destruct (pair_cand_dec (c, d) (c, d)) as [H1 | H1]. *) 
+        destruct l. destruct (partition_integer (b c d)) as [H2 | H2].
+        left.  intros.  assert ((c0, d0) = (c, d)).
+        pose proof (H c0 d0). destruct H0. auto. inversion H0.
+        inversion H0; subst. assumption. right.  exists c, d. auto.
+        pose proof (H c d). 
+    Admitted.  
+        (* b c d <= -2 or b c d >= 2 then immediately return the value 
+           otherwise induction hypothesis *)
+
+ 
       
     
     
@@ -1205,13 +1225,7 @@ Section Encryption.
 
     (* connection between ballot and pballot *)
     
-    Definition map_ballot_pballot (b : ballot) (p : pballot) :=
-      ((exists c,  b c = 0)%nat /\ ~matrix_ballot_valid p) \/
-      (matrix_ballot_valid p /\ (forall c, b c > 0)%nat /\
-       (forall c d, p c d = 1 <-> (b c < b d)%nat /\
-                           p c d = 0 <-> (b c = b d)%nat /\
-                                       p c d = -1 <-> (b c > b d)%nat)).
-
+  
 
     Definition verify_row_permutation_ballot
                (u : eballot) (v : eballot)
@@ -1607,7 +1621,7 @@ Section Encryption.
       intros c d. rewrite Heqzkpdecm.
       apply verify_true.
       rewrite Heqdecm. reflexivity.
-    Defined.
+    Defined. 
 
     (* The main theorem: for every list of ballots, we can find a boolean function that decides
      winners, together with evidences of the correctness of this determination *)
@@ -1633,6 +1647,14 @@ Section Encryption.
         (forall c d, map_ballot_pballot h1 h2 c d = true) -> mapping_ballot_pballot t1 t2 ->
         mapping_ballot_pballot (h1 :: t1) (h2 :: t2). *)
     
+    Definition map_ballot_pballot (b : ballot) (p : pballot) :=
+      ((exists c,  b c = 0)%nat /\ ~matrix_ballot_valid p) \/
+      (matrix_ballot_valid p /\ (forall c, b c > 0)%nat /\
+       (forall c d, p c d = 1 <-> (b c < b d)%nat /\
+                           p c d = 0 <-> (b c = b d)%nat /\
+                                       p c d = -1 <-> (b c > b d)%nat)).
+
+    
     Fixpoint mapping_ballot_pballot (bs : list ballot) (pbs : list pballot) : Prop. 
     Proof.
       refine (match bs, pbs with
@@ -1640,8 +1662,8 @@ Section Encryption.
               | [], h :: _ => False 
               | h :: _, [] => False
               | h1 :: t1, h2 :: t2 =>
-                ((forall c d, map_ballot_pballot h1 h2 c d = true) /\
-                 mapping_ballot_pballot t1 t2 )
+                map_ballot_pballot h1 h2 /\
+                 mapping_ballot_pballot t1 t2
               end); inversion H.
     Defined.
 
