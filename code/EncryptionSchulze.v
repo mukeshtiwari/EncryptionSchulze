@@ -1783,7 +1783,7 @@ Section Encryption.
                  l <> [] -> existsT t l', l = t :: l').
       intros. destruct l.  intuition. exists a0, l. auto.
       assert (tbps <> []). unfold not. intros. destruct tbps.
-      simpl in m2. inversion m2. inversion H2.
+      simpl in m2. inversion m2. inversion H2. 
       destruct (X _ _ H2) as [t [tbps' Htpbs']]. clear H2.
       rewrite Htpbs' in e0.
       assert (ets <> []). unfold not. intros.
@@ -1946,8 +1946,43 @@ Section Encryption.
       assumption. assumption. rewrite H3 in H8. assumption.
       rewrite H4 in m1. assumption.
       (* Wohoo. Valid case discharged. *)
+
+      (* Now we are in situation where u is not valid. *)
+      intros. inversion H0.
+      assert (proj1_sig (bool_of_sumbool (ballot_valid_dec u)) = false).
+      destruct (ballot_valid_dec u); simpl; try auto.
+      destruct e as [c Hc]. pose proof (g c). omega.
+
+      assert (forall (A : Type) (l : list A),
+                 l <> [] -> existsT t l', l = t :: l').
+      intros. destruct l.  intuition.
+      exists a, l. auto.
+      assert (tinbs <> []). unfold not; intros.
+      destruct tinbs.  inversion H4. inversion H6.
+      destruct (X _ tinbs H6) as [t [tinbs' Hinbs']].
+      clear H6.
+      (* u :: inbs = t :: tinbs' *)
+      rewrite Hinbs' in H4.  inversion H4.
+      specialize (IHCount (u :: us) tinbs' m). rewrite H8 in IHCount.
+      specialize (IHCount eq_refl).
+      destruct IHCount as [ets [etinbs [tpbs [etpbs [em Htt]]]]].
+      destruct Htt as [Htt Hte]. destruct Htt as [Htt Hp].
+      destruct Htt as [Htt Het].
+      destruct Htt as [Htt Htp].
+      destruct Htt as [He Hm].
+
+      assert (tpbs <> []). unfold not. intros. destruct tpbs.
+      simpl in Hp. inversion Hp. inversion H6.
+      destruct (X _ _ H6) as [tp [tpbs' Htpbs']].
+      rewrite Htpbs' in Htp.
+      assert (ets <> []). unfold not. intros.
+      rewrite H9 in Htp. inversion Htp.
+      destruct (X _ _ H9) as [en [ets' Hets']]. clear H6; clear H9.
+      rewrite Hets' in He. rewrite Htpbs' in Hp. simpl in Hp.
+      destruct Hp. rewrite Hets' in Htp. inversion Htp.
       
-            
+      
+      
    
       
 
