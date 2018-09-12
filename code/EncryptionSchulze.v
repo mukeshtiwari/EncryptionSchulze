@@ -1157,23 +1157,27 @@ Section Encryption.
       
     Lemma  finiteness : forall (l : list (cand * cand))  (H : forall c d, In (c, d) l)
                           (b : cand -> cand -> Z),
-        (forall c d,  {b c d = -1} + {b c d = 0} + {b c d = 1}) +
-        (exists c d,  b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
-    Proof. 
+        (forall c d,  (* In (c, d) l -> *) {b c d = -1} + {b c d = 0} + {b c d = 1}) +
+        (exists c d,  (* In (c, d) l /\*) b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
+    Proof.
+     
       induction l; intros.
       + left; intros. pose proof (H c d); inversion H0.
-      + destruct a as (c, d).  
-        (* destruct (pair_cand_dec (c, d) (c, d)) as [H1 | H1]. *) 
-        destruct l. destruct (partition_integer (b c d)) as [H2 | H2].
-        left.  intros.  assert ((c0, d0) = (c, d)).
-        pose proof (H c0 d0). destruct H0. auto. inversion H0.
-        inversion H0; subst. assumption. right.  exists c, d. auto.
-        pose proof (H c d). 
-    Admitted.  
+      + destruct l.
+        ++ 
+          destruct a as (c, d).
+          destruct (partition_integer (b c d)) as [H2 | H2].
+          left.  intros.  assert ((c0, d0) = (c, d)).
+          pose proof (H c0 d0). destruct H0. auto. inversion H0.
+          inversion H0; subst. assumption. right.  exists c, d. auto.
+        ++ Admitted.
+     
+
+        
         (* b c d <= -2 or b c d >= 2 then immediately return the value 
            otherwise induction hypothesis *)
 
- 
+        
       
     
     
@@ -1193,19 +1197,8 @@ Section Encryption.
        assert (f c > f d)%nat by omega. apply H1 in H3. congruence.
      Qed.
      
-     (*   
-    Lemma pballot_valid_dec :
-      forall b : pballot, {valid cand b} +
-                     {~(valid cand b)}.
-    Proof.
-      intros b.
-      pose proof (decidable_valid cand b dec_cand).
-      simpl in X. assert (Ht : forall c d : cand, {b c d = 1} + {b c d = 0} + {b c d = -1}).
-      intros c d. pose proof (Z.eq_dec (b c d) 1). auto.      
-      pose proof (X Ht). unfold finite in X0. apply X0.
-      exists cand_all. assumption.
-    Defined.  *)
 
+     
     (* The decrypted ballot is either valid or not valid *)
     Lemma matrix_ballot_valid_dec :
         forall p : pballot, {matrix_ballot_valid p} +
@@ -1638,15 +1631,8 @@ Section Encryption.
 
     (* Now Try to prove that result computed by schulze_winner 
        pschulze_winners are same if ballots match *)
-
-    (* This function connects the ballot and pballot. pballot is decryption of eballot *)
-    (*
-    Inductive mapping_ballot_pballot : list ballot -> list pballot -> Prop :=
-    | firstcons : mapping_ballot_pballot [] []
-    | secondcons h1 h2 t1 t2 :
-        (forall c d, map_ballot_pballot h1 h2 c d = true) -> mapping_ballot_pballot t1 t2 ->
-        mapping_ballot_pballot (h1 :: t1) (h2 :: t2). *)
     
+    (* This function connects ballot ot pballot *)
     Definition map_ballot_pballot (b : ballot) (p : pballot) :=
       ((exists c,  b c = 0)%nat /\ ~matrix_ballot_valid p) \/
       (matrix_ballot_valid p /\ (forall c, b c > 0)%nat /\
@@ -1654,7 +1640,13 @@ Section Encryption.
                            p c d = 0 <-> (b c = b d)%nat /\
                                        p c d = -1 <-> (b c > b d)%nat)).
 
-    
+
+    Inductive mapping_ballot_pballot : list ballot -> list pballot -> Prop :=
+    | empty_case : mapping_ballot_pballot [] []
+    | cons_case b p bs ps : map_ballot_pballot b p ->
+                   mapping_ballot_pballot bs ps -> mapping_ballot_pballot (b :: bs) (p :: ps). 
+
+    (* 
     Fixpoint mapping_ballot_pballot (bs : list ballot) (pbs : list pballot) : Prop. 
     Proof.
       refine (match bs, pbs with
@@ -1665,12 +1657,12 @@ Section Encryption.
                 map_ballot_pballot h1 h2 /\
                  mapping_ballot_pballot t1 t2
               end); inversion H.
-    Defined.
+    Defined. *)
 
     (* Validity connection of ballot and pballot *)
     Lemma connect_validity_of_ballot_pballot :
       forall (b : ballot) (p : pballot),
-        (forall c d, map_ballot_pballot b p c d = true) -> 
+        map_ballot_pballot b p -> 
         proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = true <->
         proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec p)) = true.
     Proof. 
