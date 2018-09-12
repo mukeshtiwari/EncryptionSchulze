@@ -1676,301 +1676,49 @@ Section Encryption.
         proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = true <->
         proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec p)) = true.
     Proof.
-    Admitted.
+      intros b p H.
+      split; intros.
+      unfold map_ballot_pballot in H. destruct H.
+      destruct H.  destruct H as [c H].
+      destruct (bool_of_sumbool (ballot_valid_dec b)).
+      simpl in H0. rewrite H0 in y.  pose proof (y c).  omega.
+      destruct H as [H1 [H2 H3]].
+      destruct (bool_of_sumbool (matrix_ballot_valid_dec p)).
+      simpl in *. destruct x. auto. congruence.
 
-     Lemma mapping_ballot_pballot_equality :
-      forall (xs : list ballot) (ys : list pballot)
-        (zs : list pballot),
-        mapping_ballot_pballot xs ys -> mapping_ballot_pballot xs zs -> ys = zs.
-     Proof.
-     Admitted.
-     
-      
-       
-    (*
-    (* Validity connection of ballot and pballot *)
-    Lemma connect_validity_of_ballot_pballot :
-      forall (b : ballot) (p : pballot),
-        map_ballot_pballot b p -> 
-        proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = true <->
-        proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec p)) = true.
-    Proof. 
-      intros b p Hm. split; intros.
-      destruct (ballot_valid_dec b) as [H1 | H2];
-        destruct (matrix_ballot_valid_dec p) as [Hp1 | Hp2]; simpl in *; try auto. 
-      (* This is not valid, because if b c > 0 then it means P c d = 0 \/ P c d = 1*) 
-      unfold map_ballot_pballot in Hm. 
-      destruct Hp2. unfold matrix_ballot_valid. 
-      split. intros.  simpl.
-      pose proof (Hm c d). pose proof (H1 c). Open Scope nat_scope.
-      assert (0 < b c) by omega.
-      pose proof (proj2 (Nat.ltb_lt _ _) H3). 
-      rewrite H4 in H0. rewrite (andb_true_r (b c <? b d)) in H0.
-      pose proof (H1 d). pose proof (lt_eq_lt_dec (b c) (b d)).
-      destruct H6 as [[H6 | H6] | H6].
-      pose proof (proj2 (Nat.ltb_lt _ _) H6).
-      rewrite H7 in H0.  apply Z.eqb_eq in H0. auto.
-      (* since b c = b d it means b c <? b d = false and b c ?= b d = true *)
-      remember (b c <? b d) as v.
-      symmetry in Heqv. destruct v.
-      pose proof (proj1 (Nat.ltb_lt _ _) Heqv). omega.
-      pose proof (proj2 (Nat.eqb_eq _ _) H6).
-      rewrite H7 in H0. simpl in H0.  apply  Z.eqb_eq in H0. auto.
-      assert (b c <? b d = false).
-      apply Nat.ltb_ge. omega. rewrite H7 in H0.
-      assert ((b c =? b d)%nat = false).
-      apply Nat.eqb_neq. omega.
-      rewrite H8 in H0. simpl in H0. 
-      pose proof(proj2 (Nat.ltb_lt _ _) H6).
-      assert (0 < b d) by omega.
-      pose proof (proj2 (Nat.ltb_lt _ _) H10).
-      rewrite H9 in H0. rewrite H11 in H0. simpl in H0. apply Z.eqb_eq in H0. auto.
-           
-      (* discharge the validity *) 
-      exists b.  intros c d. split; intros.
-      pose proof (H1 c). pose proof (H1 d).
-      assert (0 < b c) by omega.
-      pose proof (proj2 (ltb_lt _ _) H4).
-      pose proof (Hm c d).
-      rewrite H5 in H6. 
-      rewrite (andb_true_r (b c <? b d)) in H6.
-      rewrite (andb_true_r (b c =? b d)) in H6.  
-      (* God, give me strength to discharge all the menial proofs *)
-      pose proof (lt_eq_lt_dec (b c) (b d)).
-      destruct H7 as [[H7 | H7] | H7]. auto.
-      rewrite H7 in H6.
-      rewrite (Nat.ltb_irrefl (b d)) in H6.
-      rewrite (Nat.eqb_refl (b d)) in H6.
-      apply Z.eqb_eq in H6.
-      rewrite H6 in H0. inversion H0. 
-      remember (b c <? b d) as v. symmetry in Heqv.
-      destruct v. 
-      pose proof (proj1 (Nat.ltb_lt (b c) (b d)) Heqv). omega.
-      remember (b c =? b d) as v. symmetry in Heqv0.
-      destruct v. apply Z.eqb_eq in H6. rewrite H6 in H0. inversion H0.
-      pose proof (proj2 (Nat.ltb_lt (b d) (b c)) H7). rewrite H8 in H6.
-      assert (0 < b d) by omega.
-      pose proof (proj2 (Nat.ltb_lt 0 (b d)) H9). rewrite H10 in H6.
-      simpl in H6. apply Z.eqb_eq in H6. rewrite H6 in H0. inversion H0.
-      (* Thank you God for giving me strenght *)      
-      pose proof (Hm c d).
-      pose proof (H1 c).
-      pose proof (proj2 (Nat.ltb_lt (b c) (b d)) H0). rewrite H4 in H2.
-      pose proof (proj2 (Nat.ltb_lt 0 (b c))).
-      assert (0 < b c) by omega. pose proof (H5 H6). 
-      rewrite H7 in H2. simpl in H2.  apply Z.eqb_eq in H2. auto.
-        
-      (* Other side of proof. When pballot is valid then ballot is also 
-         valid *)
-      destruct (matrix_ballot_valid_dec p) as [H1 | H2];
-        destruct (ballot_valid_dec b) as [Hp1 | Hp2]; simpl in *; try (auto with arith).
-      (* Now this case invalid because my pballot is valid and b is invalid *)  
-      destruct Hp2. unfold valid in H1. destruct H1 as [Hin [f H1]].
-      unfold map_ballot_pballot in Hm.     
-      pose proof (Hm x).
-      rewrite H0 in H2. 
-      rewrite (Nat.ltb_irrefl 0) in H2. 
-      pose proof (H2 x).  rewrite (andb_false_r (0 <? b x)) in H3.
-      rewrite (andb_false_r (0 =? b x)) in H3.
-      rewrite H0 in H3. simpl in H3. pose proof (Hin x x).
-      destruct H4. apply Z.eqb_eq in H3. rewrite H3 in H4. inversion H4.
-      destruct H4. apply Z.eqb_eq in H3. rewrite H3 in H4. inversion H4. auto.
+      unfold map_ballot_pballot in H.
+      destruct H.  destruct H as [c H].
+      destruct (bool_of_sumbool (matrix_ballot_valid_dec p)). simpl in *.
+      rewrite H0 in y. congruence.
+      destruct H as [H1 [H2 H3]].
+      destruct (bool_of_sumbool (ballot_valid_dec b)). simpl in *.
+      destruct x.  auto. destruct y. pose proof (H2 x). omega.
     Qed.
-    
+
     Lemma connect_invalidity_of_ballot_pballot :
       forall (b : ballot) (p : pballot),
-        (forall c d, map_ballot_pballot b p c d = true) -> 
+        map_ballot_pballot b p -> 
         proj1_sig (bool_of_sumbool (ballot_valid_dec b)) = false <->
         proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec p)) = false.
     Proof.
-      intros b p Hm. split; intros. 
-      destruct (ballot_valid_dec b) as [H1 | H2];
-        destruct (matrix_ballot_valid_dec p) as [Hp1 | Hp2]; simpl in *; try auto.
-      unfold map_ballot_pballot in Hm. destruct H2 as [c H2].
-      unfold matrix_ballot_valid in Hp1. destruct Hp1 as [Hp1l Hp2r].
-      (* Since b c = 0 *)
-      specialize (Hm c c). 
-      assert (0 <? b c = false). apply Nat.ltb_ge. omega.
-      rewrite H0 in Hm. rewrite andb_false_r in Hm.
-      rewrite andb_false_r in Hm.  apply Z.eqb_eq in Hm.
-      specialize (Hp1l c c). destruct Hp1l. rewrite <- H1 in Hm.
-      inversion Hm. simpl in H1. destruct H1.
-      rewrite <- H1 in Hm. inversion Hm. inversion H1.
-       
-      (* Other side of proof *)
-      destruct (matrix_ballot_valid_dec p) as [H1 | H1];
-        destruct (ballot_valid_dec b) as [Hp | Hp]; simpl in *; try auto.
-      destruct H1. unfold matrix_ballot_valid. split; intros.
-      unfold map_ballot_pballot in Hm.
-      specialize (Hm c d).
-      pose proof (Hp c). pose proof (Hp d).
-      assert (0 < b c) by omega. clear H0.
-      assert (0 < b d) by omega. clear H1.
-      pose proof (proj2 (Nat.ltb_lt _ _) H2).
-      pose proof (proj2 (Nat.ltb_lt _ _) H0). 
-      pose proof (lt_eq_lt_dec (b c) (b d)).
-      destruct H4 as [[H4 | H4] | H4].
-      pose proof (proj2 (Nat.ltb_lt _ _) H4).
-      rewrite H1 in Hm. rewrite H5 in Hm.
-      simpl in Hm. apply Z.eqb_eq in Hm.
-      simpl. auto.
-      (* b c = b d it means b c <? b d = false and b c ?= b d = true  *)
-      remember (b c <? b d) as v.
-      symmetry in Heqv. destruct v.
-      pose proof (proj1 (Nat.ltb_lt _ _) Heqv). omega.
-      simpl in Hm. pose proof (proj2 (Nat.eqb_eq _ _) H4).
-      rewrite H5 in Hm. rewrite H1 in Hm. simpl in *.
-      apply Z.eqb_eq in Hm. auto.
-      assert (b c <? b d = false).  apply Nat.ltb_ge. omega.
-      rewrite H5 in Hm. simpl in Hm.
-      assert ((b c =? b d)%nat = false).
-      apply Nat.eqb_neq. omega. rewrite H6 in Hm. simpl in Hm.
-      pose proof(proj2 (Nat.ltb_lt _ _) H4). rewrite H7 in Hm.
-      rewrite H3 in Hm. simpl in *.
-      apply Z.eqb_eq in Hm. auto.
-      (* discharge the validity proof *) 
-      unfold valid. exists b. intros c d. split; intros.
-      pose proof (Hp c). pose proof (Hp d).
-      assert (0 < b c) by omega.
-      assert (0 < b d) by omega. clear H1. clear H2.
-      pose proof (proj2 (ltb_lt _ _) H3).
-      pose proof (proj2 (ltb_lt _ _) H4).
-      specialize (Hm c d). 
-      unfold map_ballot_pballot in Hm. 
-      pose proof (lt_eq_lt_dec (b c) (b d)).
-      destruct H5 as [[H5 | H5] | H5].
-      auto.
-      remember (b c <? b d) as v. symmetry in Heqv.
-      destruct v. 
-      pose proof (proj1 (Nat.ltb_lt (b c) (b d)) Heqv). omega.
-      simpl in Hm. 
-      remember (b c =? b d) as v. symmetry in Heqv0.
-      destruct v. rewrite H1 in Hm. simpl in Hm. apply Z.eqb_eq in Hm.
-      rewrite Hm in H0. inversion H0.
-      simpl in Hm.
-      assert (b d <? b c = false). rewrite H5.
-      apply Nat.ltb_irrefl.
-      rewrite H6 in Hm. simpl in Hm.
-      apply Z.eqb_eq in Hm. rewrite Hm in H0. inversion H0.
-      assert (b c <? b d = false).
-      apply Nat.ltb_ge. omega. rewrite H6 in Hm. simpl in Hm.
-      clear H6.  assert ((b c =? b d)%nat = false).
-      apply Nat.eqb_neq. omega.
-      rewrite H6 in Hm. simpl in Hm. rewrite H2 in Hm.
-      apply Nat.ltb_lt in H5. rewrite H5 in Hm. simpl in Hm.
-      apply Z.eqb_eq in  Hm. rewrite Hm in H0. inversion H0.
-
-      specialize (Hm c d). unfold map_ballot_pballot in Hm.
-      pose proof (Hp c). pose proof (proj2 (Nat.ltb_lt (b c) (b d)) H0).
-      rewrite H2 in Hm. pose proof (proj2 (Nat.ltb_lt 0 (b c))).
-      assert (0 < b c) by omega. specialize (H3 H4).
-      rewrite H3 in Hm. simpl in Hm. apply Z.eqb_eq in Hm.
-      assumption.
-    Qed.
-    
-    
-      
-    (* One to One correspondence *)
-    Lemma mapping_ballot_pballot_equality :
-      forall (xs : list ballot) (ys : list pballot)
-        (zs : list pballot),
-        mapping_ballot_pballot xs ys -> mapping_ballot_pballot xs zs -> ys = zs.
-    Proof.      
-      induction xs. intros.
-      destruct ys, zs. auto. simpl in H0. inversion H0.
-      simpl in H. inversion H. simpl in H. inversion H.
-      (* Inductive case *)
-      intros. simpl in H. simpl in H0.
-      destruct ys, zs. auto. inversion H. inversion H0.
-      destruct H. destruct H0.
-      assert (forall c d, p c d = p0 c d).
-      intros. specialize (H c d).
-      specialize (H0 c d).
+      intros b p H.
+      split; intros.
       unfold map_ballot_pballot in H.
-      unfold map_ballot_pballot in H0.
-      pose proof (zerop (a c)). destruct H3.
-      assert ((0 <? a c)%nat = false).
-      rewrite e. SearchAbout (_ <? _ = false)%nat.
-      apply Nat.ltb_irrefl.  rewrite H3 in H.
-      rewrite H3 in H0.
-      rewrite andb_false_r in H.
-      rewrite andb_false_r in H.
-      rewrite andb_false_r in H0.
-      rewrite andb_false_r in H0.
-      pose proof (zerop (a d)). destruct H4.
-      assert ((0 <? a d)%nat = false). rewrite e0.
-      apply Nat.ltb_irrefl. rewrite H4 in H.
-      rewrite H4 in H0. rewrite andb_false_r in H.
-      rewrite andb_false_r in H0.
-      SearchAbout ( _ =? _ = true).
-      apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
-      rewrite H. rewrite H0. auto.
-      assert ((a d <? a c)%nat = false).
-      rewrite e. SearchAbout (_ <? _ )%nat.
-      apply Nat.ltb_nlt. unfold not. intros.
-      omega. rewrite H4 in H. rewrite H4 in H0.
-      rewrite andb_false_l in H.
-      rewrite andb_false_l in H0.
-      apply Z.eqb_eq in H. apply Z.eqb_eq in  H0.
-      rewrite H. rewrite H0. auto.
-      assert ((0 <? a c)%nat = true).
-      SearchAbout ( _ <? _ = true)%nat.
-      apply Nat.ltb_lt. auto. rewrite H3 in H.
-      rewrite H3 in H0.
-      rewrite andb_true_r in H.
-      rewrite andb_true_r in H.
-      rewrite andb_true_r in H0.
-      rewrite andb_true_r in H0.
-      pose proof (lt_eq_lt_dec (a c) (a d)).
-      destruct H4 as [[H4 | H4] | H4].
-      assert ((a c <? a d)%nat = true).
-      SearchAbout (_ <? _ = true)%nat.
-      apply Nat.ltb_lt. auto. rewrite H5 in H.
-      rewrite H5 in H0.
-      apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
-      rewrite H. rewrite H0. auto.
-      assert ((a c <? a d)%nat = false).
-      SearchAbout (_ <? _ = false)%nat.
-      apply Nat.ltb_nlt. unfold not. intros.
-      omega. rewrite H5 in H.
-      rewrite H5 in H0.
-      assert ((a c =? a d)%nat = true).
-      SearchAbout (_ =? _ = true)%nat.
-      apply Nat.eqb_eq. auto.
-      rewrite H6 in H. rewrite H6 in H0.
-      apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
-      rewrite H. rewrite H0. auto.
-      assert ((a c <? a d)%nat = false).
-      SearchAbout (_ <? _ = false)%nat.
-      apply Nat.ltb_nlt. unfold not. intros.
-      omega. rewrite H5 in H. rewrite H5 in H0.
-      assert ((a c =? a d)%nat = false).
-      SearchAbout (_ =? _ = false).
-      apply Nat.eqb_neq. unfold not. intros. omega.
-      rewrite H6 in H. rewrite H6 in H0.
-      assert ((a d <? a c)%nat = true).
-      apply Nat.ltb_lt. auto. rewrite H7 in H.
-      rewrite H7 in H0.
-      rewrite andb_true_l in H. rewrite andb_true_l in H0.
-      pose proof (zerop (a d)). destruct H8.
-      assert ((0 <? a d)%nat = false).
-      apply Nat.ltb_nlt. unfold not. intros.
-      omega. rewrite H8 in H. rewrite H8 in H0.
-      apply Z.eqb_eq in H. apply Z.eqb_eq in H0.
-      rewrite H. rewrite H0. auto.
-      assert ((0 <? a d)%nat = true).
-      apply Nat.ltb_lt. auto. rewrite H8 in H.
-      rewrite H8 in H0. apply Z.eqb_eq in H.
-      apply Z.eqb_eq in H0. rewrite H. rewrite H0. auto.
-      (* I need functional extensionality. Discuss this with Dirk *)
-      Require Import Coq.Logic.FunctionalExtensionality.
-      assert (p = p0).
-      apply functional_extensionality.
-      intros x. apply functional_extensionality.
-      intros x0. auto.
-      (* End of extensionality *)
-      rewrite H4. apply f_equal. apply IHxs. auto. auto.
-    Qed. *)
+      destruct H. destruct H.  destruct H as [c H].
+      destruct (bool_of_sumbool (matrix_ballot_valid_dec p)).
+      simpl in *. destruct x; congruence.
+      destruct H. destruct H1.
+      destruct (bool_of_sumbool (ballot_valid_dec b)). simpl in *.
+      rewrite H0 in y. destruct y.  pose proof (H1 x0). omega.
+
+      unfold map_ballot_pballot in H.
+      destruct H. destruct H. destruct H as [c H].
+      destruct (bool_of_sumbool (ballot_valid_dec b)). simpl in *.
+      destruct x. pose proof (y c). omega. auto.
+      destruct H. destruct H1.
+      destruct (bool_of_sumbool (matrix_ballot_valid_dec p)).
+      simpl in *. rewrite H0 in y. congruence.
+    Qed.
 
  
     Require Import Coq.Logic.FunctionalExtensionality.
@@ -2021,7 +1769,7 @@ Section Encryption.
  
       (*  Count bs (partial (u :: us, inbs) m) and u is valid 
            g : forall c : cand, u c > 0 *)
-      intros.  inversion H0. 
+      intros.  inversion H0.  
       specialize (IHCount (u :: us) inbs m eq_refl). 
       destruct IHCount as [ets [etinbs [tbps [etpbs [em H6]]]]].
       destruct H6. destruct p. destruct p. destruct p. destruct p.
