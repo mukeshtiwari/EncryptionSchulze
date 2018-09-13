@@ -2094,14 +2094,56 @@ Section Encryption.
       intros. inversion H0.
     Admitted.
     
-
+    
+    Lemma unique_margin : forall bs inbs inbs0 m m0,
+        Count bs (partial ([], inbs) m) ->  Count bs (partial ([], inbs0) m0) 
+        -> m = m0.
+    Proof.
+      intros bs inbs inbs0 m m0 H0 H1.
+      inversion H0; inversion H1; subst; apply functional_extensionality; intros;
+        apply functional_extensionality; intros.
+      pose proof (H5 x x0). pose proof (H10 x x0). rewrite H.  rewrite H2. auto.
+      (* X is impossible case *)
+    Admitted. 
+      
+                                                                            
 
     Lemma uniqueness_proof : forall bs w w',
         Count bs (winners w) -> Count bs (winners w') -> w = w'.
     Proof.
-    Admitted.
+      intros bs w w' H1 H2.     
+      inversion H1. inversion H2.
+      subst.  pose proof (unique_margin bs inbs inbs0 m m0 X X0).
+      subst.  apply functional_extensionality; intros.
+      specialize (H3 x). specialize (H0 x). 
+      specialize (H5 x). specialize (H6 x). 
+      remember (w x) as Hw.
+      remember (w' x) as Hw'.
+      destruct Hw; destruct Hw'; try auto. 
+      specialize ((proj1 H6) eq_refl); intros.
+      specialize ((proj1 H0) eq_refl); intros.
+      destruct H. destruct H4.
+      destruct H3. destruct H5.
+      pose proof (loses_type_prop m0 x x0).
+      pose proof (loses_prop_iterated_marg m0 x H9).
+      destruct H10 as [dd H10].
+      pose proof (wins_type_prop m0 x x1).
+      pose proof (wins_prop_iterated_marg m0 x H11).
+      pose proof (H12 dd). omega.
+
+      specialize ((proj1 H3) eq_refl); intros.
+      specialize ((proj1 H5) eq_refl); intros.
+      destruct H. destruct H4.
+      destruct H3. destruct H5.
+      pose proof (loses_type_prop m0 x x0).
+      pose proof (loses_prop_iterated_marg m0 x H9).
+      destruct H10 as [dd H10].
+      pose proof (wins_type_prop m0 x x1).
+      pose proof (wins_prop_iterated_marg m0 x H11).
+      pose proof (H12 dd). omega.
+    Qed.
     
-        
+     
 
              
     Lemma final_correctness :
