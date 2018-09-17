@@ -2095,17 +2095,40 @@ Section Encryption.
     Admitted.
     
     
-    Lemma unique_margin : forall bs inbs inbs0 m m0,
-        Count bs (partial ([], inbs) m) ->  Count bs (partial ([], inbs0) m0) 
-        -> m = m0.
+    Fixpoint compute_margin (bs : list ballot) :=
+      match bs with
+      | [] => fun c d => 0
+      | h :: t =>
+        match ballot_valid_dec h with
+        | left _ => update_marg_listify h (compute_margin t)
+        | right _ => compute_margin t
+        end
+      end. 
+
+    Lemma equality_margin :
+      forall bs cs us inbs m,
+        bs = cs ++ us ->
+        Count bs (partial (us, inbs) m) ->
+        m = compute_margin cs.
     Proof.
-      intros bs inbs inbs0 m m0 H0 H1.
-      inversion H0; inversion H1; subst; apply functional_extensionality; intros;
-        apply functional_extensionality; intros.
-      pose proof (H5 x x0). pose proof (H10 x x0). rewrite H.  rewrite H2. auto.
-      (* X is impossible case *)
-    Admitted. 
+      intros bs.
+      induction cs; simpl; intros; try auto.
+      rewrite H in X. 
+
       
+    Lemma unique_margin : forall bs inbs inbs0 m m0 s s0 (c0 : Count bs s) (c1 : Count bs s0),
+        s = partial ([], inbs) m ->
+        s0 = partial ([], inbs0) m0 -> m = m0.
+    Proof. 
+      intros. subst.
+      pose proof (equality_margin bs bs [] inbs m).
+      assert (bs = bs ++ []) by firstorder.
+      specialize (H H0 c0).
+      pose proof (equality_margin bs bs [] inbs0 m0 H0 c1).
+      rewrite H, H1. reflexivity.
+    Qed.
+    
+   
                                                                             
 
     Lemma uniqueness_proof : forall bs w w',
@@ -2113,7 +2136,7 @@ Section Encryption.
     Proof.
       intros bs w w' H1 H2.     
       inversion H1. inversion H2.
-      subst.  pose proof (unique_margin bs inbs inbs0 m m0 X X0).
+      subst.  pose proof (unique_margin bs inbs inbs0 m m0 _ _  X X0 eq_refl eq_refl).
       subst.  apply functional_extensionality; intros.
       specialize (H3 x). specialize (H0 x). 
       specialize (H5 x). specialize (H6 x). 
