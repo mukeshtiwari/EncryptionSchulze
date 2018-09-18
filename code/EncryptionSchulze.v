@@ -2108,9 +2108,13 @@ Section Encryption.
 
     Lemma compute_assoc :
       forall u a m, (forall c, u c > 0)%nat -> (forall c, a c > 0)%nat ->  
-        update_marg u (update_marg a m) = update_marg a (update_marg u m).
+               update_marg u (update_marg a m) = update_marg a (update_marg u m).
     Proof.
-    Admitted.
+      intros.  unfold update_marg.
+      apply functional_extensionality; intros.
+      apply functional_extensionality; intros.
+      
+      
     
     Lemma valid_compute_margin_distributes :
       forall bs (u : ballot), (forall c, u c > 0)%nat ->
