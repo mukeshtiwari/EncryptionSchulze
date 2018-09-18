@@ -2100,21 +2100,63 @@ Section Encryption.
       | [] => fun c d => 0
       | h :: t =>
         match ballot_valid_dec h with
-        | left _ => update_marg_listify h (compute_margin t)
+        | left _ => update_marg h (compute_margin t)
         | right _ => compute_margin t
         end
-      end. 
+      end.
 
+
+
+    Lemma tail_count : forall bs us inbs m s,
+        s = partial (us, inbs) m ->
+       Count bs s ->  exists cs', bs = cs' ++ us /\ m = compute_margin cs'.
+    Proof.
+      intros.  induction X.
+      exists []. split.  inversion H; subst.  auto.
+      simpl. apply functional_extensionality; intros.
+      apply functional_extensionality; intros.
+      specialize (e0 x x0). auto.
+      
+
+
+      
+      
+      
     Lemma equality_margin :
       forall bs cs us inbs m,
-        bs = cs ++ us ->
+        bs = rev cs ++ us  ->
         Count bs (partial (us, inbs) m) ->
         m = compute_margin cs.
     Proof.
-      intros bs.
-      induction cs; simpl; intros; try auto.
+           
+      induction cs; simpl; intros.
+      rewrite <- H in X. inversion X; subst. admit.
+      (* Constradition *) admit.  admit. 
+      
+      destruct (ballot_valid_dec a).
+      apply functional_extensionality; intros. 
+      apply functional_extensionality; intros.
+      simpl in *. assert (bs = rev cs ++ (a :: us)). admit.
+      (* a is valid *)
       rewrite H in X. 
+      inversion X; subst.   admit.       
+      pose proof (IHcs (a :: us) inbs m0 ).
+      assert((rev cs ++ [a]) ++ us = rev cs ++ a :: us). admit.
+      specialize (H H1).
+      
 
+      
+
+
+      assert (compute_margin (a :: cs) x x0 =
+              if ballot_valid_dec a then update_marg a (compute_margin cs) x x0
+              else  compute_margin cs x x0).
+      simpl.  destruct (ballot_valid_dec a). auto.
+      auto. destruct (ballot_valid_dec a).
+      unfold update_marg in H0. rewrite <- H0.
+     
+
+      
       
     Lemma unique_margin : forall bs inbs inbs0 m m0 s s0 (c0 : Count bs s) (c1 : Count bs s0),
         s = partial ([], inbs) m ->
@@ -2122,7 +2164,7 @@ Section Encryption.
     Proof. 
       intros. subst.
       pose proof (equality_margin bs bs [] inbs m).
-      assert (bs = bs ++ []) by firstorder.
+      assert (bs = bs ++ []). rewrite <- app_nil_end; reflexivity.
       specialize (H H0 c0).
       pose proof (equality_margin bs bs [] inbs0 m0 H0 c1).
       rewrite H, H1. reflexivity.
