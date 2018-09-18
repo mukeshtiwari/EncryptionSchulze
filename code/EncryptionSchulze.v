@@ -2105,19 +2105,40 @@ Section Encryption.
         end
       end.
 
+
+    Lemma compute_assoc :
+      forall u a m, (forall c, u c > 0)%nat -> (forall c, a c > 0)%nat ->  
+        update_marg u (update_marg a m) = update_marg a (update_marg u m).
+    Proof.
+    Admitted.
+    
     Lemma valid_compute_margin_distributes :
       forall bs (u : ballot), (forall c, u c > 0)%nat ->
                          compute_margin (bs ++ [u]) = update_marg u (compute_margin bs).
     Proof.
-      Admitted. 
+      induction bs; simpl; intros; try auto.
+      destruct (ballot_valid_dec u). auto.
+      destruct e as [e He]. pose proof (H e). omega.
+       
+      destruct (ballot_valid_dec a).
+      rewrite (compute_assoc _ _ _ H g).
+      specialize (IHbs u H). rewrite IHbs. auto.
+      pose proof (IHbs u H). assumption.
+    Qed. 
+    
 
-    Check valid_compute_margin_distributes. 
     Lemma invalid_compute_margin_same :
       forall bs (u : ballot), (exists c, u c = 0)%nat -> compute_margin (bs ++ [u]) = compute_margin bs.
-    Admitted.
-
-    
-       
+    Proof.
+      induction bs; simpl; intros; try auto.
+      destruct (ballot_valid_dec u). destruct H as [e H].
+      pose proof (g e). omega. auto.
+      
+      destruct (ballot_valid_dec a).
+      pose proof (IHbs u H). rewrite H0. auto.
+      pose proof (IHbs u H). auto.
+    Qed.
+      
 
     Lemma tail_count : forall bs s,
         Count bs s ->
