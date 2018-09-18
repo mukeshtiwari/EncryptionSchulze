@@ -2105,30 +2105,81 @@ Section Encryption.
         end
       end.
 
-
-
-    Lemma tail_count : forall bs us inbs m s,
-        s = partial (us, inbs) m ->
-       Count bs s ->  exists cs', bs = cs' ++ us /\ m = compute_margin cs'.
+    Lemma valid_compute_margin_distributes :
+      forall bs (u : ballot), (forall c, u c > 0)%nat ->
+                         compute_margin (bs ++ [u]) = update_marg u (compute_margin bs).
     Proof.
-      intros.  induction X.
-      exists []. split.  inversion H; subst.  auto.
-      simpl. apply functional_extensionality; intros.
+      Admitted. 
+
+    Check valid_compute_margin_distributes. 
+    Lemma invalid_compute_margin_same :
+      forall bs (u : ballot), (exists c, u c = 0)%nat -> compute_margin (bs ++ [u]) = compute_margin bs.
+    Admitted.
+
+    
+       
+
+    Lemma tail_count : forall bs s,
+        Count bs s ->
+        forall us inbs m,
+          s = partial (us, inbs) m ->
+          exists cs', bs = cs' ++ us  /\ m = compute_margin cs'.
+    Proof.
+      (* This proof is for m = compute_margin cs' *)
+      intros bs s Hc.
+      induction Hc; simpl; intros; inversion H; subst; clear H.
+      exists []. split. auto.  simpl.
       apply functional_extensionality; intros.
-      specialize (e0 x x0). auto.
+      apply functional_extensionality; intros.
+      auto.
       
+      pose proof (IHHc (u :: us0) inbs0 m eq_refl).
+      destruct H as [cs' [H1 H2]].
+      exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto.
+      rewrite (valid_compute_margin_distributes _ _ g). rewrite <- H2. 
+      unfold update_marg. apply functional_extensionality; intros.
+      apply functional_extensionality; intros. 
+      destruct (a x x0) as [H3 [H4 H5]].
+      destruct (lt_eq_lt_dec (u x) (u x0)) as [[H6 | H6] | H6].
+      pose proof (H3 H6).
+      apply Nat.ltb_lt in H6.  rewrite H6. assumption.
+      rewrite H6.
+      rewrite Nat.ltb_irrefl. apply H4. assumption.
+      assert ((u x <? u x0) = false)%nat. apply Nat.ltb_nlt.
+      unfold not.  intros. omega.
+      rewrite H. clear H.  SearchAbout (_ <? _)%nat.
+      assert (u x > u x0)%nat by omega. 
+      apply Nat.ltb_lt in H6. rewrite H6.  
+      apply H5. assumption.
+      
+      pose proof (IHHc (u :: us0) inbs m0 eq_refl).
+      destruct H as [cs' [H1 H2]].
+      exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto.
+      rewrite (invalid_compute_margin_same _ _ e). auto. 
+      
+      (*
+      intros bs s Hc.
+      induction Hc; simpl; intros; inversion H; subst; clear H.
+      exists []. auto.
 
+      pose proof (IHHc (u :: us0) inbs0 m eq_refl).
+      destruct H as [cs' H1].
+      exists (cs' ++ [u]). rewrite app_assoc_reverse. auto.
 
-      
-      
+      pose proof (IHHc (u :: us0) inbs m0 eq_refl).
+      destruct H as [cs' H1].
+      exists (cs' ++ [u]).  rewrite app_assoc_reverse. auto. *)     
+    Qed.
+    
+
+    (* 
       
     Lemma equality_margin :
       forall bs cs us inbs m,
         bs = rev cs ++ us  ->
         Count bs (partial (us, inbs) m) ->
         m = compute_margin cs.
-    Proof.
-           
+    Proof. 
       induction cs; simpl; intros.
       rewrite <- H in X. inversion X; subst. admit.
       (* Constradition *) admit.  admit. 
@@ -2155,19 +2206,28 @@ Section Encryption.
       auto. destruct (ballot_valid_dec a).
       unfold update_marg in H0. rewrite <- H0.
      
-
+     *)
       
       
     Lemma unique_margin : forall bs inbs inbs0 m m0 s s0 (c0 : Count bs s) (c1 : Count bs s0),
         s = partial ([], inbs) m ->
         s0 = partial ([], inbs0) m0 -> m = m0.
-    Proof. 
+    Proof.
+      intros.
+      pose proof (tail_count bs s c0 [] inbs m H).
+      destruct H1 as [cs' [H1 H2]]. rewrite <- app_nil_end in H1.
+      rewrite <- H1 in H2.
+      pose proof (tail_count bs s0 c1 [] inbs0 m0 H0).
+      destruct H3 as [cs1' [H1' H2']]. rewrite <- app_nil_end in H1'.
+      rewrite <- H1' in H2'. rewrite H2, H2'. reflexivity.
+      
+    (*
       intros. subst.
       pose proof (equality_margin bs bs [] inbs m).
       assert (bs = bs ++ []). rewrite <- app_nil_end; reflexivity.
       specialize (H H0 c0).
       pose proof (equality_margin bs bs [] inbs0 m0 H0 c1).
-      rewrite H, H1. reflexivity.
+      rewrite H, H1. reflexivity. *)
     Qed.
     
    
