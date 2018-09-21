@@ -997,7 +997,7 @@ Section Encryption.
     Axiom generatePermutation :
       Group -> (* group *)
       nat -> (* length  *)
-      Permutation.  
+      Permutation.   
 
     (* Pass the permutation and it returns commitment and S. The S here is bit 
        awkward but it is need when generating zero knowledge proof of commitment *)
@@ -1027,7 +1027,7 @@ Section Encryption.
        hypothesis H *)
     Axiom permutation_commitment_axiom :
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
-        (zkppermcommit : ZKP) (H : pi = generatePermutation grp (List.length cand_all))
+        (zkppermcommit : ZKP) (H : pi = generatePermutation grp (List.length cand_all) )
         (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
         (H2 : zkppermcommit = zkpPermutationCommitment
                                 grp (List.length cand_all) pi cpi s),
@@ -1082,11 +1082,11 @@ Section Encryption.
       bool. (* true or false *)
 
    
-    (* Hypothesis H can be removed *)
+    (* Hypothesis H can be removed. Discuss with Thomas*)
     Axiom verify_shuffle_axiom :
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S) (cp : list ciphertext)
         (shuffledcp : list ciphertext) (r : R) (zkprowshuffle : ZKP)
-        (H : pi = generatePermutation grp (List.length cand_all))
+        (* H : pi = generatePermutation grp (List.length cand_all) *)
         (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
         (H2 : (shuffledcp, r) = shuffle grp (List.length cand_all) cp pi)
         (H3 : zkprowshuffle = shuffle_zkp grp (List.length cand_all)
@@ -1897,7 +1897,11 @@ Section Encryption.
       inversion H13. clear H13.
       (* Now I have m2 : matrix_ballot_valid t => en should be valid 
          and row and column permutation *)     
-      assert (matrix_ballot_valid b). admit.
+      assert (matrix_ballot_valid b).
+      unfold matrix_ballot_valid in m2.  unfold valid in m2.
+      unfold matrix_ballot_valid. admit. 
+      
+        
       specialize (X en v w b zkppermuv zkppermvw zkpdecw cpi
                     zkpcpi ets' em
                     (fun c d : cand => homomorphic_addition
@@ -2105,7 +2109,14 @@ Section Encryption.
         end
       end.
 
-
+    Lemma nat_dec_me n m : 
+        ({n < m} + {m < n} + {n = m})%nat.
+    Proof.
+      induction n in m |- *; destruct m; auto with arith.
+      destruct (IHn m) as [H|H]; auto with arith.
+      destruct H; auto with arith.
+    Qed.
+    
     Lemma compute_assoc :
       forall u a m, (forall c, u c > 0)%nat -> (forall c, a c > 0)%nat ->  
                update_marg u (update_marg a m) = update_marg a (update_marg u m).
@@ -2113,6 +2124,33 @@ Section Encryption.
       intros.  unfold update_marg.
       apply functional_extensionality; intros.
       apply functional_extensionality; intros.
+      destruct (nat_dec_me (u x) (u x0)) as [[H1 | H1] | H1].
+      apply Nat.ltb_lt in H1. rewrite H1.
+      destruct (nat_dec_me (a x) (a x0)) as [[H2 | H2] | H2].
+      apply Nat.ltb_lt in H2.  rewrite H2.  auto.
+      assert (Ht : (a x <? a x0)%nat = false).
+      apply Nat.ltb_nlt. unfold not. intros. omega.
+      rewrite Ht.  apply Nat.ltb_lt in H2. rewrite H2.  omega.
+      rewrite H2. rewrite Nat.ltb_irrefl. auto.
+      assert (Ht : (u x <? u x0)%nat = false).
+      apply Nat.ltb_nlt. unfold not. intros. omega.
+      rewrite Ht.  apply Nat.ltb_lt in H1. rewrite H1.
+      destruct (nat_dec_me (a x) (a x0)) as [[H2 | H2] | H2].
+      apply Nat.ltb_lt in H2.  rewrite H2. omega.
+      assert (Htt : (a x <? a x0)%nat = false).
+      apply Nat.ltb_nlt. unfold not. intros. omega.
+      rewrite Htt.  apply Nat.ltb_lt in H2. rewrite H2.  omega.
+      rewrite H2. rewrite Nat.ltb_irrefl. omega.
+      (* u x = u x0 *)
+      rewrite H1. rewrite Nat.ltb_irrefl.
+      destruct (nat_dec_me (a x) (a x0)) as [[H2 | H2] | H2].
+      apply Nat.ltb_lt in H2.  rewrite H2. omega.
+      assert (Htt : (a x <? a x0)%nat = false).
+      apply Nat.ltb_nlt. unfold not. intros. omega.
+      rewrite Htt.  apply Nat.ltb_lt in H2. rewrite H2.  omega.
+      rewrite H2. rewrite Nat.ltb_irrefl. omega.
+    Qed.
+     
       
       
     
