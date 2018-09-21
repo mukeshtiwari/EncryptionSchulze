@@ -2218,60 +2218,12 @@ Section Encryption.
       pose proof (IHHc (u :: us0) inbs m0 eq_refl).
       destruct H as [cs' [H1 H2]].
       exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto.
-      rewrite (invalid_compute_margin_same _ _ e). auto. 
-      
-      (*
-      intros bs s Hc.
-      induction Hc; simpl; intros; inversion H; subst; clear H.
-      exists []. auto.
-
-      pose proof (IHHc (u :: us0) inbs0 m eq_refl).
-      destruct H as [cs' H1].
-      exists (cs' ++ [u]). rewrite app_assoc_reverse. auto.
-
-      pose proof (IHHc (u :: us0) inbs m0 eq_refl).
-      destruct H as [cs' H1].
-      exists (cs' ++ [u]).  rewrite app_assoc_reverse. auto. *)     
+      rewrite (invalid_compute_margin_same _ _ e). auto.  
     Qed.
     
 
-    (* 
-      
-    Lemma equality_margin :
-      forall bs cs us inbs m,
-        bs = rev cs ++ us  ->
-        Count bs (partial (us, inbs) m) ->
-        m = compute_margin cs.
-    Proof. 
-      induction cs; simpl; intros.
-      rewrite <- H in X. inversion X; subst. admit.
-      (* Constradition *) admit.  admit. 
-      
-      destruct (ballot_valid_dec a).
-      apply functional_extensionality; intros. 
-      apply functional_extensionality; intros.
-      simpl in *. assert (bs = rev cs ++ (a :: us)). admit.
-      (* a is valid *)
-      rewrite H in X. 
-      inversion X; subst.   admit.       
-      pose proof (IHcs (a :: us) inbs m0 ).
-      assert((rev cs ++ [a]) ++ us = rev cs ++ a :: us). admit.
-      specialize (H H1).
-      
 
-      
-
-
-      assert (compute_margin (a :: cs) x x0 =
-              if ballot_valid_dec a then update_marg a (compute_margin cs) x x0
-              else  compute_margin cs x x0).
-      simpl.  destruct (ballot_valid_dec a). auto.
-      auto. destruct (ballot_valid_dec a).
-      unfold update_marg in H0. rewrite <- H0.
-     
-     *)
-      
-      
+    (* Counting same list of ballots would give same margin *)
     Lemma unique_margin : forall bs inbs inbs0 m m0 s s0 (c0 : Count bs s) (c1 : Count bs s0),
         s = partial ([], inbs) m ->
         s0 = partial ([], inbs0) m0 -> m = m0.
@@ -2283,19 +2235,11 @@ Section Encryption.
       pose proof (tail_count bs s0 c1 [] inbs0 m0 H0).
       destruct H3 as [cs1' [H1' H2']]. rewrite <- app_nil_end in H1'.
       rewrite <- H1' in H2'. rewrite H2, H2'. reflexivity.
-      
-    (*
-      intros. subst.
-      pose proof (equality_margin bs bs [] inbs m).
-      assert (bs = bs ++ []). rewrite <- app_nil_end; reflexivity.
-      specialize (H H0 c0).
-      pose proof (equality_margin bs bs [] inbs0 m0 H0 c1).
-      rewrite H, H1. reflexivity. *)
     Qed.
     
    
                                                                             
-
+    (* Uniqueness of winners *)
     Lemma uniqueness_proof : forall bs w w',
         Count bs (winners w) -> Count bs (winners w') -> w = w'.
     Proof.
@@ -2333,7 +2277,8 @@ Section Encryption.
     
      
 
-             
+    (* If there one to one correspondence between ballots and encrypted ballots, 
+       then computing winners via plaintext ballot is same as encrypted ballot *)
     Lemma final_correctness :
     forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
       (w : cand -> bool)
