@@ -1217,19 +1217,41 @@ Section Encryption.
 
     (* connection between ballot and pballot *)
     
-  
+   
 
-    Definition verify_row_permutation_ballot
-               (u : eballot) (v : eballot)
-               (cpi : Commitment) (zkppermuv : list ZKP) : bool :=
-      (* This function basically transforms eballot to matrix (list (list ciphertext))
+    Fixpoint  verify_row_perm grp ulist vlist zkppermuv cpi :=
+      match ulist, vlist, zkppermuv with
+      | [], [], [] => true
+      | [], [], _ :: _ => false
+      | [], _ :: _ , [] => false 
+      | _ :: _, [], [] => false 
+      | _ :: _, _ :: _ , [] => false 
+      | _ :: _, [], _ :: _ => false 
+      | [], _ :: _, _ :: _ => false 
+      | u :: urest, v :: vrest, zkp :: rt =>
+        andb
+          (verify_shuffle grp (List.length cand_all) u v cpi zkp)
+          (verify_row_perm grp urest vrest rt cpi)
+      end.
+        
+
+      
+     (* This function basically transforms eballot to matrix (list (list ciphertext))
          ulist = [[], [], []], vlist = [[], [], []] and zkpermuv = [zkp1, zkp2,zkp3]
          and we call verify_shuffle with corresponding elements of 
          ulist, vlist and zkppermuv. If v is row permutation of u by pi (commitment cpi) 
          and zero knowledge proof of shuffle row_shuffle_zkp then it should return true *)
-      true.
+    Definition verify_row_permutation_ballot grp
+               (u : eballot) (v : eballot)
+               (cpi : Commitment) (zkppermuv : list ZKP) : bool :=
+      let ulist := map (fun b => map b cand_all) (map u cand_all) in 
+      let vlist := map (fun b => map b cand_all) (map v cand_all) in
+      verify_row_perm grp ulist vlist zkppermuv cpi. 
 
-    Definition verify_col_permutation_ballot
+      
+  
+
+    Definition verify_col_permutation_ballot (grp : Group)
                (v : eballot) (w : eballot)
                (cpi : Commitment) (zkppermuv  : list ZKP) : bool :=
       (* Everything like upper function except now 
@@ -1259,8 +1281,8 @@ Section Encryption.
         matrix_ballot_valid b ->
         (* commitment proof *)
         verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true ->
-        verify_row_permutation_ballot u v cpi zkppermuv = true (* cipher shuffled cpi zkp *) ->
-        verify_col_permutation_ballot v w cpi zkppermvw = true (* cipher shuffled cpi zkp *) ->
+        verify_row_permutation_ballot grp u v cpi zkppermuv = true (* cipher shuffled cpi zkp *) ->
+        verify_col_permutation_ballot grp v w cpi zkppermvw = true (* cipher shuffled cpi zkp *) ->
         (forall c d, verify_zero_knowledge_decryption_proof 
                   grp (b c d) (w c d) (zkpdecw c d) = true) (* b is honest decryption of w *) ->
         (forall c d, nm c d = homomorphic_addition grp (u c d) (m c d)) -> 
@@ -1275,8 +1297,8 @@ Section Encryption.
         ~matrix_ballot_valid b ->
         (* commitment proof *)
         verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true  ->
-        verify_row_permutation_ballot u v cpi zkppermuv = true (* cipher shuffled cpi zkp *) ->
-        verify_col_permutation_ballot v w cpi zkppermvw = true (* cipher shuffled cpi zkp *) ->
+        verify_row_permutation_ballot grp u v cpi zkppermuv = true (* cipher shuffled cpi zkp *) ->
+        verify_col_permutation_ballot grp v w cpi zkppermvw = true (* cipher shuffled cpi zkp *) ->
         (forall c d, verify_zero_knowledge_decryption_proof 
                   grp (b c d) (w c d) (zkpdecw c d) = true) (* b is honest decryption of w *) ->
         ECount grp bs (epartial (us, (u :: inbs)) m)
@@ -1494,7 +1516,7 @@ Section Encryption.
          The property here is construct matrix from u and v and comp
          This is bit tricky so I am leaving it for the moment because we need to 
          massage the axioms *)
-      assert (Ht1 : verify_row_permutation_ballot u v cpi zkppermuv = true).
+      assert (Ht1 : verify_row_permutation_ballot grp u v cpi zkppermuv = true).
       (* This proof would depend on Axioms. I am listing all the information for myself
          so that when I come back here in future. 
          u : cand -> cand -> ciphertext 
@@ -1548,7 +1570,7 @@ Section Encryption.
       (*  Show that verify_col_permutation_ballot v w cpi zkppermvw return true. 
          This is bit tricky so I am leaving it for the moment because we need to 
          massage the axioms *)
-      assert (Ht2 : verify_col_permutation_ballot v w cpi zkppermvw = true). admit.
+      assert (Ht2 : verify_col_permutation_ballot grp v w cpi zkppermvw = true). admit.
       
       (* Now decrypt the ballot w *)
       remember (fun c d => decrypt_message grp privatekey (w c d)) as b.
@@ -1842,7 +1864,7 @@ Section Encryption.
          The property here is construct matrix from u and v and comp
          This is bit tricky so I am leaving it for the moment because we need to 
          massage the axioms *)
-      assert (Ht1 : verify_row_permutation_ballot en v cpi zkppermuv = true). admit.
+      assert (Ht1 : verify_row_permutation_ballot grp en v cpi zkppermuv = true). admit.
       (* Construct the normal ballot in column form for zero knowledge proof construction *)
       remember (map (fun c => map (fun d => v d c) cand_all) cand_all) as colballot.
       remember (map (fun c =>
@@ -1870,7 +1892,7 @@ Section Encryption.
       (*  Show that verify_col_permutation_ballot v w cpi zkppermvw return true. 
          This is bit tricky so I am leaving it for the moment because we need to 
          massage the axioms *)
-      assert (Ht2 : verify_col_permutation_ballot v w cpi zkppermvw = true). admit.
+      assert (Ht2 : verify_col_permutation_ballot grp v w cpi zkppermvw = true). admit.
       (* Now decrypt the ballot w *)
       remember (fun c d => decrypt_message grp privatekey (w c d)) as b.
       (* construct zero knowledge proof of decryption *)
@@ -2033,7 +2055,7 @@ Section Encryption.
          The property here is construct matrix from u and v and comp
          This is bit tricky so I am leaving it for the moment because we need to 
          massage the axioms *)
-      assert (Ht1 : verify_row_permutation_ballot en v cpi zkppermuv = true). admit.
+      assert (Ht1 : verify_row_permutation_ballot grp en v cpi zkppermuv = true). admit.
       (* Construct the normal ballot in column form for zero knowledge proof construction *)
       remember (map (fun c => map (fun d => v d c) cand_all) cand_all) as colballot.
       remember (map (fun c =>
@@ -2061,7 +2083,7 @@ Section Encryption.
       (*  Show that verify_col_permutation_ballot v w cpi zkppermvw return true. 
          This is bit tricky so I am leaving it for the moment because we need to 
          massage the axioms *)
-      assert (Ht2 : verify_col_permutation_ballot v w cpi zkppermvw = true). admit.
+      assert (Ht2 : verify_col_permutation_ballot grp v w cpi zkppermvw = true). admit.
       (* Now decrypt the ballot w *)
       remember (fun c d => decrypt_message grp privatekey (w c d)) as b.
       (* construct zero knowledge proof of decryption *)
