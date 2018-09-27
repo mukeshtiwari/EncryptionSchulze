@@ -980,12 +980,13 @@ Section Encryption.
                  (cand -> cand -> ciphertext) -> EState
     | edecrypt : (cand -> cand -> plaintext) -> EState
     | ewinners : (cand -> bool) -> EState.
-    
-    Axiom Permutation : Type.
+     
+    (* Axiom Permutation : Type. *)
+    Definition Permutation := cand -> cand. (* Change Permutation as function type *)
     Axiom Commitment : Type.
     Axiom ZKP : Type.
     Axiom S : Type. (* This is kind of awkward but needed because we are 
-       returning S from generatePermutation function *)
+                       returning S from generatePermutation function *)
 
     (* The idea is for each ballot u, we are going to count 
        we generate pi, cpi, and zkpcpi. We call row permute function 
@@ -993,12 +994,14 @@ Section Encryption.
        on v and pi and it returns w. We decryp w as b with zero knowledge
        proof. *)
 
-    (* We call a java function which returns permutation*)
+    (* We call a java function which returns permutation. Basically java function returns 
+       array which is converted back to function in OCaml land*)
     Axiom generatePermutation :
       Group -> (* group *)
       nat -> (* length  *)
       Permutation.   
-
+    
+    
     (* Pass the permutation and it returns commitment and S. The S here is bit 
        awkward but it is need when generating zero knowledge proof of commitment *)
     Axiom generatePermutationCommitment :
@@ -1033,32 +1036,44 @@ Section Encryption.
                                 grp (List.length cand_all) pi cpi s),
         verify_permutation_commitment grp (List.length cand_all)
                                       cpi zkppermcommit = true.
-   
+    
     Axiom homomorphic_addition :
       Group -> ciphertext -> ciphertext -> ciphertext.
-
+    
     (* Property of Homomorphic addition *)
     Axiom homomorphic_addition_axiom :
       forall (grp : Group) (c d : cand) (u m : eballot),
-      decrypt_message grp privatekey (homomorphic_addition grp (u c d) (m c d)) =
+        decrypt_message grp privatekey (homomorphic_addition grp (u c d) (m c d)) =
       decrypt_message grp privatekey (u c d) + decrypt_message grp privatekey (m c d).
- 
-   
-
+    
+    
+    
     
     (* Start of Shuffle code *)     
     Axiom R : Type.
-   
+    
+    
     (* eballot is cand -> cand -> ciphertext. Convert this into list (list ciphertext) 
        where each row represents preference for candidate. *)
+    (*
     Axiom shuffle :
       Group -> (* group *)
       nat -> (* length *)
       list ciphertext -> (* ciphertext *)
       Permutation -> (* pi *)
-      list ciphertext * R. (* shuffled ciphertext with randomness used for constructing zkp *)
-
+      list ciphertext * R. *)
+    (* shuffled ciphertext with randomness used for constructing zkp *) 
+    
+    (* Changing it to function type because easy to finish the proof *)
+    Axiom shuffle :
+      Group -> (* group *)
+      nat -> (* length *)
+      (cand -> ciphertext) -> (* ciphertext *)
+      Permutation -> (* pi *)
+      (cand -> ciphertext) * R.
+    
     (* Construct zero knowledge proof from original and shuffled ballot *)
+    (*
     Axiom shuffle_zkp :
       Group -> (* group *)
       nat -> (* length *)
@@ -1068,10 +1083,22 @@ Section Encryption.
       Commitment -> (* cpi *)
       S -> (* s, permutation commitment randomness *)
       R -> (* r, shuffle randomness *)
+      ZKP. (* zero knowledge proof of shuffle *) *)
+    
+    (* Now each row of ballot is represented by function *)
+    Axiom shuffle_zkp :
+      Group -> (* group *)
+      nat -> (* length *)
+      (cand -> ciphertext) -> (* cipertext *)
+      (cand -> ciphertext) -> (* shuffle cipertext *)
+      Permutation -> (* pi *)
+      Commitment -> (* cpi *)
+      S -> (* s, permutation commitment randomness *)
+      R -> (* r, shuffle randomness *)
       ZKP. (* zero knowledge proof of shuffle *)
-
-       
+    
     (* verify shuffle *)
+    (*
     Axiom verify_shuffle:
       Group -> (* group *)
       nat -> (* length *)
@@ -1079,10 +1106,19 @@ Section Encryption.
       list ciphertext -> (* shuffled cipertext *)
       Commitment -> (* permutation commitment *)
       ZKP -> (* zero knowledge proof of shuffle *)
+      bool. (* true or false *) *)
+    
+    Axiom verify_shuffle:
+      Group -> (* group *)
+      nat -> (* length *)
+      (cand -> ciphertext) -> (* cipertext *)
+      (cand -> ciphertext) -> (* shuffled cipertext *)
+      Commitment -> (* permutation commitment *)
+      ZKP -> (* zero knowledge proof of shuffle *)
       bool. (* true or false *)
-
-   
+     
     (* Hypothesis H can be removed. Discuss with Thomas*)
+    (* 
     Axiom verify_shuffle_axiom :
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S) (cp : list ciphertext)
         (shuffledcp : list ciphertext) (r : R) (zkprowshuffle : ZKP)
@@ -1092,8 +1128,21 @@ Section Encryption.
         (H3 : zkprowshuffle = shuffle_zkp grp (List.length cand_all)
                                           cp shuffledcp pi cpi s r),
         verify_shuffle grp (List.length cand_all)
-                       cp shuffledcp cpi zkprowshuffle = true.
+                       cp shuffledcp cpi zkprowshuffle = true. *)
 
+    (* Changed data structure *)
+    Axiom verify_shuffle_axiom :
+      forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
+        (cp shuffledcp : cand -> ciphertext)
+        (r : R) (zkprowshuffle : ZKP)
+        (H : pi = generatePermutation grp (List.length cand_all) )
+        (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
+        (H2 : (shuffledcp, r) = shuffle grp (List.length cand_all) cp pi)
+        (H3 : zkprowshuffle = shuffle_zkp grp (List.length cand_all)
+                                          cp shuffledcp pi cpi s r),
+        verify_shuffle grp (List.length cand_all)
+                       cp shuffledcp cpi zkprowshuffle = true. 
+    
     (* Axiom on the shuffle. This function does not change the 
        length of input list *)
     Axiom shuffle_length :
@@ -1234,8 +1283,7 @@ Section Encryption.
           (verify_row_perm grp urest vrest rt cpi)
       end.
         
-
-      
+          
      (* This function basically transforms eballot to matrix (list (list ciphertext))
          ulist = [[], [], []], vlist = [[], [], []] and zkpermuv = [zkp1, zkp2,zkp3]
          and we call verify_shuffle with corresponding elements of 
@@ -1244,8 +1292,8 @@ Section Encryption.
     Definition verify_row_permutation_ballot grp
                (u : eballot) (v : eballot)
                (cpi : Commitment) (zkppermuv : list ZKP) : bool :=
-      let ulist := map (fun b => map b cand_all) (map u cand_all) in 
-      let vlist := map (fun b => map b cand_all) (map v cand_all) in
+      let ulist := map (fun b => map b cand_all) (map (fun c => u c) cand_all) in 
+      let vlist := map (fun b => map b cand_all) (map (fun c => v c) cand_all) in
       verify_row_perm grp ulist vlist zkppermuv cpi. 
 
       
@@ -1515,16 +1563,17 @@ Section Encryption.
       (* Show that verify_row_permutation_ballot u v cpi zkppermuv return true.
          The property here is construct matrix from u and v and comp
          This is bit tricky so I am leaving it for the moment because we need to 
-         massage the axioms *)
-      assert (Ht1 : verify_row_permutation_ballot grp u v cpi zkppermuv = true).
+         massage the axioms *)   
+      pose proof (verify_shuffle_axiom grp pi cpi s) as Hvs.
+      assert (Ht1 : verify_row_permutation_ballot grp u v cpi zkppermuv = true). 
       (* This proof would depend on Axioms. I am listing all the information for myself
          so that when I come back here in future. 
          u : cand -> cand -> ciphertext 
          v : cand -> cand -> ciphertext 
          pi is the permutation used to convert u into v. 
          cpi is the commitment zkpermuv is zero knowledge proof of shuffle *)
-      admit. 
-
+      unfold verify_row_permutation_ballot.
+      admit.
 
       
       (* Now I have rowshuffled ballot in form of function closure, 
@@ -1612,8 +1661,6 @@ Section Encryption.
       
       
 
-     
-     
 
 
      (* for every list of incoming ballots, we can progress the count to a state where all
