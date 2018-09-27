@@ -1145,9 +1145,17 @@ Section Encryption.
     
     (* Axiom on the shuffle. This function does not change the 
        length of input list *)
+    (* I am convinced that now this function won't be needed but keeping it *)
+    (*
     Axiom shuffle_length :
       forall (grp : Group) (n : nat) (l : list ciphertext) (pi : Permutation),
-        List.length (fst (shuffle grp n l pi)) = List.length l. 
+        List.length (fst (shuffle grp n l pi)) = List.length l. *)
+
+    Require Import Coq.Program.Basics.
+    Axiom shuffle_perm :
+      forall grp n f pi g, 
+      fst (shuffle grp (n : nat) (f : cand -> ciphertext) (pi : Permutation)) = g <->
+      g = compose f pi.
 
     (* end of axioms about shuffle. Discuss with Dirk, and Thomas *)     
                                                          
@@ -1282,21 +1290,34 @@ Section Encryption.
           (verify_shuffle grp (List.length cand_all) u v cpi zkp)
           (verify_row_perm grp urest vrest rt cpi)
       end.
-        
+
+    
           
      (* This function basically transforms eballot to matrix (list (list ciphertext))
          ulist = [[], [], []], vlist = [[], [], []] and zkpermuv = [zkp1, zkp2,zkp3]
          and we call verify_shuffle with corresponding elements of 
          ulist, vlist and zkppermuv. If v is row permutation of u by pi (commitment cpi) 
          and zero knowledge proof of shuffle row_shuffle_zkp then it should return true *)
+    (*
     Definition verify_row_permutation_ballot grp
                (u : eballot) (v : eballot)
                (cpi : Commitment) (zkppermuv : list ZKP) : bool :=
       let ulist := map (fun b => map b cand_all) (map (fun c => u c) cand_all) in 
       let vlist := map (fun b => map b cand_all) (map (fun c => v c) cand_all) in
-      verify_row_perm grp ulist vlist zkppermuv cpi. 
+      verify_row_perm grp ulist vlist zkppermuv cpi.  *)
 
-      
+    (* This function basically transforms eballot to matrix (list (cand -> cipertext))
+         ulist = [f1, f2, f3], vlist = [g1, g2, g3] and zkpermuv = [zkp1, zkp2,zkp3]
+         and we call verify_shuffle with corresponding elements of 
+         ulist, vlist and zkppermuv. If v is row permutation of u by pi (commitment cpi) 
+         and zero knowledge proof of shuffle row_shuffle_zkp then it should return true *)
+    Definition verify_row_permutation_ballot grp
+               (u : eballot) (v : eballot)
+               (cpi : Commitment) (zkppermuv : list ZKP) : bool :=
+      let ulist := map (fun c => u c) cand_all in 
+      let vlist := map (fun c => v c) cand_all in
+      verify_row_perm grp ulist vlist zkppermuv cpi.
+                      
   
 
     Definition verify_col_permutation_ballot (grp : Group)
