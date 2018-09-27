@@ -1413,6 +1413,7 @@ Section Encryption.
     (* This function constructs zero knowledge proof from 
        ballot, shuffled ballot, list of randomness r, permutation pi, p
        permutation commitment cpi and commitment randomness s *)
+    (* 
     Fixpoint construct_zero_knowledge_proof
              (grp : Group) (n : nat) (blt : list (list ciphertext))
              (shufblt : list (list ciphertext)) (pi : Permutation)
@@ -1428,11 +1429,30 @@ Section Encryption.
       | h1 :: t1, h2 :: t2, r :: rt =>
         shuffle_zkp grp n
                     h1 h2 pi cpi s r ::
-                    construct_zero_knowledge_proof grp n t1 t2 pi cpi s rt
-      end.
-                        
+                    construct_zero_knowledge_proof grp n t1 t2 pi cpi s rt 
+      end. *)
 
     
+                        
+    (* Same as above, but now each row is represented as function rather than list *)
+    Fixpoint construct_zero_knowledge_proof
+             (grp : Group) (n : nat) (blt : list (cand -> ciphertext))
+             (shufblt : list (cand -> ciphertext)) (pi : Permutation)
+             (cpi : Commitment) (s : S) (rvalue : list R) :=
+      match blt, shufblt, rvalue with
+      | [], [], [] => []
+      | [], [], _ :: _ => []
+      | [], _ :: _ , [] => []
+      | _ :: _, [], [] => []
+      | _ :: _, _ :: _ , [] => []
+      | _ :: _, [], _ :: _ => []
+      | [], _ :: _, _ :: _ => []
+      | h1 :: t1, h2 :: t2, r :: rt =>
+        shuffle_zkp grp n
+                    h1 h2 pi cpi s r ::
+                    construct_zero_knowledge_proof grp n t1 t2 pi cpi s rt 
+      end.
+                    
     Lemma list_not_empty :
       forall (l : list (cand * cand)), l <> [] -> existsT h t, l = h :: t.
     Proof.
@@ -1480,8 +1500,29 @@ Section Encryption.
            exists x. intuition.
     Defined.
 
+    (* This function is very similar to idx_search, but it works on list (cand -> cipertext). 
+       We have ballot u : cand -> cand -> cipertext. We construct list (cand -> cipertext) by 
+       map u cand_all. Then we rotate each row by permutation pi, and call this function 
+       to construct v : cand -> cand -> cipertext *)
+    Lemma idx_search_list : forall (A : Type) (c : cand) (cl : list cand)
+                              (l : list A) (Hin : In c cl)
+                              (H : List.length l = List.length cl), existsT f, In f l.
+    Proof.
+      intros A c.
+      induction cl; simpl; intros. 
+      - inversion Hin.
+      - destruct l. inversion H.
+        inversion H.
+        destruct (dec_cand c a).
+        + exists a0. intuition.
+        + assert (In c cl).
+          destruct Hin; congruence.
+          destruct (IHcl l H0 H1) as [x Pr].
+          exists x. intuition.
+    Defined.
+
     
-   
+   (* 
     Lemma flat_map_with_map_row :
       forall (l1 : list cand) (l2 : list cand ) (u : cand -> cand -> ciphertext)
         (grp : Group) (pi : Permutation), 
@@ -1515,7 +1556,7 @@ Section Encryption.
       apply f_equal.
       apply IHl1.
     Qed.
-    
+    *)
                                                                               
     
     
@@ -1525,6 +1566,8 @@ Section Encryption.
        we have counted all the ballots by taking one ballot, and deciding if it's 
        valid or not. If valid then add it to encrypted marging otherwise add it invalid  
        ballot list *)
+
+    (* 
     Lemma ppartial_count_all_counted grp bs : forall ts inbs m,
         ECount grp bs (epartial (ts, inbs) m) -> existsT i nm, (ECount grp bs (epartial ([], i) nm)).
     Proof.    
@@ -1676,9 +1719,160 @@ Section Encryption.
                             Ht1 Ht2 Ht3).
       destruct (IHs (u :: inbs) m X) as [inb [mrg T]].
       exists inb, mrg. assumption.
-    Admitted.
+    Admitted. *)
     
 
+    Lemma ppartial_count_all_counted grp bs : forall ts inbs m,
+        ECount grp bs (epartial (ts, inbs) m) -> existsT i nm, (ECount grp bs (epartial ([], i) nm)).
+    Proof.    
+      induction ts as [|u ts IHs].
+      intros inbs m He.
+      exists inbs, m. auto.
+      intros inbs m He. 
+      (* The idea is u valid or not valid which can be shown via u -> (* row permutation *) -> v
+        -> (* colume permutation *) -> w -> (* decryption *) -> b *)
+     
+      (* generate permutation *) 
+      remember (generatePermutation grp (List.length cand_all)) as pi.
+      (* commit it *)
+      remember (generatePermutationCommitment grp (List.length cand_all) pi) as cpis.
+      destruct cpis as (cpi, s).
+      (* generate zero knowledge proof of commitment *)
+      remember (zkpPermutationCommitment grp (List.length cand_all)
+                                         pi cpi s) as zkpcpi.
+      (* At this point I can assert that 
+         verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true 
+         using the Axiom permutation_commitment_axiom *)
+      assert (verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true).
+      pose proof (permutation_commitment_axiom
+                    grp pi cpi s zkpcpi Heqpi Heqcpis Heqzkpcpi). auto.
+       
+      (* go with list rather than vector because of extraction *) 
+      (* Construct each row *)
+      remember (map (fun c => u c) cand_all) as partialballot. 
+      (* construct the orignal ballot because it's needed for zkp construction *)
+      remember (map (fun b => map b cand_all) partialballot) as nballot.
+      (* construct suffled ballot. for each row do rowshuffle *)
+      remember (map (fun b => shuffle grp (List.length cand_all)
+                                   (map b cand_all) pi) partialballot) as rowShuffledwithR. 
+      remember (map fst rowShuffledwithR) as rowshuffled.
+      remember (map snd rowShuffledwithR) as rvalues.
+      (* Now I have row shuffled ballot by pi, construct zero knowledge proof *)
+      remember (construct_zero_knowledge_proof
+                  grp (List.length cand_all)
+                  nballot rowshuffled pi cpi s rvalues) as zkppermuv.
+      
+      (* Now convert the rowshuffled ballot into function closure *)
+      assert (List.length (List.concat rowshuffled) = List.length (all_pairs_row cand_all)).
+      rewrite Heqrowshuffled. rewrite <- (flat_map_concat_map _ rowShuffledwithR).
+      rewrite HeqrowShuffledwithR. rewrite Heqpartialballot.
+      rewrite (map_map _ _ cand_all).
+      rewrite length_all_pairs_row.
+      pose proof (flat_map_with_map_row cand_all cand_all u grp pi). auto.
+      (* Finally, I am feeling good :) *)
+      (* Construct function closure v from rowshuffled list *)
+      remember (fun (c d : cand) =>
+                  match (idx_search _ c d
+                                    (all_pairs_row cand_all)(* This would generate in row order *)
+                                    (List.concat rowshuffled) (* concat each row *)
+                                    (every_cand_row c d) H0) with
+                  | existT _  f _ => f
+                  end) as v.
+      (* Show that verify_row_permutation_ballot u v cpi zkppermuv return true.
+         The property here is construct matrix from u and v and comp
+         This is bit tricky so I am leaving it for the moment because we need to 
+         massage the axioms *)   
+      pose proof (verify_shuffle_axiom grp pi cpi s) as Hvs.
+      assert (Ht1 : verify_row_permutation_ballot grp u v cpi zkppermuv = true). 
+      (* This proof would depend on Axioms. I am listing all the information for myself
+         so that when I come back here in future. 
+         u : cand -> cand -> ciphertext 
+         v : cand -> cand -> ciphertext 
+         pi is the permutation used to convert u into v. 
+         cpi is the commitment zkpermuv is zero knowledge proof of shuffle *)
+      unfold verify_row_permutation_ballot.
+      admit.
+
+      
+      (* Now I have rowshuffled ballot in form of function closure, 
+         Now apply column shuffle on this ballot. Change the name of 
+         row_shuffle to shuffle to avoid the confusion*)
+      (* Construct the normal ballot in column form for zero knowledge proof construction *)
+      remember (map (fun c => map (fun d => v d c) cand_all) cand_all) as colballot.
+      remember (map (fun c =>
+                       shuffle grp
+                               (List.length cand_all)
+                               (map (fun d => v d c) cand_all) pi) cand_all) as colShufflewithR.
+      remember (map fst colShufflewithR) as colShuffledballot.
+      remember (map snd colShufflewithR) as rcolvalues.
+      remember (construct_zero_knowledge_proof
+                  grp (List.length cand_all)
+                  colballot colShuffledballot pi cpi s rcolvalues) as zkppermvw.
+      (* Now convert colshuffledballot into function closure *)
+      (* The problem is that each element of colshuffledballot is column of 
+         rowshuffle ballot. I want to change it in function closure without 
+         changing the structure of ballot. The idea is write another function 
+         similiar to all_pairs_row but produce results in column form. 
+         Let's say [A, B, C] => all_pairs_row would produce
+         [AA, AB, AB, BA, BB, BC, CA, CB, CC] so it would kind of mismatch the 
+         ballot with idx_search. 
+         Write a new function all_pair_col [A, B, C] => 
+         [AA, BA,  CA, AB, BB, CB, AC, BC, CC] and call this value with 
+         List.concat (colshuffledballot) to make sure that structure presevers. *)
+      (* Now I have solved the problem by writing different functions for row and column *)
+
+      assert (Datatypes.length (concat colShuffledballot) =
+              Datatypes.length (all_pairs_col cand_all)).
+      rewrite HeqcolShuffledballot.
+      rewrite <- (flat_map_concat_map _ colShufflewithR).
+      rewrite HeqcolShufflewithR. rewrite length_all_pairs_col.
+      pose proof (flat_map_with_map_col cand_all cand_all v grp pi). auto.            
+      remember (fun (c d : cand) =>
+                  match (idx_search _ c d
+                                    (all_pairs_col cand_all)(* This would generate in col order *)
+                                    (List.concat colShuffledballot) (* concat each row *)
+                                    (every_cand_col c d) H1 ) with
+                  | existT _  f _ => f
+                  end) as w.
+      (*  Show that verify_col_permutation_ballot v w cpi zkppermvw return true. 
+         This is bit tricky so I am leaving it for the moment because we need to 
+         massage the axioms *)
+      assert (Ht2 : verify_col_permutation_ballot grp v w cpi zkppermvw = true). admit.
+      
+      (* Now decrypt the ballot w *)
+      remember (fun c d => decrypt_message grp privatekey (w c d)) as b.
+      (* construct zero knowledge proof of decryption *)
+      remember (fun c d => construct_zero_knowledge_decryption_proof
+                          grp privatekey (w c d)) as zkpdecw.
+      (* Show that the zkpdecw is true b is honest decryption of w *)
+      assert (Ht3 : forall c d, verify_zero_knowledge_decryption_proof
+                              grp (b c d) (w c d) (zkpdecw c d) = true).
+      intros c d. rewrite Heqzkpdecw.
+      apply verify_true. rewrite Heqb. reflexivity.
+
+      (* Now connect the validity of b to validity of u. A valid b means 
+         there is no cycle in b which reflects back to ballot u and 
+         u is homomorphically added to margin. 
+         If b is not valid then it contains cycle and this reflects back to u *)
+      destruct (matrix_ballot_valid_dec b) as [Hb | Hnb].
+      (* Since b is valid so add the ballot u to margin m and call it nm *)
+      remember (fun c d => homomorphic_addition grp (u c d) (m c d)) as nm.
+      assert (Ht4 : forall c d, nm c d = homomorphic_addition grp (u c d) (m c d)).
+      intros c d.  rewrite Heqnm. reflexivity.
+      (* ecvalid *) 
+      pose proof (ecvalid grp bs u v w b zkppermuv zkppermvw
+                          zkpdecw cpi zkpcpi ts m nm inbs He
+                          Hb H Ht1 Ht2 Ht3 Ht4).
+      (* Induction Hypothesis *)
+      destruct (IHs _ _ X) as [inb [mrg T]].
+      exists inb, mrg. assumption.
+
+      (* ecinvalid *)
+      pose proof (ecinvalid grp bs u v w b zkppermuv zkppermvw
+                            zkpdecw cpi zkpcpi ts m inbs He Hnb H
+                            Ht1 Ht2 Ht3).
+      destruct (IHs (u :: inbs) m X) as [inb [mrg T]].
+      exists inb, mrg. assumption.
       
       
 
