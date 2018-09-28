@@ -1318,15 +1318,13 @@ Section Encryption.
                            (u c) (v c) cpi (zkppermuv c). 
       
                       
-  
 
+    (* w is in column form. w 1 => first column of w *)
     Definition verify_col_permutation_ballot (grp : Group)
                (v : eballot) (w : eballot)
                (cpi : Commitment) (zkppermvw  : cand -> ZKP) : cand ->  bool :=
-      (* Everything like upper function except now 
-         w is column permutation of v. *)
       fun c => verify_shuffle grp (List.length cand_all)
-                           (fun d => v d c) (fun d => w d c) cpi (zkppermvw c).
+                           (fun d => v d c) (w c) cpi (zkppermvw c).
 
     
  
@@ -1843,14 +1841,38 @@ Section Encryption.
       specialize (H0 Hvr). clear Hvr. rewrite Heqzkppermuv in H0.
       specialize (H0 eq_refl). rewrite Heqzkppermuv. auto.
       
-      (* convert v -> column permutation pi -> w *)
       
+      (* convert v -> column permutation pi -> w *) 
+      remember (fun c =>
+                  shuffle grp (List.length cand_all)
+                          (fun d => v d c) pi) as colShuffledwithR.
+      (* get the colum shuffled ballot. Notice that w is now in column form. For any candidate c, 
+         it fetches the cth column of v and permute them by pi, so w c is 
+         permuted cth column of v. Important *)
+      remember (fun c => fst (colShuffledwithR c)) as w.
+     
+      (* get the randomness R to construct zero knowledge proof *)
+      remember (fun c => snd (colShuffledwithR c)) as cvalues. 
+      (* construct zero knowledge proof of shuffle that w is column permutation of v by pi *)
+      remember (fun c =>
+                  shuffle_zkp grp (List.length cand_all)
+                              (fun d => v d c) (w c) pi cpi s (cvalues c)) as zkppermvw.
+  
       
+      assert (Ht2 : forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true).
+      intros. unfold verify_col_permutation_ballot.
+      pose proof (verify_shuffle_axiom grp pi cpi s (fun d => v d c) (w c)
+                                       (cvalues c) (zkppermvw c) Heqpi Heqcpis).
+      assert ((w c, cvalues c) = shuffle grp (Datatypes.length cand_all) (fun d : cand => v d c) pi).
+      rewrite Heqw, Heqcvalues.
+      assert ((fst (colShuffledwithR c), snd (colShuffledwithR c)) = colShuffledwithR c).
+      destruct (colShuffledwithR c). auto. rewrite H1. clear H1.
+      rewrite HeqcolShuffledwithR. auto.
+      specialize (H0 H1). rewrite Heqzkppermvw in H0.
+      specialize (H0 eq_refl). rewrite Heqzkppermvw. auto.
       
-      
-    
    
-      assert (Ht2 : verify_col_permutation_ballot grp v w cpi zkppermvw = true). admit.
+      
       
       (* Now decrypt the ballot w *)
       remember (fun c d => decrypt_message grp privatekey (w c d)) as b.
@@ -1886,7 +1908,8 @@ Section Encryption.
                             Ht1 Ht2 Ht3).
       destruct (IHs (u :: inbs) m X) as [inb [mrg T]].
       exists inb, mrg. assumption.
-      
+    Qed.
+    
       
 
 
