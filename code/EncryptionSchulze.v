@@ -1894,7 +1894,7 @@ Section Encryption.
        (etpbs =  map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) etinbs) * 
        mapping_ballot_pballot ts tpbs *
        mapping_ballot_pballot tinbs etpbs)%type.
-    Proof.  
+    Proof.   
       intros s H. 
       (* induction on structure of H *)
       induction H. intros. inversion H.
