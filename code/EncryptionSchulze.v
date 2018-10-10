@@ -2378,7 +2378,7 @@ Section Encryption.
       assert (forall c d, b c d = tp (pi c) (pi d)).
       intros. rewrite Heqb. rewrite H22. auto.
       Require Import Coq.Logic.FinFun.
-      assert (Hsig : Bijective pi). admit.
+      assert (Hsig : Bijective pi). admit. 
       unfold Bijective in Hsig.
       destruct Hsig as [pi_inv [Hg1 Hg2]].
       
@@ -2625,6 +2625,18 @@ Section Encryption.
       pose proof (uniqueness_proof bs w (c_wins fm) H2 X0).
       rewrite H4. assumption.
     Qed.
+
+
+    Lemma final_correctness_rev :
+      forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
+         (w : cand -> bool)
+         (H : pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+         (H2 : mapping_ballot_pballot bs pbs), (* valid b <-> valid pb *)
+        ECount grp ebs (ewinners w) -> Count bs (winners w).
+    Proof.
+      intros. 
+
+    
     
    
 End ECount.   
