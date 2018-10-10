@@ -2078,9 +2078,9 @@ Section Encryption.
          and row and column permutation *)     
       assert (matrix_ballot_valid b).
       unfold matrix_ballot_valid in *. unfold valid in *.
-      destruct m2 as [Tin [gfun Hg]]. split. intros.
-      admit.
-
+     
+     
+      
       (* Each row of v is shuffle of each row of en by permutation pi *)
       assert (forall c, v c = compose (en c) pi).
       intros.  rewrite Heqv. rewrite shuffle_perm. auto.
@@ -2116,7 +2116,9 @@ Section Encryption.
 
       assert (forall c d, b c d = t (pi c) (pi d)).
       intros. rewrite Heqb. rewrite H17. auto.
-                  
+      destruct m2 as [Tin [gfun Hg]]. split. intros.
+      rewrite H21. auto. 
+      
       exists (fun c => gfun (pi c)); intros. rewrite H21. 
       eapply Hg. 
       
@@ -2327,7 +2329,7 @@ Section Encryption.
       destruct (bool_of_sumbool (ballot_valid_dec u)). simpl.
       destruct x. destruct e as [e Hc]. pose proof (y e). omega.
       auto.
-      pose proof (proj1 (connect_invalidity_of_ballot_pballot u tp H6) H15). 
+      pose proof (proj1 (connect_invalidity_of_ballot_pballot u tp H6) H15).
       (* I know that u is valid (Hypothesis g) *)
       assert (~matrix_ballot_valid tp).
       destruct (matrix_ballot_valid_dec tp). simpl in H16.
@@ -2338,8 +2340,7 @@ Section Encryption.
       assert (~matrix_ballot_valid b).
       unfold not in *.  intros m2. destruct H17.
       unfold matrix_ballot_valid in *. unfold valid in *.
-      destruct m2 as [Tin [gfun Hg]]. split. intros.
-      admit. 
+      
 
       (* Each row of v is shuffle of each row of en by permutation pi *)
       assert (forall c, v c = compose (en c) pi).
@@ -2376,11 +2377,17 @@ Section Encryption.
 
       assert (forall c d, b c d = tp (pi c) (pi d)).
       intros. rewrite Heqb. rewrite H22. auto.
-       
-      
       Require Import Coq.Logic.FinFun.
-      assert (Hsig : Bijective pi). admit. unfold Bijective in Hsig.
+      assert (Hsig : Bijective pi). admit.
+      unfold Bijective in Hsig.
       destruct Hsig as [pi_inv [Hg1 Hg2]].
+      
+      destruct m2 as [Tin [gfun Hg]]. split. intros.     
+      pose proof (Tin (pi_inv c) (pi_inv d)).
+      pose proof (H26 (pi_inv c) (pi_inv d)).
+      rewrite Hg2 in H28. rewrite Hg2 in H28.
+      rewrite H28 in H27. auto.
+      (* existence of function *)
       exists (fun c => gfun (pi_inv c)); intros.
       pose proof (Hg (pi_inv c) (pi_inv d)).
       rewrite H26 in H27.  rewrite Hg2 in H27.
