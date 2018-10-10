@@ -2066,14 +2066,14 @@ Section Encryption.
          H6 : t = (fun c d : cand => decrypt_message grp privatekey (en c d)) 
          u is valid and it infers that t is also valid. 
          t is valid then it's encryption en is also valid *)
-      pose proof (proj1 (connect_validity_of_ballot_pballot u t H2)).
+      pose proof (proj1 (connect_validity_of_ballot_pballot u t H2)). 
       (* I know that u is valid (Hypothesis g) *)
       assert (proj1_sig (bool_of_sumbool (matrix_ballot_valid_dec t)) = true).
       destruct (ballot_valid_dec u). simpl in H12. 
       specialize (H12 eq_refl). auto.
       destruct e0. pose proof (g x). omega.
       clear H12. destruct (matrix_ballot_valid_dec t); swap 1 2.
-      inversion H13. clear H13.  
+      inversion H13. clear H13.   
       (* Now I have m2 : matrix_ballot_valid t => en should be valid 
          and row and column permutation *)     
       assert (matrix_ballot_valid b).
@@ -2116,9 +2116,9 @@ Section Encryption.
 
       assert (forall c d, b c d = t (pi c) (pi d)).
       intros. rewrite Heqb. rewrite H17. auto.
-                
+                  
       exists (fun c => gfun (pi c)); intros. rewrite H21. 
-      eapply Hg.
+      eapply Hg. 
       
       (* I am the happiest person on earth *)
       
@@ -2327,12 +2327,67 @@ Section Encryption.
       destruct (bool_of_sumbool (ballot_valid_dec u)). simpl.
       destruct x. destruct e as [e Hc]. pose proof (y e). omega.
       auto.
-      pose proof (proj1 (connect_invalidity_of_ballot_pballot u tp H6) H15).
+      pose proof (proj1 (connect_invalidity_of_ballot_pballot u tp H6) H15). 
+      (* I know that u is valid (Hypothesis g) *)
+      assert (~matrix_ballot_valid tp).
+      destruct (matrix_ballot_valid_dec tp). simpl in H16.
+      inversion H16. auto. 
+  
       (* tp is decryption of en. tp is invalid so as en. and every permutation of 
          en => v => w => b *)
-      assert (~matrix_ballot_valid b). admit.
+      assert (~matrix_ballot_valid b).
+      unfold not in *.  intros m2. destruct H17.
+      unfold matrix_ballot_valid in *. unfold valid in *.
+      destruct m2 as [Tin [gfun Hg]]. split. intros.
+      admit. 
+
+      (* Each row of v is shuffle of each row of en by permutation pi *)
+      assert (forall c, v c = compose (en c) pi).
+      intros.  rewrite Heqv. rewrite shuffle_perm. auto.
+      
+      (* each column of w is shuffle of each column of v by pi *)
+      assert (forall c, (fun d => w d c) = compose (fun d => v d c) pi).
+      intros.  rewrite Heqw. rewrite Heqtt.  rewrite shuffle_perm. auto.
+      
+      assert (forall c d, v c d = en c (pi d)). intros.
+      pose proof (H17 c). rewrite H19. auto.
+
+      assert (forall c d, w c d = v (pi c) d).
+      intros. unfold compose in H18. pose proof (H18 d).
+      pose proof (equal_f H20). (* functional extensionality usage *)
+      simpl in H21. specialize (H21 c). auto.
+
+      (* now assert w c d = en (pi c) (pi d) *)
+      assert (forall c d, w c d = en (pi c) (pi d)).
+      intros. rewrite H20. rewrite H19. auto.
+      
+      
+      assert (forall c d, tp c d = decrypt_message grp privatekey (en c d)).
+      intros. rewrite H11. auto.
+      assert (forall c d, decrypt_message grp privatekey (v c d) =
+                     decrypt_message grp privatekey (en c (pi d))).
+      intros.  rewrite H19.  auto.
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (v (pi c) d)).
+      intros.  rewrite H20.  auto.
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (en (pi c) (pi d))).
+      intros.  rewrite H21. auto.
+
+      assert (forall c d, b c d = tp (pi c) (pi d)).
+      intros. rewrite Heqb. rewrite H22. auto.
+       
+      
+      Require Import Coq.Logic.FinFun.
+      assert (Hsig : Bijective pi). admit. unfold Bijective in Hsig.
+      destruct Hsig as [pi_inv [Hg1 Hg2]].
+      exists (fun c => gfun (pi_inv c)); intros.
+      pose proof (Hg (pi_inv c) (pi_inv d)).
+      rewrite H26 in H27.  rewrite Hg2 in H27.
+      rewrite Hg2 in H27. auto.
+            
       pose proof (ecinvalid grp ebs en v w b zkppermuv zkppermvw zkpdecw cpi
-                            zkpcpi  ets' em etinbs He H17 H10 Ht1 Ht2 Ht3).
+                            zkpcpi  ets' em etinbs He H18 H10 Ht1 Ht2 Ht3).
       exists ets', (en :: etinbs), tpbs', (tp :: etpbs), em.
       repeat split. assumption. rewrite <- H5. assumption.
       assumption. simpl. rewrite H11.  apply f_equal. assumption.
