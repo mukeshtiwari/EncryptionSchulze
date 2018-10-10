@@ -1641,8 +1641,7 @@ Section Encryption.
       remember (fun c => idx_search_list _ c cand_all rrowlistvalues (cand_fin c) H0) as rrowfunvalues.
       (* Now I have converted rrowlistvalues in rrowfunvalues. Smile *)
       
-      (* Create a axiom, generateRandomR which takes grp and returns R. Use this R 
-         in Shuffle *)
+
       (* get the ballot v by shuffling each row by pi and randomness R *)
       remember (fun c =>
                   shuffle grp (List.length cand_all)
@@ -1707,11 +1706,7 @@ Section Encryption.
       rewrite Heqzkppermvw; rewrite Heqw. try auto. 
       
        
-      (* Now decrypt the ballot w. Remember w is column form, 
-         so decrypted b will also be column form. If you want to 
-         change it into row form then then change the below function 
-         as fun c d => w d c and proofs also accordingly. If you don't 
-         then take care of it in printing b. *)
+      (* Now decrypt the ballot w. *)
       remember (fun c d => decrypt_message grp privatekey (w c d)) as b.
       (* construct zero knowledge proof of decryption *)
       remember (fun c d => construct_zero_knowledge_decryption_proof
@@ -1738,7 +1733,7 @@ Section Encryption.
       (* Induction Hypothesis *)
       destruct (IHs _ _ X) as [inb [mrg T]].
       exists inb, mrg. assumption.
-
+ 
       (* ecinvalid *)
       pose proof (ecinvalid grp bs u v w b zkppermuv zkppermvw
                             zkpdecw cpi zkpcpi ts m inbs He Hnb H
@@ -2078,12 +2073,54 @@ Section Encryption.
       specialize (H12 eq_refl). auto.
       destruct e0. pose proof (g x). omega.
       clear H12. destruct (matrix_ballot_valid_dec t); swap 1 2.
-      inversion H13. clear H13.
+      inversion H13. clear H13.  
       (* Now I have m2 : matrix_ballot_valid t => en should be valid 
          and row and column permutation *)     
       assert (matrix_ballot_valid b).
-      unfold matrix_ballot_valid in m2.  unfold valid in m2.
-      unfold matrix_ballot_valid. admit. 
+      unfold matrix_ballot_valid in *. unfold valid in *.
+      destruct m2 as [Tin [gfun Hg]]. split. intros.
+      admit.
+
+      (* Each row of v is shuffle of each row of en by permutation pi *)
+      assert (forall c, v c = compose (en c) pi).
+      intros.  rewrite Heqv. rewrite shuffle_perm. auto.
+      
+      (* each column of w is shuffle of each column of v by pi *)
+      assert (forall c, (fun d => w d c) = compose (fun d => v d c) pi).
+      intros.  rewrite Heqw. rewrite Heqtt.  rewrite shuffle_perm. auto.
+      
+      assert (forall c d, v c d = en c (pi d)). intros.
+      pose proof (H12 c). rewrite H14. auto.
+
+      assert (forall c d, w c d = v (pi c) d).
+      intros. unfold compose in H13. pose proof (H13 d).
+      pose proof (equal_f H15). (* functional extensionality usage *)
+      simpl in H16. specialize (H16 c). auto.
+
+      (* now assert w c d = en (pi c) (pi d) *)
+      assert (forall c d, w c d = en (pi c) (pi d)).
+      intros. rewrite H15. rewrite H14. auto.
+      
+      
+      assert (forall c d, t c d = decrypt_message grp privatekey (en c d)).
+      intros. rewrite H6. auto.
+      assert (forall c d, decrypt_message grp privatekey (v c d) =
+                     decrypt_message grp privatekey (en c (pi d))).
+      intros.  rewrite H14.  auto.
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (v (pi c) d)).
+      intros.  rewrite H15.  auto.
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (en (pi c) (pi d))).
+      intros.  rewrite H16. auto.
+
+      assert (forall c d, b c d = t (pi c) (pi d)).
+      intros. rewrite Heqb. rewrite H17. auto.
+                
+      exists (fun c => gfun (pi c)); intros. rewrite H21. 
+      eapply Hg.
+      
+      (* I am the happiest person on earth *)
       
         
       specialize (X en v w b zkppermuv zkppermvw zkpdecw cpi
@@ -2293,8 +2330,7 @@ Section Encryption.
       pose proof (proj1 (connect_invalidity_of_ballot_pballot u tp H6) H15).
       (* tp is decryption of en. tp is invalid so as en. and every permutation of 
          en => v => w => b *)
-      assert (~matrix_ballot_valid b). admit. (* Discuss with Dirk about the structure of this
-      axiom *)
+      assert (~matrix_ballot_valid b). admit.
       pose proof (ecinvalid grp ebs en v w b zkppermuv zkppermvw zkpdecw cpi
                             zkpcpi  ets' em etinbs He H17 H10 Ht1 Ht2 Ht3).
       exists ets', (en :: etinbs), tpbs', (tp :: etpbs), em.
