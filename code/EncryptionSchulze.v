@@ -1035,6 +1035,11 @@ Section Encryption.
                                 grp (List.length cand_all) pi cpi s),
         verify_permutation_commitment grp (List.length cand_all)
                                       cpi zkppermcommit = true.
+
+    Require Import Coq.Logic.FinFun.
+
+    (* Permutation is bijective *)
+    Axiom bijective_perm : forall (pi : Permutation), Bijective pi. 
     
     Axiom homomorphic_addition :
       Group -> ciphertext -> ciphertext -> ciphertext.
@@ -2377,8 +2382,7 @@ Section Encryption.
 
       assert (forall c d, b c d = tp (pi c) (pi d)).
       intros. rewrite Heqb. rewrite H22. auto.
-      Require Import Coq.Logic.FinFun.
-      assert (Hsig : Bijective pi). admit. 
+      assert (Hsig : Bijective pi). apply bijective_perm.
       unfold Bijective in Hsig.
       destruct Hsig as [pi_inv [Hg1 Hg2]].
       
@@ -2402,7 +2406,7 @@ Section Encryption.
       assumption.
       (* Invalid case finished *)
       intros. inversion H0.
-    Admitted.
+    Qed. 
     
     
     Fixpoint compute_margin (bs : list ballot) :=
@@ -2626,6 +2630,32 @@ Section Encryption.
       rewrite H4. assumption.
     Qed.
 
+    
+    Lemma margin_same_from_both_existential_rev 
+          (grp : Group) (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
+          (Ht : pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+          (H1 : mapping_ballot_pballot bs pbs) :
+      forall (s : EState),
+        ECount grp ebs s ->
+        forall (ets etinbs : list eballot)
+          (tpbs etpbs : list pballot)
+          (em : cand -> cand -> ciphertext)
+          (H2 : tpbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ets)
+          (H3 : etpbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) etinbs),
+          s = epartial (ets, etinbs) em ->
+          existsT
+            (ts tinbs : list ballot)
+            (m : cand -> cand -> Z), 
+      (Count bs (partial (ts, tinbs) m) *
+       (m = fun c d => decrypt_message grp privatekey (em c d)) *
+       mapping_ballot_pballot ts tpbs *
+       mapping_ballot_pballot tinbs etpbs)%type.
+    Proof.
+      intros s H.
+      induction H.
+        
+
+      
 
     Lemma final_correctness_rev :
       forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
@@ -2634,9 +2664,10 @@ Section Encryption.
          (H2 : mapping_ballot_pballot bs pbs), (* valid b <-> valid pb *)
         ECount grp ebs (ewinners w) -> Count bs (winners w).
     Proof.
-      intros. 
-
-    
+      intros grp bs pbs ebs w H0 H1 H2.
+      
+ 
+     
     
    
 End ECount.   
