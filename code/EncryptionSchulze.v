@@ -2652,9 +2652,118 @@ Section Encryption.
        mapping_ballot_pballot tinbs etpbs)%type.
     Proof.
       intros s H.
-      induction H.
-        
+      induction H; intros. inversion H. 
+      exists bs, [], decm.
+      pose proof (ax bs bs decm eq_refl e0).
+      repeat split.  auto.
+      (* Now from e1, I need to infer that decm is honest decryption of em *)
+      apply functional_extensionality; intros.
+      apply functional_extensionality; intros.
+      pose proof (e1 x x0).
+      (* Axiom forall c d, 
+         verify_zero_knowledge_decryption_proof grp dec enc zkp = true -> 
+         dec = decryption_message grp privatekey enc *) admit. 
+      subst. assumption.
+      rewrite <- H5 in H3.  simpl in H3.  rewrite H3. apply I.
+      (* ECvalid case. matrix_ballot valid b. 
+         I am going to add u in encrypted margin *)
+      inversion H0.
+      specialize (IHECount (u :: us) inbs). simpl in IHECount.
+      specialize (IHECount ((fun c d : cand => decrypt_message grp privatekey (u c d)) :: tpbs)
+                           etpbs m).
+      rewrite H2 in IHECount. rewrite H5 in IHECount.
+      specialize (IHECount eq_refl).
+      rewrite <- H6 in H3.
+      specialize (IHECount H3 eq_refl).
+      destruct IHECount as [ts [tinbs [decm IHm]]].
+      destruct IHm as [[[IHc Hdec] Hts] Hm].
+      destruct ts.  inversion Hts.  simpl in Hts.
+      destruct Hts.
+      (* I know b is valid so this translates back to validity of u. 
+         Since u is valid then b0 is valid *)
+      assert (matrix_ballot_valid
+                (fun c d : cand => decrypt_message grp privatekey (u c d))). admit.
+      pose proof (proj2 (connect_validity_of_ballot_pballot
+                           b0
+                           (fun c d : cand => decrypt_message grp privatekey (u c d)) H4)).
+      assert ( forall c : cand, (b0 c > 0)%nat).
+      destruct ((matrix_ballot_valid_dec (fun c d : cand => decrypt_message grp privatekey (u c d)))).
+      simpl in H10. specialize (H10 eq_refl).
+      destruct (ballot_valid_dec b0). auto. inversion H10. congruence.
+      (* Add this ballot in count *)
+      pose proof (cvalid bs b0 ts decm
+                         (fun c d : cand => decrypt_message grp privatekey (nm c d))
+                         tinbs IHc H11).
+      unfold map_ballot_pballot in H4.      
+      assert (
+          forall c d : cand,
+            ((b0 c < b0 d)%nat ->
+             (fun c0 d0 : cand => decrypt_message grp privatekey (nm c0 d0)) c d = decm c d + 1) /\
+            (b0 c = b0 d -> (fun c0 d0 : cand => decrypt_message grp privatekey (nm c0 d0)) c d
+                           = decm c d) /\
+            ((b0 c > b0 d)%nat ->
+             (fun c0 d0 : cand => decrypt_message grp privatekey (nm c0 d0)) c d = decm c d - 1)).
+      destruct H4.  destruct H4.  congruence.
+      destruct H4. destruct H12.  
+      intros.
+      split. intros. 
+      pose proof (H13 c d).  rewrite e3.
+      rewrite homomorphic_addition_axiom. destruct H15. apply H15 in H14.
+      rewrite H14.  rewrite Hdec.
+      rewrite Z.add_1_l. auto.
+      split. intros. 
+      destruct (H13 c d) as [Htt [H15 H16]].
+      apply H15 in H14.  rewrite e3. rewrite homomorphic_addition_axiom.
+      rewrite H14.  simpl. rewrite Hdec. auto.
+      intros. destruct (H13 c d) as [Htt [H15 H16]].
+      apply H16 in H14.  rewrite e3. rewrite homomorphic_addition_axiom.
+      rewrite H14.  rewrite Hdec. rewrite Z.add_comm. auto.
+      specialize (X H12).
+      exists ts, tinbs, (fun c d : cand => decrypt_message grp privatekey (nm c d)).
+      split. split. split. auto. rewrite H7. auto.  rewrite <- H2 in H8. auto.
+      auto.
 
+      (* Finished cvalid case *)
+      inversion H0.
+      assert (etinbs <> []). destruct etinbs. inversion H6.
+      unfold not. intro. inversion H4.
+      destruct etinbs.  unfold not in H4.
+      pose proof (H4 eq_refl). inversion H8.
+      inversion H6. 
+      specialize (IHECount (u :: us) etinbs).
+      simpl in IHECount.
+      specialize (IHECount ((fun c d : cand => decrypt_message grp privatekey (u c d)) :: tpbs)).
+      simpl in H3. destruct etpbs. inversion H3.
+      inversion H3.
+      specialize (IHECount etpbs m). rewrite <- H5 in H2.
+      rewrite H2 in IHECount. specialize (IHECount eq_refl H12).
+      rewrite H10 in IHECount. specialize (IHECount eq_refl).
+      destruct IHECount as [ts [tinbs [decm IHm]]].
+      destruct IHm as [[[IHc Hdec] Hts] Hm].
+      destruct ts. inversion Hts. destruct Hts.
+      (* I know b is invalid so this translates back to invalidity of u. 
+         Since u is invalid then b0 is invalid *)
+      assert (~matrix_ballot_valid
+               (fun c d : cand => decrypt_message grp privatekey (u c d))). admit.
+      pose proof (proj2 (connect_invalidity_of_ballot_pballot
+                           b0
+                           (fun c d : cand => decrypt_message grp privatekey (u c d)) H8)).
+      assert (exists c, (b0 c = 0)%nat). 
+      destruct (matrix_ballot_valid_dec (fun c d : cand => decrypt_message grp privatekey (u c d))).
+      congruence. simpl in H15. specialize (H15 eq_refl).
+      destruct (ballot_valid_dec b0). inversion H15.  auto.
+      pose proof (cinvalid bs b0 ts decm tinbs IHc H16).
+      exists ts, (b0 :: tinbs), decm.
+      split. split. split. auto.
+      rewrite H7 in Hdec. auto.
+      rewrite <- H2 in H13. auto.
+      simpl.  split. rewrite <- H9. auto.
+      rewrite <- H12. auto.
+      (* finished cinvalid *)
+      inversion H0.
+      inversion H0.
+    Admitted.
+    
       
 
     Lemma final_correctness_rev :
