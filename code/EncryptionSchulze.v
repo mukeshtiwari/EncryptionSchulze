@@ -2624,7 +2624,7 @@ Section Encryption.
                       (c_wins_true_type fm) (c_wins_false_type fm)).
       pose proof (ecfin grp ebs fm (c_wins fm) (wins_loses_type_dec fm)
                         X (c_wins_true_type fm) (c_wins_false_type fm)).
-
+      
       (* All I need now is assert c_wins fm = w *)
       pose proof (uniqueness_proof bs w (c_wins fm) H2 X0).
       rewrite H4. assumption.
@@ -2764,7 +2764,10 @@ Section Encryption.
       inversion H0.
     Admitted.
     
-      
+
+    Lemma uniqueness_proof_enc : forall grp bs w w',
+        ECount grp bs (ewinners w) -> ECount grp bs (ewinners w') -> w = w'.
+    Admitted. 
 
     Lemma final_correctness_rev :
       forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
@@ -2774,10 +2777,38 @@ Section Encryption.
         ECount grp ebs (ewinners w) -> Count bs (winners w).
     Proof.
       intros grp bs pbs ebs w H0 H1 H2.
-      
- 
-     
+      destruct (pall_ballots_counted grp ebs) as [inb [fm Hm]].
+      pose proof (margin_same_from_both_existential_rev
+                    grp bs ebs pbs H0 H1 _ Hm [] inb []
+                    (map
+                       (fun (x : cand -> cand -> ciphertext)
+                          (c d : cand) => decrypt_message grp privatekey (x c d)) inb)
+                 fm eq_refl eq_refl eq_refl).
+      destruct X as [ts [tinbs [m [[[IHc Hmm] IHm] Hw]]]].    
+      assert (ts = []). destruct ts. reflexivity. inversion IHm.
+      rewrite H in IHc, IHm.
+      pose proof (ecdecrypt grp ebs inb fm m
+                 (fun c d => construct_zero_knowledge_decryption_proof
+                            grp privatekey (fm c d)) Hm).
+      simpl in X.
+      assert (forall c d : cand,
+                 verify_zero_knowledge_decryption_proof
+                   grp (m c d) (fm c d)
+                   (construct_zero_knowledge_decryption_proof grp privatekey (fm c d)) = true).
+      intros. apply verify_true. rewrite Hmm. auto.
+      specialize (X H3). clear H3. 
+      pose proof (fin bs m tinbs (c_wins m) (wins_loses_type_dec m) IHc
+                      (c_wins_true_type m) (c_wins_false_type m)).
+      pose proof (ecfin grp ebs m (c_wins m) (wins_loses_type_dec m)
+                        X (c_wins_true_type m) (c_wins_false_type m)).
+      (* I need uniqueness proof stating that 
+         ECount grp ebs (ewinners w) ->  ECount grp ebs (ewinners (c_wins m)) -> 
+         w = c_wins m *)
+      pose proof (uniqueness_proof_enc grp ebs _ _ H2 X1).
+      rewrite H3. auto.
+    Qed.
     
+      
    
 End ECount.   
       
