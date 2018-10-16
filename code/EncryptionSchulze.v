@@ -2763,11 +2763,62 @@ Section Encryption.
       inversion H0.
       inversion H0.
     Admitted.
-    
 
+
+    (*
+    Lemma unique_margin_enc :
+      forall bs inbs inbs0 m m0 s s0 (c0 : ECount grp bs s)
+        (c1 : ECount bs s0),
+        s = epartial ([], inbs) m ->
+        s0 = epartial ([], inbs0) m0 -> m = m0.
+      Admitted.  *)
+    
+    Lemma unique_dec_margin : forall grp bs dm dm0,
+      ECount grp bs (edecrypt dm) ->  ECount grp bs (edecrypt dm0) ->
+      dm = dm0.
+    Proof.
+      intros. inversion X. inversion X0. subst.
+      
+    
+    
     Lemma uniqueness_proof_enc : forall grp bs w w',
         ECount grp bs (ewinners w) -> ECount grp bs (ewinners w') -> w = w'.
-    Admitted. 
+    Proof.
+      intros grp bs w w' H1 H2.
+      inversion H1. inversion  H2.
+      pose proof (unique_dec_margin _ _ _ _ X X0).
+      subst. apply functional_extensionality; intros.
+
+      specialize (H3 x). specialize (H0 x). 
+      specialize (H5 x). specialize (H6 x). 
+      remember (w x) as Hw.
+      remember (w' x) as Hw'.
+      destruct Hw; destruct Hw'; try auto. 
+      specialize ((proj1 H6) eq_refl); intros.
+      specialize ((proj1 H0) eq_refl); intros.
+      destruct H. destruct H4.
+      destruct H3. destruct H5.
+      pose proof (loses_type_prop dm0 x x0).
+      pose proof (loses_prop_iterated_marg dm0 x H9).
+      destruct H10 as [dd H10].
+      pose proof (wins_type_prop dm0 x x1).
+      pose proof (wins_prop_iterated_marg dm0 x H11).
+      pose proof (H12 dd). omega.
+
+      specialize ((proj1 H3) eq_refl); intros.
+      specialize ((proj1 H5) eq_refl); intros.
+      destruct H. destruct H4.
+      destruct H3. destruct H5.
+      pose proof (loses_type_prop dm0 x x0).
+      pose proof (loses_prop_iterated_marg dm0 x H9).
+      destruct H10 as [dd H10].
+      pose proof (wins_type_prop dm0 x x1).
+      pose proof (wins_prop_iterated_marg dm0 x H11).
+      pose proof (H12 dd). omega.
+    Qed.
+      
+    
+      
 
     Lemma final_correctness_rev :
       forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
