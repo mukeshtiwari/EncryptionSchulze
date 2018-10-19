@@ -2765,21 +2765,152 @@ Section Encryption.
     Admitted.
 
 
-    (*
-    Lemma unique_margin_enc :
-      forall bs inbs inbs0 m m0 s s0 (c0 : ECount grp bs s)
-        (c1 : ECount bs s0),
-        s = epartial ([], inbs) m ->
-        s0 = epartial ([], inbs0) m0 -> m = m0.
-      Admitted.  *)
+
+    (* This function computes the encrypted margin *)
+    Fixpoint compute_margin_enc grp (bs : list eballot) :=
+      match bs with
+      | [] => fun c d => encrypt_message grp 0
+      | h :: t =>
+        match matrix_ballot_valid_dec (fun c d => decrypt_message grp privatekey (h c d)) with
+        | left _ => fun c d => homomorphic_addition grp (h c d) (compute_margin_enc grp t c d)
+        | right _ => compute_margin_enc grp t
+        end
+      end.
+
+   
+    Lemma compute_assoc_enc :
+      forall grp u a encm,
+        matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d)) ->
+        matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (a c d)) ->
+        (fun c d : cand =>
+           homomorphic_addition grp (a c d)
+                                (homomorphic_addition grp (u c d)
+                                                      (encm c d))) =
+        (fun c d : cand =>
+           homomorphic_addition grp (u c d)
+                                (homomorphic_addition grp (a c d)
+                                                      (encm c d))).
+    Admitted.
+    
+      
+    Lemma valid_compute_margin_distributes_enc :
+      forall grp bs (u : eballot),
+        matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d)) ->
+        compute_margin_enc grp (bs ++ [u]) =
+        (fun c d => homomorphic_addition grp (u c d) (compute_margin_enc grp bs c d)).
+    Proof.
+      induction bs.
+      + simpl; intros.
+        destruct (matrix_ballot_valid_dec (fun c d : cand => decrypt_message grp privatekey (u c d)));
+          try congruence.
+      + intros. (* At this point I need compute margin distributes. Since it depends on 
+        homomorphic addition, so add a axiom. *)
+        simpl.
+        destruct (matrix_ballot_valid_dec (fun c d : cand => decrypt_message grp privatekey (a c d))).
+        pose proof (IHbs _ H). rewrite H0. rewrite compute_assoc_enc. auto. auto. auto.
+        auto.
+    Qed.
+    
+        
+
+
+    Lemma invalid_compute_margin_same_enc :
+      forall grp bs (u : eballot),
+        ~matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d)) ->
+        compute_margin_enc grp (bs ++ [u]) = compute_margin_enc grp bs.
+    Proof.
+      induction bs; simpl; intros; try auto.
+      destruct (matrix_ballot_valid_dec _).
+      congruence. auto.
+      
+      destruct (matrix_ballot_valid_dec _).
+      pose proof (IHbs u H). rewrite H0. auto.
+      pose proof (IHbs u H). auto.
+    Qed.
+    
+      
+      
+    Lemma tail_count_enc : forall grp bs s,
+        ECount grp bs s ->
+        forall us inbs m,
+          s = epartial (us, inbs) m ->
+          exists cs', bs = cs' ++ us /\
+                 (forall c d, decrypt_message grp privatekey (m c d) =
+                         decrypt_message grp privatekey (compute_margin_enc grp cs' c d)).
+    Proof.
+      intros grp bs s Hc.
+      induction Hc; simpl; intros; inversion H; subst; clear H.
+      exists []. split. auto.  simpl.
+      intros. rewrite decryption_deterministic. 
+      (* This goal can be discharged using axiom e1 which states that 
+         decryption of m is decm *)
+      admit.
+
+      pose proof (IHHc (u :: us0) inbs0 m eq_refl).
+      destruct H as [cs' [H1 H2]].
+      exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto.
+      intros.
+      (*  m0 : matrix_ballot_valid b it means matrix_ballot_valid u 
+          so add it to the counting *)
+      assert (matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d))). admit. 
+      pose proof (valid_compute_margin_distributes_enc grp cs' u H).
+      rewrite H0.
+      rewrite e3.
+      rewrite homomorphic_addition_axiom.
+      rewrite homomorphic_addition_axiom.
+      f_equal. apply H2.
+
+      (* Hypothesis n states that b is not valid so it translates 
+         back to decryption of u *)
+      assert (Hm :
+                ~matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d))).
+      admit. 
+      pose proof (IHHc (u :: us0) inbs m0 eq_refl).
+      destruct H as [cs' [H1 H2]].
+      exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto.
+      rewrite (invalid_compute_margin_same_enc _ _ _ Hm). auto. 
+    Admitted.
+    
+    
+    
+
+    Lemma same_margin_enc :
+      forall grp bs inbs inbs0 encm encm0 s s0 (c0 : ECount grp bs s) (c1 :  ECount grp bs s0),  
+        s = epartial ([], inbs) encm ->
+        s0 = epartial ([], inbs0) encm0 ->
+        forall c d, decrypt_message grp privatekey (encm c d) =
+               decrypt_message grp privatekey (encm0 c d). 
+    Proof.
+      intros.
+      pose proof (tail_count_enc grp bs s c0 [] inbs encm H).
+      destruct H1 as [cs' [H1 H2]]. rewrite <- app_nil_end in H1.
+      rewrite <- H1 in H2.
+      pose proof (tail_count_enc grp bs s0 c1 [] inbs0 encm0 H0).
+      destruct H3 as [cs1' [H1' H2']]. rewrite <- app_nil_end in H1'.
+      rewrite <- H1' in H2'. rewrite H2, H2'. reflexivity.
+    Qed.
+      
+      
     
     Lemma unique_dec_margin : forall grp bs dm dm0,
       ECount grp bs (edecrypt dm) ->  ECount grp bs (edecrypt dm0) ->
       dm = dm0.
     Proof.
       intros. inversion X. inversion X0. subst.
-      
+      (* The proof is if you count same set of ballots then decryption is same 
+             ECount grp bs (epartial ([], inbs) encm)
+             ECount grp bs (epartial ([], inbs0) encm0)
+            forall c d, decryption_message grp privatekey (encm c d) = 
+            forall c d, decryption_message  grp privatekey (encm0 c d) *)
+      pose proof (same_margin_enc grp bs inbs inbs0 encm encm0 _ _ X1 X2 eq_refl eq_refl).
+      (* From zero knowledge proof axiom, we can infer that dm is decryption of 
+         encm and dm0 is decryption of encm0. By hypothesis H, we can infer that 
+         dm = dm0 *)
+      apply functional_extensionality; intros.
+      apply functional_extensionality; intros. 
+    Admitted.
     
+      
     
     Lemma uniqueness_proof_enc : forall grp bs w w',
         ECount grp bs (ewinners w) -> ECount grp bs (ewinners w') -> w = w'.
@@ -2854,7 +2985,7 @@ Section Encryption.
                         X (c_wins_true_type m) (c_wins_false_type m)).
       (* I need uniqueness proof stating that 
          ECount grp ebs (ewinners w) ->  ECount grp ebs (ewinners (c_wins m)) -> 
-         w = c_wins m *)
+         w = c_wins m *) 
       pose proof (uniqueness_proof_enc grp ebs _ _ H2 X1).
       rewrite H3. auto.
     Qed.
