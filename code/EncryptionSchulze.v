@@ -901,6 +901,8 @@ Section Encryption.
 
     
   Require Import Coq.Strings.String.
+  Require Import Coq.Logic.FinFun.
+  Require Import Coq.Program.Basics.
   Section ECount. 
    
     (*Relation between Public and Private key. Although it won't change the proof
@@ -973,9 +975,9 @@ Section Encryption.
                  (cand -> cand -> ciphertext) -> EState
     | edecrypt : (cand -> cand -> plaintext) -> EState
     | ewinners : (cand -> bool) -> EState.
-     
-    (* Axiom Permutation : Type. *)
-    Definition Permutation := cand -> cand. (* Change Permutation as function type *)
+      
+    
+    Definition Permutation := existsT (pi : cand -> cand), (Bijective pi).
     Axiom Commitment : Type.
     Axiom ZKP : Type.
     Axiom S : Type. (* This is kind of awkward but needed because we are 
@@ -1019,33 +1021,24 @@ Section Encryption.
       ZKP -> (* zero knowledge proof *)
       bool. (* pcps.verify offlineProof offlinePublicInpu *)
 
-    (* It does not matter how you have generted the permutation so it's better to remove the 
-       hypothesis H. Removed Permutation *)
+    
     Axiom permutation_commitment_axiom :
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
-        (zkppermcommit : ZKP) (H : pi = generatePermutation grp (List.length cand_all))
+        (zkppermcommit : ZKP) 
         (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
         (H2 : zkppermcommit = zkpPermutationCommitment
                                 grp (List.length cand_all) pi cpi s),
         verify_permutation_commitment grp (List.length cand_all)
                                       cpi zkppermcommit = true.
-
-    Require Import Coq.Logic.FinFun.
-
-    (* Permutation is bijective *)
-    Axiom bijective_perm : forall (pi : Permutation), Bijective pi. 
     
     Axiom homomorphic_addition :
       Group -> ciphertext -> ciphertext -> ciphertext.
     
     (* Property of Homomorphic addition *)
     Axiom homomorphic_addition_axiom :
-      forall (grp : Group) (c d : cand) (u m : eballot),
-        decrypt_message grp privatekey (homomorphic_addition grp (u c d) (m c d)) =
-      decrypt_message grp privatekey (u c d) + decrypt_message grp privatekey (m c d).
-    
-    
-    
+      forall (grp : Group) (c d : ciphertext),
+        decrypt_message grp privatekey (homomorphic_addition grp c d) =
+        decrypt_message grp privatekey c + decrypt_message grp privatekey d.    
     
     (* Start of Shuffle code *)     
     Axiom R : Type.
@@ -1090,7 +1083,6 @@ Section Encryption.
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
         (cp shuffledcp : cand -> ciphertext)
         (r : R) (zkprowshuffle : ZKP)
-        (* H : pi = generatePermutation grp (List.length cand_all) *)
         (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
         (H2 : shuffledcp = shuffle grp (List.length cand_all) cp pi r)
         (H3 : zkprowshuffle = shuffle_zkp grp (List.length cand_all)
@@ -1099,13 +1091,14 @@ Section Encryption.
                        cp shuffledcp cpi zkprowshuffle = true. 
     
 
-    Require Import Coq.Program.Basics.
-    (* Important! This needs to be changed because of reencryption. 
+  
+    (* Important! This needs to be changed because of shuffle introducing reencryption. 
        This should be forall c, decryption of g c = decryption of (compose f pi c) *)
     Axiom shuffle_perm :
       forall grp n f pi r g, 
-      shuffle grp (n : nat) (f : cand -> ciphertext) (pi : Permutation) r = g <->
-      g = compose f pi.
+        shuffle grp (n : nat) (f : cand -> ciphertext) (pi : Permutation) r = g <->
+        forall c, decrypt_message grp privatekey (g c) =
+             decrypt_message grp privatekey (compose f (projT1 pi) c).
 
     (* end of axioms about shuffle. *)     
                                                          
@@ -1371,7 +1364,7 @@ Section Encryption.
          using the Axiom permutation_commitment_axiom *)
       assert (verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true).
       pose proof (permutation_commitment_axiom
-                    grp pi cpi s zkpcpi Heqpi Heqcpis Heqzkpcpi). auto.
+                    grp pi cpi s zkpcpi  Heqcpis Heqzkpcpi). auto.
       
       (* Convert u -> rowpermute pi -> v *)
       (* Generate randomness to use in shuffle *)
@@ -1631,7 +1624,7 @@ Section Encryption.
        mapping_ballot_pballot ts tpbs *
        mapping_ballot_pballot tinbs etpbs)%type.
     Proof.   
-      intros s H. 
+      intros s H.  
       (* induction on structure of H *)
       induction H. intros. inversion H.
       remember (fun c d => encrypt_message grp (m c d)) as em.
@@ -1697,7 +1690,7 @@ Section Encryption.
          using the Axiom permutation_commitment_axiom *)
       assert (verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true).
       pose proof (permutation_commitment_axiom
-                    grp pi cpi s zkpcpi Heqpi Heqcpis Heqzkpcpi). auto.
+                    grp pi cpi s zkpcpi Heqcpis Heqzkpcpi). auto.
 
 
 
@@ -1741,9 +1734,6 @@ Section Encryption.
       specialize (H11 eq_refl). rewrite Heqzkppermuv; try auto. 
 
       
-
-
-
 
        (* generate again the randomness R to make sure that cryptographic sprit is high *)
       remember (map (fun _ => generateR grp (List.length cand_all)) cand_all) as rcollistvalues.
@@ -1815,11 +1805,12 @@ Section Encryption.
       assert (matrix_ballot_valid b).
       unfold matrix_ballot_valid in *. unfold valid in *.
      
-     
-      
+       
+      destruct pi as [pi Sig].      
       (* Each row of v is shuffle of each row of en by permutation pi *)
-      assert (forall c, v c = compose (en c) pi).
-      intros.  rewrite Heqv. rewrite shuffle_perm. auto.
+      
+      assert (forall c, v c = compose (en c) pi).   
+      intros.  rewrite Heqv.  rewrite shuffle_perm. auto.
       
       (* each column of w is shuffle of each column of v by pi *)
       assert (forall c, (fun d => w d c) = compose (fun d => v d c) pi).
@@ -1840,9 +1831,11 @@ Section Encryption.
       
       assert (forall c d, t c d = decrypt_message grp privatekey (en c d)).
       intros. rewrite H6. auto.
+
+            
       assert (forall c d, decrypt_message grp privatekey (v c d) =
                      decrypt_message grp privatekey (en c (pi d))).
-      intros.  rewrite H14.  auto.
+      intros.  rewrite H14. auto.
       assert (forall c d, decrypt_message grp privatekey (w c d) =
                      decrypt_message grp privatekey (v (pi c) d)).
       intros.  rewrite H15.  auto.
@@ -1878,7 +1871,7 @@ Section Encryption.
       repeat split. auto. 
       apply functional_extensionality. intros.
       apply functional_extensionality. intros.
-      pose proof (homomorphic_addition_axiom grp x x0 en em).
+      pose proof (homomorphic_addition_axiom grp (en x x0) (em x x0)).
       rewrite H14.
       (*  m = (fun c d : cand => decrypt_message grp privatekey (em c d))
            H6 : t = (fun c d : cand => decrypt_message grp privatekey (en c d)) *)
@@ -1959,10 +1952,7 @@ Section Encryption.
          using the Axiom permutation_commitment_axiom *)
       assert (verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true).
       pose proof (permutation_commitment_axiom
-                    grp pi cpi s zkpcpi Heqpi Heqcpis Heqzkpcpi). auto.
-
-
-
+                    grp pi cpi s zkpcpi  Heqcpis Heqzkpcpi). auto.
 
       
       (* Convert en -> rowpermute pi -> v *)
@@ -2077,7 +2067,7 @@ Section Encryption.
       unfold not in *.  intros m2. destruct H17.
       unfold matrix_ballot_valid in *. unfold valid in *.
       
-
+      destruct pi as [pi Sig].
       (* Each row of v is shuffle of each row of en by permutation pi *)
       assert (forall c, v c = compose (en c) pi).
       intros.  rewrite Heqv. rewrite shuffle_perm. auto.
@@ -2112,8 +2102,8 @@ Section Encryption.
       intros.  rewrite H21. auto.
 
       assert (forall c d, b c d = tp (pi c) (pi d)).
-      intros. rewrite Heqb. rewrite H22. auto.
-      assert (Hsig : Bijective pi). apply bijective_perm.
+      intros. rewrite Heqb. rewrite H22. auto. 
+      assert (Hsig : Bijective pi). auto.
       unfold Bijective in Hsig.
       destruct Hsig as [pi_inv [Hg1 Hg2]].
       
@@ -2137,7 +2127,7 @@ Section Encryption.
       assumption.
       (* Invalid case finished *)
       intros. inversion H0.
-    Qed. 
+    Qed.   
     
     
     Fixpoint compute_margin (bs : list ballot) :=
@@ -2360,7 +2350,7 @@ Section Encryption.
       pose proof (uniqueness_proof bs w (c_wins fm) H2 X0).
       rewrite H4. assumption.
     Qed.
-
+ 
 
     (* Correctness in reverse direction. From encrypted ballots to plaintext *)
     Lemma margin_same_from_both_existential_rev 
@@ -2393,9 +2383,8 @@ Section Encryption.
       apply functional_extensionality; intros.
       pose proof (e1 x x0). subst. 
       (* This goal should be discharged from assumption H0 using the following Axiom.
-         Axiom forall c d, 
          verify_zero_knowledge_decryption_proof grp dec enc zkp = true -> 
-         dec = decryption_message grp privatekey enc *) admit. 
+         dec = decryption_message grp privatekey enc *) admit.
       subst. assumption.
       rewrite <- H5 in H3.  simpl in H3.  rewrite H3. apply I.
       
@@ -2508,7 +2497,7 @@ Section Encryption.
       rewrite <- H12. auto.
       (* finished cinvalid *)
       inversion H0.
-      inversion H0. 
+      inversion H0.  
     Admitted.
 
 
@@ -2537,7 +2526,7 @@ Section Encryption.
            homomorphic_addition grp (u c d)
                                 (homomorphic_addition grp (a c d)
                                                       (encm c d))).
-    Proof.
+    Proof. 
       intros. apply functional_extensionality; intros.
       apply functional_extensionality; intros.
       (* Since homomorphic_addition is external function, so add this as axiom *)
@@ -2600,7 +2589,7 @@ Section Encryption.
       pose proof (IHHc (u :: us0) inbs0 m eq_refl).
       destruct H as [cs' [H1 H2]].
       exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto.
-      intros.
+      intros. 
       (*  m0 : matrix_ballot_valid b it means matrix_ballot_valid u 
           so add it to the counting *)
       assert (matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d))). admit. 
@@ -2665,7 +2654,7 @@ Section Encryption.
     
     Lemma uniqueness_proof_enc : forall grp bs w w',
         ECount grp bs (ewinners w) -> ECount grp bs (ewinners w') -> w = w'.
-    Proof.
+    Proof. 
       intros grp bs w w' H1 H2.
       inversion H1. inversion  H2.
       pose proof (unique_dec_margin _ _ _ _ X X0).
@@ -2699,8 +2688,12 @@ Section Encryption.
       pose proof (H12 dd). omega.
     Qed.
       
-    
-      
+    (* 
+    Fixpoint connect_both (e : EState) : State :=
+      match e with
+      | epartial (ax, bx) em =>
+      | edcrypt m =>
+      | ewinner *)
 
     Lemma final_correctness_rev :
       forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
@@ -2710,7 +2703,7 @@ Section Encryption.
         ECount grp ebs (ewinners w) -> Count bs (winners w).
     Proof.
       intros grp bs pbs ebs w H0 H1 H2.
-      destruct (pall_ballots_counted grp ebs) as [inb [fm Hm]].
+      destruct (pall_ballots_counted grp ebs) as [inb [fm Hm]]. 
       pose proof (margin_same_from_both_existential_rev
                     grp bs ebs pbs H0 H1 _ Hm [] inb []
                     (map
@@ -2736,9 +2729,9 @@ Section Encryption.
                         X (c_wins_true_type m) (c_wins_false_type m)).
       (* I need uniqueness proof stating that 
          ECount grp ebs (ewinners w) ->  ECount grp ebs (ewinners (c_wins m)) -> 
-         w = c_wins m *) 
+         w = c_wins m *)  
       pose proof (uniqueness_proof_enc grp ebs _ _ H2 X1).
-      rewrite H3. auto.
+      rewrite H3. auto. 
     Qed.
 
     
