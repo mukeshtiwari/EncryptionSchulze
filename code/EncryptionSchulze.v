@@ -2089,6 +2089,7 @@ Section Encryption.
       
       destruct pi as [pi Sig]. 
       (* Each row of v is shuffle of each row of en by permutation pi *)
+      (* 
       assert (forall c, v c = compose (en c) pi).
       intros.  rewrite Heqv. rewrite shuffle_perm. auto.
       
@@ -2106,37 +2107,54 @@ Section Encryption.
 
       (* now assert w c d = en (pi c) (pi d) *)
       assert (forall c d, w c d = en (pi c) (pi d)).
-      intros. rewrite H20. rewrite H19. auto.
-      
+      intros. rewrite H20. rewrite H19. auto. *)
       
       assert (forall c d, tp c d = decrypt_message grp privatekey (en c d)).
       intros. rewrite H11. auto.
+
+
       assert (forall c d, decrypt_message grp privatekey (v c d) =
-                     decrypt_message grp privatekey (en c (pi d))).
-      intros.  rewrite H19.  auto.
+                     decrypt_message grp privatekey (en c (pi d))). 
+      rewrite Heqv. intros. 
+      assert (shuffle grp (Datatypes.length cand_all) (en c)
+                      (existT (fun pi : cand -> cand => Bijective pi) pi Sig) (rrowfunvalues c) = v c).
+      rewrite Heqv. auto.
+      rewrite H18. eapply shuffle_perm in H18. 
+      unfold compose in H18.
+      instantiate (1 := d) in H18. simpl in H18. assumption.
+
       assert (forall c d, decrypt_message grp privatekey (w c d) =
-                     decrypt_message grp privatekey (v (pi c) d)).
-      intros.  rewrite H20.  auto.
+                     decrypt_message grp privatekey (v (pi c) d)).  
+      rewrite Heqw. intros. rewrite Heqtt.
+      assert (shuffle grp (Datatypes.length cand_all) (fun d0 : cand => v d0 d)
+                      (existT (fun pi0 : cand -> cand => Bijective pi0) pi Sig) (rcolfunvalues d) =
+              fun d0 => w d0 d).
+      rewrite Heqw. rewrite Heqtt. auto.
+      rewrite H19. eapply shuffle_perm in H19.
+      unfold compose in H19.
+      instantiate (1 := c) in H19. cbn in H19. auto.
+
       assert (forall c d, decrypt_message grp privatekey (w c d) =
                      decrypt_message grp privatekey (en (pi c) (pi d))).
-      intros.  rewrite H21. auto.
+      intros. rewrite  H19. rewrite H18. auto.
 
+      
       assert (forall c d, b c d = tp (pi c) (pi d)).
-      intros. rewrite Heqb. rewrite H22. auto. 
+      intros. rewrite Heqb. rewrite H20. auto. 
       assert (Hsig : Bijective pi). auto.
       unfold Bijective in Hsig.
       destruct Hsig as [pi_inv [Hg1 Hg2]].
       
       destruct m2 as [Tin [gfun Hg]]. split. intros.     
       pose proof (Tin (pi_inv c) (pi_inv d)).
-      pose proof (H26 (pi_inv c) (pi_inv d)).
-      rewrite Hg2 in H28. rewrite Hg2 in H28.
-      rewrite H28 in H27. auto.
+      pose proof (H21 (pi_inv c) (pi_inv d)).
+      rewrite Hg2 in H23. rewrite Hg2 in H23.
+      rewrite H23 in H22. auto.
       (* existence of function *)
       exists (fun c => gfun (pi_inv c)); intros.
       pose proof (Hg (pi_inv c) (pi_inv d)).
-      rewrite H26 in H27.  rewrite Hg2 in H27.
-      rewrite Hg2 in H27. auto.
+      rewrite H21 in H22.  rewrite Hg2 in H22.
+      rewrite Hg2 in H22. auto.
             
       pose proof (ecinvalid grp ebs en v w b zkppermuv zkppermvw zkpdecw cpi
                             zkpcpi  ets' em etinbs He H18 H10 Ht1 Ht2 Ht3).
