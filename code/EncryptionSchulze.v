@@ -1096,7 +1096,7 @@ Section Encryption.
        This should be forall c, decryption of g c = decryption of (compose f pi c) *)
     Axiom shuffle_perm :
       forall grp n f pi r g, 
-        shuffle grp (n : nat) (f : cand -> ciphertext) (pi : Permutation) r = g <->
+        shuffle grp (n : nat) (f : cand -> ciphertext) (pi : Permutation) r = g ->
         forall c, decrypt_message grp privatekey (g c) =
              decrypt_message grp privatekey (compose f (projT1 pi) c).
 
@@ -1806,9 +1806,11 @@ Section Encryption.
       unfold matrix_ballot_valid in *. unfold valid in *.
      
        
-      destruct pi as [pi Sig].      
-      (* Each row of v is shuffle of each row of en by permutation pi *)
+      destruct pi as [pi Sig].
       
+      (* Each row of v is shuffle of each row of en by permutation pi *)
+      (* This won't work  any more *)
+      (*
       assert (forall c, v c = compose (en c) pi).   
       intros.  rewrite Heqv.  rewrite shuffle_perm. auto.
       
@@ -1827,28 +1829,46 @@ Section Encryption.
       (* now assert w c d = en (pi c) (pi d) *)
       assert (forall c d, w c d = en (pi c) (pi d)).
       intros. rewrite H15. rewrite H14. auto.
-      
+      *)
       
       assert (forall c d, t c d = decrypt_message grp privatekey (en c d)).
       intros. rewrite H6. auto.
 
-            
+      (* Interpretation of permutation. v c d = en c (pi d) and it means 
+         that element at '(pi d)' position in cth row of en goes to 'd' position of cth row in v *) 
       assert (forall c d, decrypt_message grp privatekey (v c d) =
-                     decrypt_message grp privatekey (en c (pi d))).
-      intros.  rewrite H14. auto.
+                     decrypt_message grp privatekey (en c (pi d))). 
+      rewrite Heqv. intros. 
+      assert (shuffle grp (Datatypes.length cand_all) (en c)
+                      (existT (fun pi : cand -> cand => Bijective pi) pi Sig) (rrowfunvalues c) = v c).
+      rewrite Heqv. auto.
+      rewrite H13. eapply shuffle_perm in H13. 
+      unfold compose in H13.
+      instantiate (1 := d) in H13. simpl in H13. assumption.
+
       assert (forall c d, decrypt_message grp privatekey (w c d) =
-                     decrypt_message grp privatekey (v (pi c) d)).
-      intros.  rewrite H15.  auto.
+                     decrypt_message grp privatekey (v (pi c) d)).  
+      rewrite Heqw. intros. rewrite Heqtt.
+      assert (shuffle grp (Datatypes.length cand_all) (fun d0 : cand => v d0 d)
+                      (existT (fun pi0 : cand -> cand => Bijective pi0) pi Sig) (rcolfunvalues d) =
+              fun d0 => w d0 d).
+      rewrite Heqw. rewrite Heqtt. auto.
+      rewrite H14. eapply shuffle_perm in H14.
+      unfold compose in H14.
+      instantiate (1 := c) in H14. cbn in H14. auto.
+
       assert (forall c d, decrypt_message grp privatekey (w c d) =
                      decrypt_message grp privatekey (en (pi c) (pi d))).
-      intros.  rewrite H16. auto.
+      intros. rewrite  H14. rewrite H13. auto.
+     
 
+       
       assert (forall c d, b c d = t (pi c) (pi d)).
-      intros. rewrite Heqb. rewrite H17. auto.
+      intros. rewrite Heqb. rewrite H15. auto.
       destruct m2 as [Tin [gfun Hg]]. split. intros.
-      rewrite H21. auto. 
+      rewrite H16. auto. 
       
-      exists (fun c => gfun (pi c)); intros. rewrite H21. 
+      exists (fun c => gfun (pi c)); intros. rewrite H16. 
       eapply Hg. 
       
       (* I am the happiest person on earth *)
@@ -2067,7 +2087,7 @@ Section Encryption.
       unfold not in *.  intros m2. destruct H17.
       unfold matrix_ballot_valid in *. unfold valid in *.
       
-      destruct pi as [pi Sig].
+      destruct pi as [pi Sig]. 
       (* Each row of v is shuffle of each row of en by permutation pi *)
       assert (forall c, v c = compose (en c) pi).
       intros.  rewrite Heqv. rewrite shuffle_perm. auto.
@@ -2142,7 +2162,7 @@ Section Encryption.
 
     Lemma nat_dec_me n m : 
         ({n < m} + {m < n} + {n = m})%nat.
-    Proof.
+    Proof. 
       induction n in m |- *; destruct m; auto with arith.
       destruct (IHn m) as [H|H]; auto with arith.
       destruct H; auto with arith.
