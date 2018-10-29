@@ -1809,27 +1809,6 @@ Section Encryption.
       destruct pi as [pi Sig].
       
       (* Each row of v is shuffle of each row of en by permutation pi *)
-      (* This won't work  any more *)
-      (*
-      assert (forall c, v c = compose (en c) pi).   
-      intros.  rewrite Heqv.  rewrite shuffle_perm. auto.
-      
-      (* each column of w is shuffle of each column of v by pi *)
-      assert (forall c, (fun d => w d c) = compose (fun d => v d c) pi).
-      intros.  rewrite Heqw. rewrite Heqtt.  rewrite shuffle_perm. auto.
-      
-      assert (forall c d, v c d = en c (pi d)). intros.
-      pose proof (H12 c). rewrite H14. auto.
-
-      assert (forall c d, w c d = v (pi c) d).
-      intros. unfold compose in H13. pose proof (H13 d).
-      pose proof (equal_f H15). (* functional extensionality usage *)
-      simpl in H16. specialize (H16 c). auto.
-
-      (* now assert w c d = en (pi c) (pi d) *)
-      assert (forall c d, w c d = en (pi c) (pi d)).
-      intros. rewrite H15. rewrite H14. auto.
-      *)
       
       assert (forall c d, t c d = decrypt_message grp privatekey (en c d)).
       intros. rewrite H6. auto.
@@ -2388,7 +2367,14 @@ Section Encryption.
       pose proof (uniqueness_proof bs w (c_wins fm) H2 X0).
       rewrite H4. assumption.
     Qed.
- 
+
+    (* This axiom states that 
+       if verify_zero_knowledge_decryption_proof grp d c zkp = true then 
+       d is honest decryption of c *)
+    Axiom decryption_from_zkp_proof :
+      forall grp c d zkp, 
+        verify_zero_knowledge_decryption_proof grp d c zkp = true -> 
+        d = decrypt_message grp privatekey c.
 
     (* Correctness in reverse direction. From encrypted ballots to plaintext *)
     Lemma margin_same_from_both_existential_rev 
@@ -2422,7 +2408,10 @@ Section Encryption.
       pose proof (e1 x x0). subst. 
       (* This goal should be discharged from assumption H0 using the following Axiom.
          verify_zero_knowledge_decryption_proof grp dec enc zkp = true -> 
-         dec = decryption_message grp privatekey enc *) admit.
+         dec = decryption_message grp privatekey enc *)
+      apply  decryption_from_zkp_proof with
+          (grp := grp) (c := em x x0) (zkp := zkpdec x x0); auto.
+      
       subst. assumption.
       rewrite <- H5 in H3.  simpl in H3.  rewrite H3. apply I.
       
