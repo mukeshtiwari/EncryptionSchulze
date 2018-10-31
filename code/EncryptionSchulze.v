@@ -2624,8 +2624,6 @@ Section Encryption.
 
 
     
-    
-
 
 
     (* This function computes the encrypted margin *)
@@ -2639,42 +2637,46 @@ Section Encryption.
         end
       end.
 
-   
+    Require Import Psatz.
+    (*
     Lemma compute_assoc_enc :
       forall grp u a encm,
         matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d)) ->
         matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (a c d)) ->
-        (fun c d : cand =>
-           homomorphic_addition grp (a c d)
-                                (homomorphic_addition grp (u c d)
-                                                      (encm c d))) =
-        (fun c d : cand =>
-           homomorphic_addition grp (u c d)
+        forall c d, 
+          decrypt_message grp privatekey
+                          (homomorphic_addition grp (a c d)
+                                                (homomorphic_addition grp (u c d)
+                                                                      (encm c d))) =
+          decrypt_message grp privatekey
+                          (homomorphic_addition grp (u c d)
                                 (homomorphic_addition grp (a c d)
                                                       (encm c d))).
     Proof. 
-      intros. apply functional_extensionality; intros.
-      apply functional_extensionality; intros.
-      (* Since homomorphic_addition is external function, so add this as axiom *)
-    Admitted.
+      intros.
+      repeat rewrite homomorphic_addition_axiom. 
+      lia.
+    Qed. *)
+    
     
       
     Lemma valid_compute_margin_distributes_enc :
       forall grp bs (u : eballot),
         matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d)) ->
-        compute_margin_enc grp (bs ++ [u]) =
-        (fun c d => homomorphic_addition grp (u c d) (compute_margin_enc grp bs c d)).
+        forall c d, decrypt_message grp privatekey
+                               (compute_margin_enc grp (bs ++ [u]) c d) =
+               decrypt_message grp privatekey
+                               (homomorphic_addition grp (u c d) (compute_margin_enc grp bs c d)).
     Proof.
       induction bs.
-      + simpl; intros.
+      + simpl; intros. 
         destruct (matrix_ballot_valid_dec (fun c d : cand => decrypt_message grp privatekey (u c d)));
           try congruence.
-      + intros. (* At this point I need compute margin distributes. Since it depends on 
-        homomorphic addition, so add a axiom. *)
-        simpl.
+      + intros. simpl.
         destruct (matrix_ballot_valid_dec (fun c d : cand => decrypt_message grp privatekey (a c d))).
-        pose proof (IHbs _ H). rewrite H0. rewrite compute_assoc_enc. auto. auto. auto.
-        auto.
+        pose proof (IHbs _ H).
+        repeat rewrite homomorphic_addition_axiom. rewrite H0.
+        rewrite homomorphic_addition_axiom. lia. auto. 
     Qed.
     
         
@@ -2683,14 +2685,18 @@ Section Encryption.
     Lemma invalid_compute_margin_same_enc :
       forall grp bs (u : eballot),
         ~matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d)) ->
-        compute_margin_enc grp (bs ++ [u]) = compute_margin_enc grp bs.
+        forall c d, decrypt_message grp privatekey 
+                               (compute_margin_enc grp (bs ++ [u]) c d) = 
+               decrypt_message grp privatekey (compute_margin_enc grp bs c d).
     Proof.
       induction bs; simpl; intros; try auto.
       destruct (matrix_ballot_valid_dec _).
       congruence. auto.
       
       destruct (matrix_ballot_valid_dec _).
-      pose proof (IHbs u H). rewrite H0. auto.
+      pose proof (IHbs u H).
+      repeat rewrite homomorphic_addition_axiom.
+      rewrite H0. auto.
       pose proof (IHbs u H). auto.
     Qed.
     
@@ -2710,15 +2716,52 @@ Section Encryption.
       intros. rewrite decryption_deterministic. 
       (* This goal can be discharged using axiom e1 which states that 
          decryption of m is decm *)
-      admit.
 
+      pose proof (decryption_from_zkp_proof grp (m c d) (decm c d) (zkpdec c d) (e1 c d)).
+      rewrite <- H. auto. 
+     
       pose proof (IHHc (u :: us0) inbs0 m eq_refl).
       destruct H as [cs' [H1 H2]].
       exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto.
       intros. 
       (*  m0 : matrix_ballot_valid b it means matrix_ballot_valid u 
           so add it to the counting *)
-      assert (matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d))). admit. 
+      assert (matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d))). 
+      pose proof (existence_of_perm grp cpi zkpcpi e). 
+      destruct X as [[pi Hsig] Hf].
+      specialize (Hf u v w zkppermuv zkppermvw e0 e1).
+      destruct m0 as [Min [fn Mas]].
+
+      assert (forall c d, decrypt_message grp privatekey (v c d) =
+                     decrypt_message grp privatekey (u c (pi d))). 
+      intros. pose proof (Hf c0 d0). destruct H.
+      simpl in H.  assumption.
+      
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (v (pi c) d)). 
+      intros. pose proof (Hf c0 d0). destruct H0. assumption.
+      
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (u (pi c) (pi d))).
+      intros. rewrite H0. rewrite H. auto.
+      
+      assert (forall c d, b c d = decrypt_message grp privatekey (w c d)).
+      intros. pose proof (decryption_from_zkp_proof grp (w c0 d0) (b c0 d0)
+                                                    (zkpdecw c0 d0) (e2 c0 d0)); assumption.
+
+      assert (forall c d, b c d = decrypt_message grp privatekey (u (pi c) (pi d))).
+      intros. rewrite <- H3. auto.
+
+      split. intros. unfold Bijective in Hsig.
+      destruct Hsig as [pi_inv [Hp1 Hp2]].
+      pose proof (H5 (pi_inv c0) (pi_inv d0)). rewrite Hp2 in H6. rewrite Hp2 in H6.
+      rewrite <- H6. auto.
+      unfold valid.  destruct Hsig as [pi_inv [Hp1 Hp2]].
+      exists (fun c => fn (pi_inv c)). intros. 
+      pose proof (H5 (pi_inv c0) (pi_inv d0)).
+      rewrite Hp2 in H6. rewrite Hp2 in H6.  rewrite <- H6.
+      pose proof (Mas (pi_inv c0) (pi_inv d0)). assumption.
+
       pose proof (valid_compute_margin_distributes_enc grp cs' u H).
       rewrite H0.
       rewrite e3.
@@ -2730,12 +2773,50 @@ Section Encryption.
          back to decryption of u *)
       assert (Hm :
                 ~matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d))).
-      admit. 
+
+
+      intro. apply n.
+      unfold matrix_ballot_valid in *.
+      destruct H as [H [g Hg]].
+
+      pose proof (existence_of_perm grp cpi zkpcpi e). 
+      destruct X as [[pi Hsig] Hf].
+      specialize (Hf u v w zkppermuv zkppermvw e0 e1).
+
+      assert (forall c d, decrypt_message grp privatekey (v c d) =
+                     decrypt_message grp privatekey (u c (pi d))). 
+      intros. pose proof (Hf c d).
+      simpl in H0. destruct H0. assumption.
+
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (v (pi c) d)). 
+      intros. pose proof (Hf c d). simpl in H1. destruct H1. assumption.
+
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (u (pi c) (pi d))).
+      intros. rewrite H1. rewrite H0. auto.
+
+      assert (forall c d, b c d = decrypt_message grp privatekey (w c d)).
+      intros. pose proof (decryption_from_zkp_proof grp (w c d) (b c d) (zkpdecw c d) (e2 c d));
+                assumption.
+
+      assert (forall c d, b c d = decrypt_message grp privatekey (u (pi c) (pi d))).
+      intros. rewrite H3. auto.
+
+      split. intros. unfold Bijective in Hsig.
+      destruct Hsig as [pi_inv [Hp1 Hp2]].
+      rewrite H4. auto. 
+      unfold valid.  destruct Hsig as [pi_inv [Hp1 Hp2]].
+      exists (fun c => g (pi c)). intros.
+      rewrite H4. auto. 
+
+      
       pose proof (IHHc (u :: us0) inbs m0 eq_refl).
       destruct H as [cs' [H1 H2]].
-      exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto.
+      exists (cs' ++ [u]). split. rewrite app_assoc_reverse. auto. intros. 
       rewrite (invalid_compute_margin_same_enc _ _ _ Hm). auto. 
-    Admitted.
+    Qed.
+    
     
     
     
@@ -2774,15 +2855,18 @@ Section Encryption.
          dm = dm0 *)
       apply functional_extensionality; intros.
       apply functional_extensionality; intros.
-    Admitted.
-    
+      pose proof (decryption_from_zkp_proof grp (encm x x0) (dm x x0) (zkp x x0) (H0 x x0)).
+      pose proof (decryption_from_zkp_proof grp (encm0 x x0) (dm0 x x0) (zkp0 x x0) (H2 x x0)).
+      rewrite H1. rewrite H3.  auto. 
+    Qed.
+        
       
     
     Lemma uniqueness_proof_enc : forall grp bs w w',
         ECount grp bs (ewinners w) -> ECount grp bs (ewinners w') -> w = w'.
     Proof. 
       intros grp bs w w' H1 H2.
-      inversion H1. inversion  H2.
+      inversion H1. inversion  H2. 
       pose proof (unique_dec_margin _ _ _ _ X X0).
       subst. apply functional_extensionality; intros.
 
