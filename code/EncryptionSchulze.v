@@ -1718,7 +1718,7 @@ Section Encryption.
                   shuffle_zkp grp (List.length cand_all)
                               (en c) (v c) pi cpi s (rrowfunvalues c)) as zkppermuv.
       
-           
+      
       (* Show that verify_row_permutation_ballot u v cpi zkppermuv return true.
          The property here is construct matrix from u and v and comp
          This is bit tricky so I am leaving it for the moment because we need to 
@@ -2068,25 +2068,6 @@ Section Encryption.
       
       destruct pi as [pi Sig]. 
       (* Each row of v is shuffle of each row of en by permutation pi *)
-      (* 
-      assert (forall c, v c = compose (en c) pi).
-      intros.  rewrite Heqv. rewrite shuffle_perm. auto.
-      
-      (* each column of w is shuffle of each column of v by pi *)
-      assert (forall c, (fun d => w d c) = compose (fun d => v d c) pi).
-      intros.  rewrite Heqw. rewrite Heqtt.  rewrite shuffle_perm. auto.
-      
-      assert (forall c d, v c d = en c (pi d)). intros.
-      pose proof (H17 c). rewrite H19. auto.
-
-      assert (forall c d, w c d = v (pi c) d).
-      intros. unfold compose in H18. pose proof (H18 d).
-      pose proof (equal_f H20). (* functional extensionality usage *)
-      simpl in H21. specialize (H21 c). auto.
-
-      (* now assert w c d = en (pi c) (pi d) *)
-      assert (forall c d, w c d = en (pi c) (pi d)).
-      intros. rewrite H20. rewrite H19. auto. *)
       
       assert (forall c d, tp c d = decrypt_message grp privatekey (en c d)).
       intros. rewrite H11. auto.
@@ -2376,6 +2357,26 @@ Section Encryption.
         verify_zero_knowledge_decryption_proof grp d c zkp = true -> 
         d = decrypt_message grp privatekey c.
 
+    
+    (* existence of permutation pi which is used to permute the ballots 
+       v, and w *)
+    Theorem existence_of_perm :
+      forall grp cpi zkpcpi,
+        verify_permutation_commitment grp (Datatypes.length cand_all) cpi zkpcpi = true ->
+        existsT (pi : Permutation),  forall u v w zkppermuv zkppermvw, 
+      (forall c : cand, verify_row_permutation_ballot grp u v cpi zkppermuv c = true) ->
+      (forall c : cand, verify_col_permutation_ballot grp v w cpi zkppermvw c = true) ->
+      forall c d, (decrypt_message grp privatekey (v c d) =
+              decrypt_message grp privatekey (u c (projT1 pi d))) /\
+             (decrypt_message grp privatekey (w c d) =
+              decrypt_message grp privatekey (v (projT1 pi c) d)).
+    Proof.
+    Admitted.
+    
+    
+    
+    
+    
     (* Correctness in reverse direction. From encrypted ballots to plaintext *)
     Lemma margin_same_from_both_existential_rev 
           (grp : Group) (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
@@ -2438,8 +2439,46 @@ Section Encryption.
          I know b is valid so this translates back to validity of u. 
          Since u is valid then b0 is valid *)
       assert (matrix_ballot_valid
-                (fun c d : cand => decrypt_message grp privatekey (u c d))). admit.
-      pose proof (proj2 (connect_validity_of_ballot_pballot
+                (fun c d : cand => decrypt_message grp privatekey (u c d))).
+      pose proof (existence_of_perm grp cpi zkpcpi e). 
+      destruct X as [[pi Hsig] Hf].
+      specialize (Hf u v w zkppermuv zkppermvw e0 e1).
+      destruct m0 as [Min [fn Mas]].
+
+     assert (forall c d, decrypt_message grp privatekey (v c d) =
+                     decrypt_message grp privatekey (u c (pi d))). 
+     intros. pose proof (Hf c d).
+     simpl in H9. destruct H9. assumption.
+
+     assert (forall c d, decrypt_message grp privatekey (w c d) =
+                    decrypt_message grp privatekey (v (pi c) d)). 
+     intros. pose proof (Hf c d). destruct H10. assumption.
+
+     assert (forall c d, decrypt_message grp privatekey (w c d) =
+                    decrypt_message grp privatekey (u (pi c) (pi d))).
+     intros. rewrite H10. rewrite H9. auto.
+
+     assert (forall c d, b c d = decrypt_message grp privatekey (w c d)).
+     intros. pose proof (decryption_from_zkp_proof grp (w c d) (b c d) (zkpdecw c d) (e2 c d));
+               assumption.
+
+     assert (forall c d, b c d = decrypt_message grp privatekey (u (pi c) (pi d))).
+     intros.  rewrite H12. auto.
+ 
+     split. intros. unfold Bijective in Hsig.
+     destruct Hsig as [pi_inv [Hp1 Hp2]].
+     pose proof (H13 (pi_inv c) (pi_inv d)). rewrite Hp2 in H14. rewrite Hp2 in H14.
+     rewrite <- H14. auto.
+     unfold valid.  destruct Hsig as [pi_inv [Hp1 Hp2]].
+     exists (fun c => fn (pi_inv c)). intros. 
+     pose proof (H13 (pi_inv c) (pi_inv d)).
+     rewrite Hp2 in H14. rewrite Hp2 in H14.  rewrite <- H14.
+     pose proof (Mas (pi_inv c) (pi_inv d)). assumption.
+     
+     
+
+     
+     pose proof (proj2 (connect_validity_of_ballot_pballot
                            b0
                            (fun c d : cand => decrypt_message grp privatekey (u c d)) H4)).
       assert ( forall c : cand, (b0 c > 0)%nat).
@@ -2507,7 +2546,44 @@ Section Encryption.
        I know b is invalid so this translates back to invalidity of u. 
          Since u is invalid then b0 is invalid *)
       assert (~matrix_ballot_valid
-               (fun c d : cand => decrypt_message grp privatekey (u c d))). admit.
+               (fun c d : cand => decrypt_message grp privatekey (u c d))).
+      intro. apply n.
+      
+      unfold matrix_ballot_valid in *.  destruct H14 as [H14 [g Hg]].
+      
+      pose proof (existence_of_perm grp cpi zkpcpi e). 
+      destruct X as [[pi Hsig] Hf].
+      specialize (Hf u v w zkppermuv zkppermvw e0 e1).
+      
+      assert (forall c d, decrypt_message grp privatekey (v c d) =
+                     decrypt_message grp privatekey (u c (pi d))). 
+      intros. pose proof (Hf c d).
+      simpl in H15. destruct H15. assumption.
+      
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (v (pi c) d)). 
+      intros. pose proof (Hf c d). simpl in H16. destruct H16. assumption.
+      
+      assert (forall c d, decrypt_message grp privatekey (w c d) =
+                     decrypt_message grp privatekey (u (pi c) (pi d))).
+      intros. rewrite H16. rewrite H15. auto.
+      
+      assert (forall c d, b c d = decrypt_message grp privatekey (w c d)).
+      intros. pose proof (decryption_from_zkp_proof grp (w c d) (b c d) (zkpdecw c d) (e2 c d));
+                assumption.
+      
+      assert (forall c d, b c d = decrypt_message grp privatekey (u (pi c) (pi d))).
+      intros.  rewrite H18. auto.
+      
+      
+     
+      split. intros. unfold Bijective in Hsig.
+      destruct Hsig as [pi_inv [Hp1 Hp2]].
+      rewrite H19. auto. 
+      unfold valid.  destruct Hsig as [pi_inv [Hp1 Hp2]].
+      exists (fun c => g (pi c)). intros.
+      rewrite H19. auto. 
+      
       pose proof (proj2 (connect_invalidity_of_ballot_pballot
                            b0
                            (fun c d : cand => decrypt_message grp privatekey (u c d)) H8)).
@@ -2525,7 +2601,11 @@ Section Encryption.
       (* finished cinvalid *)
       inversion H0.
       inversion H0.  
-    Admitted.
+    Qed.
+
+
+
+    
 
 
 
