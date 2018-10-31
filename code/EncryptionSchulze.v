@@ -2084,7 +2084,7 @@ Section Encryption.
       instantiate (1 := d) in H18. simpl in H18. assumption.
 
       assert (forall c d, decrypt_message grp privatekey (w c d) =
-                     decrypt_message grp privatekey (v (pi c) d)).  
+                     decrypt_message grp privatekey (v (pi c) d)).   
       rewrite Heqw. intros. rewrite Heqtt.
       assert (shuffle grp (Datatypes.length cand_all) (fun d0 : cand => v d0 d)
                       (existT (fun pi0 : cand -> cand => Bijective pi0) pi Sig) (rcolfunvalues d) =
@@ -2357,6 +2357,14 @@ Section Encryption.
         verify_zero_knowledge_decryption_proof grp d c zkp = true -> 
         d = decrypt_message grp privatekey c.
 
+    (* Permutation Axiom *)
+    Axiom perm_axiom :
+      forall grp cpi zkpcpi, 
+        verify_permutation_commitment grp (Datatypes.length cand_all) cpi zkpcpi = true ->
+        existsT (pi : Permutation), forall (f g : cand -> ciphertext) (zkppf : ZKP), 
+      verify_shuffle grp (Datatypes.length cand_all) f g cpi zkppf = true ->
+          forall c, decrypt_message grp privatekey (g c) =
+               decrypt_message grp privatekey (compose f (projT1 pi) c).
     
     (* existence of permutation pi which is used to permute the ballots 
        v, and w *)
@@ -2364,15 +2372,26 @@ Section Encryption.
       forall grp cpi zkpcpi,
         verify_permutation_commitment grp (Datatypes.length cand_all) cpi zkpcpi = true ->
         existsT (pi : Permutation),  forall u v w zkppermuv zkppermvw, 
-      (forall c : cand, verify_row_permutation_ballot grp u v cpi zkppermuv c = true) ->
-      (forall c : cand, verify_col_permutation_ballot grp v w cpi zkppermvw c = true) ->
+      (forall c, verify_row_permutation_ballot grp u v cpi zkppermuv c = true) ->
+      (forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true) ->
       forall c d, (decrypt_message grp privatekey (v c d) =
-              decrypt_message grp privatekey (u c (projT1 pi d))) /\
-             (decrypt_message grp privatekey (w c d) =
-              decrypt_message grp privatekey (v (projT1 pi c) d)).
+            decrypt_message grp privatekey (u c (projT1 pi d))) /\
+           (decrypt_message grp privatekey (w c d) =
+            decrypt_message grp privatekey (v (projT1 pi c) d)).
     Proof.
-    Admitted.
+      intros. pose proof (perm_axiom grp cpi zkpcpi H).  
+      destruct X as [pi X]. 
+      exists pi. intros.
+      unfold verify_row_permutation_ballot in H0.
+      unfold verify_col_permutation_ballot in H1.
+      split. pose proof (X (u c) (v c) (zkppermuv c) (H0 c)). apply H2.  
+      pose proof (X (fun c0 => v c0 d) (fun c0 => w c0 d) (zkppermvw d) (H1 d)). apply H2.
+    Qed.
     
+      (* This seems tricky. I guess it's because of Quantificaton of c and d ? *)
+      
+      
+   
     
     
     
@@ -2604,7 +2623,7 @@ Section Encryption.
     Qed.
 
 
-
+    
     
 
 
