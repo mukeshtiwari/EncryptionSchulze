@@ -1157,14 +1157,15 @@ Section Encryption.
     Qed.
     
     (* This is decibable *)
+    (*
     Lemma dec_pballot :
       forall (p : pballot), 
         {forall c d : cand, In (p c d) [-1; 0; 1]} +
         {~(forall c d : cand, In (p c d) [-1; 0; 1])}.
-    Proof.
+    Proof. 
       (* The proof would be iterate through the list, and it's finite *)
-    Admitted. 
-    
+      intros. Print pballot. 
+    Admitted. *)
 
 
     (* I learned pretty nice trick *)
@@ -1173,10 +1174,10 @@ Section Encryption.
         (exists c d,  In (c, d) l /\ b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
     Proof.
       intros b l.
-      induction l.
+      induction l. 
       + left; intros. inversion H.
-      + destruct a as (c1, c2).
-        destruct IHl.
+      + destruct IHl. 
+        destruct a as (c1, c2).
         destruct (partition_integer (b c1 c2)); swap 1 2.  
         right.  exists c1, c2. split. cbn. left. auto. auto.
         left. intros. 
@@ -1203,6 +1204,22 @@ Section Encryption.
       right. destruct e as [c [d Hin]].
       exists c, d. destruct Hin. assumption.
     Qed.   
+
+    Lemma dec_pballot :
+      forall (p : pballot), 
+        {forall c d : cand, In (p c d) [-1; 0; 1]} +
+        {~(forall c d : cand, In (p c d) [-1; 0; 1])}.
+    Proof. 
+      (* The proof would be iterate through the list, and it's finite *)
+      intros.
+      pose proof (finiteness p (all_pairs cand_all) every_cand_t).
+      destruct X. left. intros.
+      destruct (s c d) as [[H1 | H1] | H1].
+      left. auto.  right; left. auto. right; right. simpl. auto.
+      right. intro. destruct e as [c [d [Hp1 [Hp2 Hp3]]]].
+      pose proof (H c d). destruct H0. congruence.
+      destruct H0. congruence. destruct H0. congruence. inversion H0.
+    Qed.
     
     
     Lemma pballot_valid_dec :
