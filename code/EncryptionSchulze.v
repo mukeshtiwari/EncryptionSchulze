@@ -980,8 +980,7 @@ Section Encryption.
     Definition Permutation := existsT (pi : cand -> cand), (Bijective pi).
     Axiom Commitment : Type.
     Axiom ZKP : Type.
-    Axiom S : Type. (* This is kind of awkward but needed because we are 
-                       returning S from generatePermutation function *)
+    Axiom S : Type. 
 
     (* The idea is for each ballot u, we are going to count 
        we generate pi, cpi, and zkpcpi. We call row permute function 
@@ -996,14 +995,19 @@ Section Encryption.
       nat -> (* length  *)
       Permutation.   
     
+
+    (* Generate randomness used in permutation commitment. 
+       Tuple s = pcs.getRandomizeSpace().getrandomElement() *)
+    Axiom generateS : Group -> nat -> S.
     
-    (* Pass the permutation and it returns commitment and S. The S here is bit 
-       awkward but it is need when generating zero knowledge proof of commitment *)
+    (* Pass the permutation and randomness, it returns commitment. The S used here 
+       will be used in zero knowledge proof *)
     Axiom generatePermutationCommitment :
       Group -> (* group *)
       nat -> (* length *) 
       Permutation -> (* pi *)
-      Commitment * S. (* cpi and s *)
+      S -> (*randomness *)
+      Commitment. (* cpi *)
 
     (* This function takes Permutation Commitment and S and returns ZKP *)
     Axiom zkpPermutationCommitment :
@@ -1024,8 +1028,9 @@ Section Encryption.
     
     Axiom permutation_commitment_axiom :
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
-        (zkppermcommit : ZKP) 
-        (H1 : (cpi, s) = generatePermutationCommitment grp (List.length cand_all) pi)
+        (zkppermcommit : ZKP)
+        (H0 : s = generateS grp (List.length cand_all))
+        (H1 : cpi = generatePermutationCommitment grp (List.length cand_all) pi s)
         (H2 : zkppermcommit = zkpPermutationCommitment
                                 grp (List.length cand_all) pi cpi s),
         verify_permutation_commitment grp (List.length cand_all)
