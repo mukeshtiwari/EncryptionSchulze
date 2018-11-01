@@ -1122,11 +1122,20 @@ Section Encryption.
       right. unfold not. intros. inversion H. pose proof (n H1). inversion H0.
     Qed.
 
+          
+
     Lemma every_cand_t : forall (c d : cand), In (c, d) (all_pairs cand_all).
     Proof.
       intros c d. apply  all_pairsin; auto.
     Qed.
 
+    Lemma non_empty_cand_pair : all_pairs cand_all <> [].
+    Proof.
+      destruct cand_all. pose proof (cand_not_nil eq_refl). inversion H.
+      simpl. intro. inversion H.
+    Qed.
+    
+    
     (* A ballot is in matrix with all the entries are
        -1, 0 and 1 with no cyles *)
     Definition matrix_ballot_valid (p : pballot) :=
@@ -1157,31 +1166,43 @@ Section Encryption.
     Admitted. 
     
 
-      
-    Lemma  finiteness : forall (l : list (cand * cand))  (H : forall c d, In (c, d) l)
-                          (b : cand -> cand -> Z),
-        (forall c d,  (* In (c, d) l -> *) {b c d = -1} + {b c d = 0} + {b c d = 1}) +
-        (exists c d,  (* In (c, d) l /\*) b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
+
+    (* I learned pretty nice trick *)
+    Lemma finite_gen : forall (b : cand -> cand -> Z) (l : list (cand * cand)),
+        (forall c d,  In (c, d) l -> {b c d = -1} + {b c d = 0} + {b c d = 1}) +
+        (exists c d,  In (c, d) l /\ b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
     Proof.
-     
-      induction l; intros.
-      + left; intros. pose proof (H c d); inversion H0.
-      + destruct l.
-        ++ 
-          destruct a as (c, d).
-          destruct (partition_integer (b c d)) as [H2 | H2].
-          left.  intros.  assert ((c0, d0) = (c, d)).
-          pose proof (H c0 d0). destruct H0. auto. inversion H0.
-          inversion H0; subst. assumption. right.  exists c, d. auto.
-        ++ Admitted.
-     
+      intros b l.
+      induction l.
+      + left; intros. inversion H.
+      + destruct a as (c1, c2).
+        destruct IHl.
+        destruct (partition_integer (b c1 c2)); swap 1 2.  
+        right.  exists c1, c2. split. cbn. left. auto. auto.
+        left. intros. 
+        destruct (pair_cand_dec (c, d) (c1, c2)). 
+        inversion e.  subst. auto.
+        assert (In (c, d) l).
+        destruct H. unfold not in n. symmetry in H. pose proof (n H).
+        inversion H0. assumption.
+        pose proof (s _ _ H0). auto.
+        right.  destruct e as [c [d Hin]].
+        exists c, d. destruct Hin. split. cbn.  right. auto.
+        auto.
+    Qed.
+   
 
-        
-        (* b c d <= -2 or b c d >= 2 then immediately return the value 
-           otherwise induction hypothesis *)
-
-    
-      
+    Lemma  finiteness : forall  (b : cand -> cand -> Z)
+                           (l : list (cand * cand))  (H : forall c d, In (c, d) l),
+        (forall c d, {b c d = -1} + {b c d = 0} + {b c d = 1}) +
+        (exists c d,  b c d <> -1 /\ b c d <> 0 /\ b c d <> 1).
+    Proof.
+      intros.
+      pose proof (finite_gen b l).
+      destruct X. left.  intros. apply s. auto.
+      right. destruct e as [c [d Hin]].
+      exists c, d. destruct Hin. assumption.
+    Qed.   
     
     
     Lemma pballot_valid_dec :
@@ -1189,7 +1210,7 @@ Section Encryption.
                      {~(valid cand b)}.
      Proof.
        intros b. pose proof (decidable_valid cand b dec_cand).
-       pose proof (finiteness (all_pairs cand_all) every_cand_t b) as Ht.
+       pose proof (finiteness b (all_pairs cand_all) every_cand_t) as Ht.
        destruct Ht. pose proof (X s).
        unfold finite in X0. apply X0. exists cand_all. auto.
        right.  unfold valid, not; intros. destruct H as [f Hf].
@@ -2393,12 +2414,12 @@ Section Encryption.
       exists pi. intros.
       unfold verify_row_permutation_ballot in H0.
       unfold verify_col_permutation_ballot in H1.
-      split. pose proof (X (u c) (v c) (zkppermuv c) (H0 c)). apply H2.  
-      pose proof (X (fun c0 => v c0 d) (fun c0 => w c0 d) (zkppermvw d) (H1 d)). apply H2.
+      split. pose proof (X (u c) (v c) (zkppermuv c) (H0 c)). apply H2.   
+      pose proof (X (fun c0 => v c0 d) (fun c0 => w c0 d) (zkppermvw d) (H1 d)).
+      apply H2.
     Qed.
     
-      (* This seems tricky. I guess it's because of Quantificaton of c and d ? *)
-      
+   
       
    
     
