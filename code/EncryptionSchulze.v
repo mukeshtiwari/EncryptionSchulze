@@ -1156,18 +1156,7 @@ Section Encryption.
       assert (b = 1) by omega. right.  auto.
     Qed.
     
-    (* This is decibable *)
-    (*
-    Lemma dec_pballot :
-      forall (p : pballot), 
-        {forall c d : cand, In (p c d) [-1; 0; 1]} +
-        {~(forall c d : cand, In (p c d) [-1; 0; 1])}.
-    Proof. 
-      (* The proof would be iterate through the list, and it's finite *)
-      intros. Print pballot. 
-    Admitted. *)
-
-
+   
     (* I learned pretty nice trick *)
     Lemma finite_gen : forall (b : cand -> cand -> Z) (l : list (cand * cand)),
         (forall c d,  In (c, d) l -> {b c d = -1} + {b c d = 0} + {b c d = 1}) +
@@ -1209,8 +1198,7 @@ Section Encryption.
       forall (p : pballot), 
         {forall c d : cand, In (p c d) [-1; 0; 1]} +
         {~(forall c d : cand, In (p c d) [-1; 0; 1])}.
-    Proof. 
-      (* The proof would be iterate through the list, and it's finite *)
+    Proof.
       intros.
       pose proof (finiteness p (all_pairs cand_all) every_cand_t).
       destruct X. left. intros.
@@ -2685,27 +2673,7 @@ Section Encryption.
       end.
 
     Require Import Psatz.
-    (*
-    Lemma compute_assoc_enc :
-      forall grp u a encm,
-        matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (u c d)) ->
-        matrix_ballot_valid (fun c d : cand => decrypt_message grp privatekey (a c d)) ->
-        forall c d, 
-          decrypt_message grp privatekey
-                          (homomorphic_addition grp (a c d)
-                                                (homomorphic_addition grp (u c d)
-                                                                      (encm c d))) =
-          decrypt_message grp privatekey
-                          (homomorphic_addition grp (u c d)
-                                (homomorphic_addition grp (a c d)
-                                                      (encm c d))).
-    Proof. 
-      intros.
-      repeat rewrite homomorphic_addition_axiom. 
-      lia.
-    Qed. *)
-    
-    
+      
       
     Lemma valid_compute_margin_distributes_enc :
       forall grp bs (u : eballot),
@@ -2945,12 +2913,6 @@ Section Encryption.
       pose proof (H12 dd). omega.
     Qed.
       
-    (* 
-    Fixpoint connect_both (e : EState) : State :=
-      match e with
-      | epartial (ax, bx) em =>
-      | edcrypt m =>
-      | ewinner *)
 
     Lemma final_correctness_rev :
       forall  (grp : Group) (bs : list ballot) (pbs : list pballot) (ebs : list eballot)
@@ -2990,18 +2952,10 @@ Section Encryption.
       pose proof (uniqueness_proof_enc grp ebs _ _ H2 X1).
       rewrite H3. auto. 
     Qed.
-
     
     
-      
-   
 End ECount.   
       
-   
-  
-
-    
-    
     
 End Encryption.
 
