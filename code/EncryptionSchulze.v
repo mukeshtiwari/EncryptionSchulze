@@ -903,8 +903,9 @@ Section Encryption.
   Require Import Coq.Strings.String.
   Require Import Coq.Logic.FinFun.
   Require Import Coq.Program.Basics.
-  Section ECount. 
-   
+  Section ECount.
+
+    
     (*Relation between Public and Private key. Although it won't change the proof
       because we are not generating the keys in our code, and assuming it, but it's 
       still nice to have the relation *)
@@ -969,12 +970,7 @@ Section Encryption.
           (construct_zero_knowledge_decryption_proof grp privatekey ct) = true.
     
     
-    
-    Inductive EState : Type :=
-    | epartial : (list eballot * list eballot) ->
-                 (cand -> cand -> ciphertext) -> EState
-    | edecrypt : (cand -> cand -> plaintext) -> EState
-    | ewinners : (cand -> bool) -> EState.
+ 
       
     
     Definition Permutation := existsT (pi : cand -> cand), (Bijective pi).
@@ -1258,7 +1254,13 @@ Section Encryption.
       fun c => verify_shuffle grp (List.length cand_all)
                            (fun d => v d c) (fun d => w d c) cpi (zkppermvw c).
 
+
     
+    Inductive EState : Type :=
+    | epartial : (list eballot * list eballot) ->
+                 (cand -> cand -> ciphertext) -> EState
+    | edecrypt : (cand -> cand -> plaintext) -> EState
+    | ewinners : (cand -> bool) -> EState.
   
     
     Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
