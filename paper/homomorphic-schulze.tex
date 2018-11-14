@@ -54,16 +54,20 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   preferred over itself, so all the diagonal entries are  filled with 0.  The
    reason for representing a ballot as a matrix because the precise 
   nature of our algorithm involving no decryption of individual ballot to protect
-  ballot privacy,  Schulze's method involving the computation of margin 
-  (I am assuming here that margin would 
-  already be clear because of previous section) to compute the winners,
-   and  ease of  doing computation over encrypted data than linear
-    representation of ballot.
+  ballot privacy,  facilitating the scrutiny for validity, and ease of computing 
+  cumulative margin over encrypted data to compute the winners. 
+  
+  
    
   \item  Each entry in ballot is encrypted by additive ElGamal i.e. encrypting the 
-  message m as ($g^{r}, h^{r}g^{m}$) where $g$ is generator of cycle group $G$, and 
-  $h = g^{x}$ is private key. After performing the encryption, a plain text ballot 
-  i.e. matrix having entries of 0, and 1 changes to a matrix having pair for 
+  message m as ($g^{r}, h^{r}g^{m}$) where $g$ is generator of cycle group $G$ of order $q$,  private key $x$ and randomness $r$  are randomly  
+  chosen from \{1, \ldots, $q$ - 1\}, and public key is computed as 
+  $h = g^{x}$. It is important to note that generator $g$, private key $x$ and 
+  public key $h$ are generated during key generation phase of Elgamal 
+  algorithm while  randomness $r$  is generated fresh for each message.
+  
+  After performing the encryption, a plain text ballot 
+  i.e. matrix having entries of -1,  0, and 1 changes to a matrix having pair for 
   each entry representing the encryption of corresponding plain text. 
   A representation of plain text ballot 
   \[  
