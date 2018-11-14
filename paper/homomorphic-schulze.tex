@@ -45,21 +45,20 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   proves its validity
   \item encrypting valid ballots leads to valid ballots, and the
   same for invalid ballots 
-  \item 
-  Each ballot, B, is a $n\times$n matrix where n is the number of candidates 
-  participating in
-  election. Each voter marks the entry (i,j) in ballot B as 1 if he prefers 
-  candidate i over j
-  otherwise mark it 0. No candidate is preferred over itself, so all the 
-  diagonal entries are 
-  filled with 0. 
-  The reason for representing a ballot as a matrix because the precise 
+  
+  \item Each ballot, B, is a $n\times$n matrix where n is the number of 
+  candidates participating in election. Each voter marks the entry (i, j) as 1 
+  and (j, i) as -1 in ballot B if  he prefers candidate $i$ over $j$. If the voter 
+  has no preference between candidate $i$ and $j $ i.e. they are ranked 
+  same then voter would mark entry (i, j) and (j, i) as 0. No candidate is 
+  preferred over itself, so all the diagonal entries are  filled with 0.  The
+   reason for representing a ballot as a matrix because the precise 
   nature of our algorithm involving no decryption of individual ballot to protect
-  ballot privacy, 
-  Schulze's method involving the computation of margin 
+  ballot privacy,  Schulze's method involving the computation of margin 
   (I am assuming here that margin would 
-  already be clear because of previous section) to compute the winners, and ease of 
-  doing computation over encrypted data than linear representation of ballot.
+  already be clear because of previous section) to compute the winners,
+   and  ease of  doing computation over encrypted data than linear
+    representation of ballot.
    
   \item  Each entry in ballot is encrypted by additive ElGamal i.e. encrypting the 
   message m as ($g^{r}, h^{r}g^{m}$) where $g$ is generator of cycle group $G$, and 
