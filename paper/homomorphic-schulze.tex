@@ -69,7 +69,7 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   After performing the encryption, a plain text ballot 
   i.e. matrix having entries of -1,  0, and 1 changes to a matrix having pair for 
   each entry representing the encryption of corresponding plain text. 
-  A representation of plain text ballot 
+  A representation of plain text ballot  
   \[  
   \begin{bmatrix}
     x_{11}       & x_{12} & x_{13} & \dots & x_{1n} \\
@@ -87,8 +87,8 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   \end{bmatrix}\]
      
  The reason for using additive ElGamal is that it's composability on ciphertext 
- under same public key ( Try to rephrase it or move it to Homomorphic section!). 
- In short, 
+ under same public key. In short,  (Should I explain the algorithm here that 
+  why this scheme works or explain it encryption section ?)
  \begin{center}  
 	$enc_{k}(m_{1}) * enc_{k}(m_{2}) = enc_{k} (m_{1} + m_{2})$
  \end{center}
@@ -101,54 +101,68 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
  he could inflate his favourite candidate by any other number higher that 1, and It 
  makes the ballot invalid because any value greater that 1 in a ballot would be similar
  to voter has casted more than one vote. We define a ballot is valid if all the 
- entries in matrix is encryption of 0 and 1, and there is no cycle in it. Formally, We
- have
+ entries in matrix is encryption of -1, 0 and 1, and there is no cycle in it. Formally, We have
  \begin{verbatim}
-  Definition valid (A : Type) (P : A -> A -> Prop) := 
-  	exists (f : A -> nat), forall (c d : A), P c d <-> (f c < f 	d)%nat.
+ 
+	Definition matrix_ballot_valid (p : pballot) :=
+      (forall c d : cand, In (p c d) [-1; 0; 1]) /\
+	       valid cand p.  
+ 
+ 
+ Definition valid (A : Type) (P : A -> A -> Z) :=
+      exists f : A -> nat,
+          forall c d : A,
+          (P c d = 1 <-> (f c < f d)%nat) /\
+          (P c d = 0 <-> f c = f d) /\ 
+          (P c d = -1 <-> (f c > f d)%nat)
+          
+     (* Which one should keep ? Upper one is in Code while this one is 
+        more intutive after expanding the definition *) 
+    Definition matrix_ballot_valid (p : pballot) :=
+      (forall c d : cand, In (p c d) [-1; 0; 1]) /\
+      (exists f : A -> nat,
+          forall c d : A,
+          (p c d = 1 <-> (f c < f d)%nat) /\
+          (p c d = 0 <-> f c = f d) /\ 
+          (p c d = -1 <-> (f c > f d)%nat))
+    
  \end{verbatim}
- and we instantiate this notion of validity for any ballot b by saying that 
- \begin{verbatim}
-  Definition valid cand (fun c d => b c d = 1) := 
-  	exists (f : cand -> nat), forall (c d : cand), b c d = 1 <-> (f c < f d)%nat.
- \end{verbatim}
- Intuitively, it says that a ballot b is valid if we can find a function which expresses 
+ Intuitively, it says that a ballot p is valid if we can find a function which
+  expresses 
  the notion of linear preference ordering for all candidates, and 
  we prove that we can decide for each ballot if it is valid or not 
  \begin{verbatim}
- Lemma pballot_valid_dec :
-      forall b : ballot, {valid cand (fun c d => b c d = 1)} +
-                         {~(valid cand (fun c d => b c d = 1))}.
+  Lemma matrix_ballot_valid_dec :
+     forall p : pballot, {matrix_ballot_valid p} + {~matrix_ballot_valid p}.
  \end{verbatim}
  
  By now, a attentive reader would note that we have claimed that we don't decrypt
  the ballot to preserve the privacy, so how can we decide the validity 
  without decrypting the original ballot. We will discuss our whole cryptographic 
  scheme in next section, but to quench the thrust of reader for now, we have 
- proved that if ballot b was valid
+ proved that if ballot p was valid
  before encryption, then encrypting it followed by permuting each row by 
  secret permutation $\sigma$ and permuting again the each column of resulting matrix 
  from  previous step by same permutation, $\sigma$, and decrypting it back would
  still 
- lead to valid ballot. (Is it giving too much information ? ) 
+ lead to valid ballot. 
+ (* Write this same Lemma for $matrix_ballot_valid$ then 
+      any permutation of it is valid and if it is invalid then any permutation of 
+       it is invalid.  *)
  \begin{verbatim}
  Lemma perm_presv_validity :
-  forall (A : Type) (P : A -> A -> Prop)
-         (Adec : forall (c d : A), {c = d} + {c <> d})
-         (Pdec : forall c d, {P c d} + {~P c d}) 
-         (sig : A -> A)
-         (Hsig : Bijective sig), 
-	valid A P <-> valid A (perm A P sig).	
+     forall (A : Type) (P : A -> A -> Z),
+       (forall c d : A, {c = d} + {c <> d}) ->
+       (forall c d : A, {P c d = 1} + {P c d = 0} + {P c d = -1}) ->
+       forall sig : A -> A, Bijective sig -> valid A P <-> valid A (perm A P sig)
  \end{verbatim}
  And similarly, for invalid ballot 
  \begin{verbatim}
  Lemma not_perm_persv_validity :
-  forall (A : Type) (P : A -> A -> Prop)
-         (Adec : forall (c d : A), {c = d} + {c <> d})
-         (Pdec : forall c d, {P c d} + {~P c d}) 
-         (sig : A -> A)
-         (Hsig : Bijective sig),
-	~valid A P <-> ~valid A (perm A P sig).
+  forall (A : Type) (P : A -> A -> Z),
+       (forall c d : A, {c = d} + {c <> d}) ->
+       (forall c d : A, {P c d = 1} + {P c d = 0} + {P c d = -1}) ->
+       forall sig : A -> A, Bijective sig -> ~ valid A P <-> ~ valid A (perm A P sig).
 \end{verbatim}
 \end{itemize}
 
