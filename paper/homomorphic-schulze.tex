@@ -76,7 +76,12 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
     x_{21}       & x_{22} & x_{23} & \dots & x_{2n} \\
     \hdotsfor{5} \\
     x_{n1}       & x_{n2} & x_{n3} & \dots & x_{nn}
-  \end{bmatrix}\]
+  \end{bmatrix}\] and data structure used to represent this ballot in 
+  Coq is
+  \begin{verbatim}
+   Definition plaintext := Z.
+   Definition pballot := cand -> cand -> plaintext.
+  \end{verbatim}
   A representation of encrypted ballot 
   \[  
   \begin{bmatrix}
@@ -84,7 +89,11 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
     (y_{21}, z_{21}) & (y_{22}, z_{22}) & (y_{23}, z_{23}) & \dots & (y_{2n}, z_{2n}) \\
     \hdotsfor{5} \\
     (y_{n1}, z_{n1}) & (y_{n2}, z_{n2}) & (y_{n3}, z_{n3}) & \dots & (y_{nn}, z_{nn})
-  \end{bmatrix}\]
+  \end{bmatrix}\] and the corresponding data structure in Coq is 
+  \begin{verbatim}
+   Definition ciphertext := (Z * Z)%type.
+   Definition eballot := cand -> cand -> ciphertext.
+  \end{verbatim}
      
  The reason for using additive ElGamal is that it's composability on ciphertext 
  under same public key. In short,  (Should I explain the algorithm here that 
@@ -132,8 +141,9 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
  the notion of linear preference ordering for all candidates, and 
  we prove that we can decide for each ballot if it is valid or not 
  \begin{verbatim}
-  Lemma matrix_ballot_valid_dec :
-     forall p : pballot, {matrix_ballot_valid p} + {~matrix_ballot_valid p}.
+  Lemma matrix_ballot_valid_dec : 
+        forall p : pballot, {matrix_ballot_valid p} +
+                            {~matrix_ballot_valid p}.
  \end{verbatim}
  
  By now, a attentive reader would note that we have claimed that we don't decrypt
@@ -148,7 +158,8 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
  lead to valid ballot. 
  (* Write this same Lemma for $matrix_ballot_valid$ then 
       any permutation of it is valid and if it is invalid then any permutation of 
-       it is invalid.  *)
+       it is invalid. The proof is already lying there in other proofs so 
+       it's basically copy paste.   *)
  \begin{verbatim}
  Lemma perm_presv_validity :
      forall (A : Type) (P : A -> A -> Z),
@@ -171,6 +182,8 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   \item motivate and introduce how the margin is computed
   homomorphcially
   \item prove that encrption commutes with computation of margin
+ \item   
+  
 \end{itemize}
 
 \section{Homomorphic Counting}
