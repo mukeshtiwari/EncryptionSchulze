@@ -1083,7 +1083,7 @@ Section Encryption.
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
         (cp shuffledcp : cand -> ciphertext)
         (r : R) (zkprowshuffle : ZKP)
-        (H0 : s = generateS grp (List.length cand_all))
+        (* H0 : s = generateS grp (List.length cand_all) *)
         (H1 : cpi = generatePermutationCommitment grp (List.length cand_all) pi s)
         (H2 : shuffledcp = shuffle grp (List.length cand_all) cp pi r)
         (H3 : zkprowshuffle = shuffle_zkp grp (List.length cand_all)
@@ -1428,7 +1428,7 @@ Section Encryption.
       assert (Ht1 : forall c, verify_row_permutation_ballot grp u v cpi zkppermuv c = true). 
       intros; unfold verify_row_permutation_ballot.
       pose proof (verify_shuffle_axiom grp pi cpi s (u c) (v c) (rrowfunvalues c) (zkppermuv c)
-                                       Heqs Heqcpi).
+                                        Heqcpi).
       assert (Hvr : v c = shuffle grp (List.length cand_all)
                                   (u c) pi (rrowfunvalues c)).
       rewrite Heqv; try auto.
@@ -1463,7 +1463,7 @@ Section Encryption.
       assert (Ht2 : forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true).
       intros. unfold verify_col_permutation_ballot. 
       pose proof (verify_shuffle_axiom grp pi cpi s (fun d => v d c) (fun d => w d c)
-                                       (rcolfunvalues c) (zkppermvw c) Heqs Heqcpi).
+                                       (rcolfunvalues c) (zkppermvw c)  Heqcpi).
       rewrite Heqw in H2.
       assert ((fun d => t c d) = shuffle grp (List.length cand_all)
                                       (fun d : cand => v d c) pi (rcolfunvalues c)).
@@ -1761,7 +1761,7 @@ Section Encryption.
       assert (Ht1 : forall c, verify_row_permutation_ballot grp en v cpi zkppermuv c = true). 
       intros; unfold verify_row_permutation_ballot.
       pose proof (verify_shuffle_axiom grp pi cpi s (en c) (v c) (rrowfunvalues c) (zkppermuv c)
-                                       Heqs Heqcpi).
+                                        Heqcpi).
       assert (Hvr : v c = shuffle grp (List.length cand_all)
                                   (en c) pi (rrowfunvalues c)).
       rewrite Heqv; try auto.
@@ -1799,7 +1799,7 @@ Section Encryption.
       assert (Ht2 : forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true).
       intros. unfold verify_col_permutation_ballot. 
       pose proof (verify_shuffle_axiom grp pi cpi s (fun d => v d c) (fun d => w d c)
-                                       (rcolfunvalues c) (zkppermvw c) Heqs Heqcpi).
+                                       (rcolfunvalues c) (zkppermvw c)  Heqcpi).
       rewrite Heqw in H12.
       assert ((fun d => tt c d) = shuffle grp (List.length cand_all)
                                        (fun d : cand => v d c) pi (rcolfunvalues c)).
@@ -2022,7 +2022,7 @@ Section Encryption.
       assert (Ht1 : forall c, verify_row_permutation_ballot grp en v cpi zkppermuv c = true). 
       intros; unfold verify_row_permutation_ballot.
       pose proof (verify_shuffle_axiom grp pi cpi s (en c) (v c) (rrowfunvalues c) (zkppermuv c)
-                                       Heqs Heqcpi).
+                                        Heqcpi).
       assert (Hvr : v c = shuffle grp (List.length cand_all)
                                   (en c) pi (rrowfunvalues c)).
       rewrite Heqv; try auto.
@@ -2060,7 +2060,7 @@ Section Encryption.
       assert (Ht2 : forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true).
       intros. unfold verify_col_permutation_ballot. 
       pose proof (verify_shuffle_axiom grp pi cpi s (fun d => v d c) (fun d => w d c)
-                                       (rcolfunvalues c) (zkppermvw c) Heqs Heqcpi).
+                                       (rcolfunvalues c) (zkppermvw c)  Heqcpi).
       rewrite Heqw in H15.
       assert ((fun d => tt c d) = shuffle grp (List.length cand_all)
                                       (fun d : cand => v d c) pi (rcolfunvalues c)).
@@ -2953,7 +2953,10 @@ Section Encryption.
       pose proof (uniqueness_proof_enc grp ebs _ _ H2 X1).
       rewrite H3. auto. 
     Qed.
-    
+
+ 
+
+   
     
 End ECount.   
       
