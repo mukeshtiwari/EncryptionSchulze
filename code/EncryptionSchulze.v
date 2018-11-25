@@ -1038,7 +1038,7 @@ Section Encryption.
         decrypt_message grp privatekey (homomorphic_addition grp c d) =
         decrypt_message grp privatekey c + decrypt_message grp privatekey d.    
 
-    SearchAbout (_ ++ _ = _ ++ _ -> _).
+    
     (* Start of Shuffle code *)     
     Axiom R : Type.
    
