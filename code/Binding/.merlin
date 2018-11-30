@@ -1,0 +1,4 @@
+B _build/default/.test.eobjs
+FLG -ppx '/home/users/u5935541/Mukesh/Code/EncryptionSchulze/code/Binding/_build/default/.ppx/ocamljava-ppx/ppx.exe --as-ppx'
+FLG -w -40
+S .
