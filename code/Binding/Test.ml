@@ -1,17 +1,71 @@
 let () = Java.init [| "-Djava.class.path=ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:." |]
 
-
+(* Java Big integer binding *)
 class%java big_integer "java.math.BigInteger" =
 object 
         initializer(create : string -> _)
 end
 
+(* binding to prime *)
+class%java prime "ch.bfh.unicrypt.helper.prime.Prime" = 
+object
+       method [@static] get_random_instance : int -> prime = "getRandomInstance"
+       method is_safe_prime : bool = "isSafe"
+       method to_string : string = "toString" 
+end
+
+
+(* safe_prime binding *)
 class%java safe_prime "ch.bfh.unicrypt.helper.prime.SafePrime" =
 object
+        inherit prime
         method [@static] get_instance : big_integer -> safe_prime = "getInstance"
         method [@static] get_smallest_instance : int -> safe_prime = "getSmallestInstance"
         method to_string : string = "toString"
 end
+
+
+class%java gstar_mod "ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarMod" = 
+object
+         
+        method to_string : string = "toString"
+end
+
+
+class%java gstar_mod_prime "ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModPrime" = 
+object
+        inherit gstar_mod
+        method to_string : string = "toString"
+end
+
+
+
+class%java gstar_mod_safe_prime "ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModSafePrime" =
+object
+        inherit gstar_mod_prime
+        method [@static] get_instance : safe_prime -> gstar_mod_safe_prime = "getInstance"
+        method to_string : string = "toString"
+end
+
+
+
+
+(* Write small functions to construct these objects, so that subtyping is explicit and don't expose class binding*)
+(* construct big integer from string *)
+let big_int_from_string (s : string) = 
+   Big_integer.create s
+
+
+(* take big-integer and returns the object of safe-prime *)
+let safe_prime p = 
+    Safe_prime.get_instance p 
+
+
+
+
+
+
+(*
 
 class%java element "ch.bfh.unicrypt.math.algebra.general.interfaces.Element" = object end
 
@@ -87,6 +141,10 @@ let publickey = Gstar_mod_element.get_element group (Big_integer.create "4922859
 
 
 let () = 
+   let p = Prime.get_random_instance 10 in 
+   print_endline (Prime.to_string p)
+(* 
+let () = 
    let prime = Safe_prime.get_smallest_instance 128 in
    let group = Gstar_mod_safe_prime.get_instance prime in
    let generator = Gstar_mod_element.get_element group (Big_integer.create "4") in 
@@ -98,8 +156,8 @@ let () =
    print_endline (Gstar_mod_element.to_string generator);
    print_endline (Elgamal_encryption_scheme.to_string elscheme);
    print_endline (Gstar_mod_element.to_string publickey);
-   print_endline (Zmod_prime.to_string zmodel);
+   print_endline (Zmod_prime.to_string zmodel) *)
 
 
 
-
+*)
