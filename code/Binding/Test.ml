@@ -57,10 +57,18 @@ end
 
 class%java gstar_mod_element "ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModElement" =
 object
+        inherit element
         initializer(get_element : gstar_mod -> big_integer -> _) 
         method to_string : string = "toString"
 end
 
+
+
+class%java elgamal_encryption_scheme "ch.bfh.unicrypt.crypto.schemes.encryption.classes.ElGamalEncryptionScheme" = 
+object
+        method [@static] get_scheme : element -> elgamal_encryption_scheme = "getInstance"
+        method to_string : string = "toString"
+end 
 
 (* Write small functions to construct these objects, so that subtyping is explicit and don't expose class binding*)
 (* construct big integer from string *)
@@ -80,13 +88,18 @@ let group_from_safe_prime (p : 'a Safe_prime.t') =
 let generator_from_group grp gen = 
     Gstar_mod_element.get_element grp gen 
 
+let elgamal_encryption_scheme_from_generator gen = 
+    Elgamal_encryption_scheme.get_scheme gen
+
 let () = 
    let safep = safe_prime (big_int_from_string  "170141183460469231731687303715884114527") in
    let gp = group_from_safe_prime safep in
-   let gen = generator_from_group gp (big_int_from_string "4") in  
+   let gen = generator_from_group gp (big_int_from_string "4") in 
+   let elgamal = elgamal_encryption_scheme_from_generator gen in 
    print_endline (Prime.to_string safep);
    print_endline (Gstar_mod_safe_prime.to_string gp);
-   print_endline (Gstar_mod_element.to_string gen)
+   print_endline (Gstar_mod_element.to_string gen);
+   print_endline (Elgamal_encryption_scheme.to_string elgamal)
 
 
 
