@@ -24,10 +24,17 @@ object
         method to_string : string = "toString"
 end
 
+(* Element *)
+
+class%java element "ch.bfh.unicrypt.math.algebra.general.interfaces.Element" = 
+object 
+        method to_string : string = "toString"
+end
+
+
 
 class%java gstar_mod "ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarMod" = 
-object
-         
+object 
         method to_string : string = "toString"
 end
 
@@ -48,19 +55,38 @@ object
 end
 
 
+class%java gstar_mod_element "ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModElement" =
+object
+        initializer(get_element : gstar_mod -> big_integer -> _) 
+        method to_string : string = "toString"
+end
 
 
 (* Write small functions to construct these objects, so that subtyping is explicit and don't expose class binding*)
 (* construct big integer from string *)
-let big_int_from_string (s : string) = 
+let big_int_from_string (s : string) : 'a Big_integer.t' = 
    Big_integer.create s
 
 
 (* take big-integer and returns the object of safe-prime *)
-let safe_prime p = 
+let safe_prime (p : 'a Big_integer.t') = 
     Safe_prime.get_instance p 
 
+(* Construct a group from safe_prime *)
+let group_from_safe_prime (p : 'a Safe_prime.t') = 
+    Gstar_mod_safe_prime.get_instance p
 
+(* Construct generator data structure *)
+let generator_from_group grp gen = 
+    Gstar_mod_element.get_element grp gen 
+
+let () = 
+   let safep = safe_prime (big_int_from_string  "170141183460469231731687303715884114527") in
+   let gp = group_from_safe_prime safep in
+   let gen = generator_from_group gp (big_int_from_string "4") in  
+   print_endline (Prime.to_string safep);
+   print_endline (Gstar_mod_safe_prime.to_string gp);
+   print_endline (Gstar_mod_element.to_string gen)
 
 
 
