@@ -905,7 +905,7 @@ Section Encryption.
   Require Import Coq.Program.Basics.
   Section ECount.
 
-     
+    
     (*Relation between Public and Private key. Although it won't change the proof
       because we are not generating the keys in our code, and assuming it, but it's 
       still nice to have the relation *)
@@ -989,7 +989,7 @@ Section Encryption.
       Group -> (* group *)
       nat -> (* length  *)
       Permutation.   
-    
+
 
     (* Generate randomness used in permutation commitment. 
        Tuple s = pcs.getRandomizeSpace().getrandomElement() *)
@@ -2954,16 +2954,13 @@ Section Encryption.
       rewrite H3. auto. 
     Qed.
 
- 
+    
+  End ECount.
 
    
-    
-End ECount.   
-      
-    
+        
 End Encryption.
 
-Check ecount_all_ballot.
 
 Section Candidate.
 
@@ -2987,10 +2984,11 @@ Section Candidate.
   Qed.
   
 End Candidate.
-(* 
+ 
 Definition eschulze_winners_pf :=
-  pschulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty. *)
+  pschulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
 
+(*
 Definition unicrypt_encryption_library_call :=
-  ecount_all_ballot cand (group prime gen publickey).
+  ecount_all_ballot cand (group prime gen publickey). *)
 
