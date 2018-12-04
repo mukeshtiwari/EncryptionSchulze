@@ -31,7 +31,20 @@ object
         method to_string : string = "toString"
 end
 
+class%java zmod "ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod" = object end 
 
+
+class%java zmod_prime "ch.bfh.unicrypt.math.algebra.dualistic.classes.ZModPrime" = 
+object
+        inherit zmod     
+        method to_string : string = "toString"
+end
+
+class%java zmod_element "ch.bfh.unicrypt.math.algebra.dualistic.classes.ZModElement" = 
+object 
+       initializer(get_zmod_element : zmod -> big_integer -> _)
+       method to_string : string = "toString"
+end
 
 class%java gstar_mod "ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarMod" = 
 object 
@@ -42,6 +55,7 @@ end
 class%java gstar_mod_prime "ch.bfh.unicrypt.math.algebra.multiplicative.classes.GStarModPrime" = 
 object
         inherit gstar_mod
+        method get_zmod_order : zmod_prime = "getZModOrder"
         method to_string : string = "toString"
 end
 
@@ -88,18 +102,34 @@ let group_from_safe_prime (p : 'a Safe_prime.t') =
 let generator_from_group grp gen = 
     Gstar_mod_element.get_element grp gen 
 
+(* Elgamal encryption scheme object *)
 let elgamal_encryption_scheme_from_generator gen = 
     Elgamal_encryption_scheme.get_scheme gen
 
+(* This function is exist because we have already generated prime, grp, privatekey, and publickey using some 
+   external tool. Now we need to convert them into Java data structure passed through OCaml. This function takes 
+   publickey as big_integer and returns Java object *)
+let generate_public_key grp publickey =  
+    generator_from_group grp publickey
+
+(* this function take grp and privatekey and returns java data strucutre for privatekey *)
+let get_zmod_prime grp privatekey = 
+    let zmodp = Gstar_mod_prime.get_zmod_order grp in
+    Zmod_element.get_zmod_element zmodp privatekey
+ 
 let () = 
    let safep = safe_prime (big_int_from_string  "170141183460469231731687303715884114527") in
    let gp = group_from_safe_prime safep in
    let gen = generator_from_group gp (big_int_from_string "4") in 
-   let elgamal = elgamal_encryption_scheme_from_generator gen in 
+   let elgamal = elgamal_encryption_scheme_from_generator gen in
+   let publickey = generate_public_key gp (big_int_from_string "49228593607874990954666071614777776087") in
+   let zmodprime = get_zmod_prime gp (big_int_from_string "60245260967214266009141128892124363925") in 
    print_endline (Prime.to_string safep);
    print_endline (Gstar_mod_safe_prime.to_string gp);
    print_endline (Gstar_mod_element.to_string gen);
-   print_endline (Elgamal_encryption_scheme.to_string elgamal)
+   print_endline (Elgamal_encryption_scheme.to_string elgamal);
+   print_endline (Gstar_mod_element.to_string publickey);
+   print_endline (Zmod_element.to_string zmodprime)
 
 
 
