@@ -54,7 +54,7 @@ end
 
 class%java zmod_element "ch.bfh.unicrypt.math.algebra.dualistic.classes.ZModElement" = 
 object
-       inherit element  (*If I remove this then decryption will not work. In actual file, ZModElement is subtype of Element, so I have no idea why it's working. *) 
+       inherit element  (*If I remove this then decryption will not work. In actual file, ZModElement is not subtype of Element, so I have no idea why it's working. *) 
        initializer(get_zmod_element : zmod -> big_integer -> _)
        method to_string : string = "toString"
 end
