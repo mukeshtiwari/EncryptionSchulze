@@ -26,9 +26,11 @@ object
 end
 
 (* Element *)
+
 class%java element "ch.bfh.unicrypt.math.algebra.general.interfaces.Element" = 
 object
         method to_string : string = "toString"
+        method is_tuple : bool = "isTuple"
 end
 
 (* Get Element from BigInteger https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/math/algebra/general/interfaces/Set.java *)
@@ -39,7 +41,20 @@ end
 
 
 class%java tuple "ch.bfh.unicrypt.math.algebra.general.classes.Tuple" = 
+object
+     
+     method [@static] get_instance : element -> int -> tuple = "getInstance"
+     method get_first : element = "getFirst"    
+     method get_last : element = "getLast" 
+     method get_at : int -> element = "getAt"
+     method to_string : string = "toString"
+end
+
+class%java pair "ch.bfh.unicrypt.math.algebra.general.classes.Pair" = 
 object 
+     inherit tuple
+     method [@static] construct_pair : element -> element -> pair = "getInstance"
+     method get_second : element = "getSecond"
      method to_string : string = "toString"
 end
 
@@ -85,6 +100,7 @@ class%java multiplicative_element "ch.bfh.unicrypt.math.algebra.multiplicative.i
 object 
       inherit element
       method power_element : big_integer -> multiplicative_element = "power"
+      method apply_inverse : element -> multiplicative_element = "applyInverse"
       method to_string : string = "toString"
 end
 
@@ -95,11 +111,18 @@ object
         method to_string : string = "toString"
 end
 
-
+(*
+class%java elgamal_encryption_scheme_algorithm "ch.bfh.unicrypt.crypto.schemes.encryption.interfaces.EncryptionScheme" = 
+object 
+         
+        method encrypt_element : element -> element -> element = "encrypt"
+        method decrypt_element : element -> element -> element = "decrypt"
+        method to_string : string = "toString"
+end *)
 
 class%java elgamal_encryption_scheme "ch.bfh.unicrypt.crypto.schemes.encryption.classes.ElGamalEncryptionScheme" = 
 object
-        
+        (* inherit elgamal_encryption_scheme_algorithm *)
         method [@static] get_scheme : element -> elgamal_encryption_scheme = "getInstance"
         method encrypt_element : element -> element -> element = "encrypt"
         method decrypt_element : element -> element -> element = "decrypt"
@@ -161,12 +184,13 @@ let decrypt_message grp gen privatekey encmsg =
    let elgamal = elgamal_encryption_scheme_from_generator gen in 
    Elgamal_encryption_scheme.decrypt_element elgamal privatekey encmsg  
 
-
+(*
 let construct_encryption_zero_knowledge_proof grp gen publickey privatekey encmsg = 
    let elgamal = elgamal_encryption_scheme_from_generator gen in
    let dec_msg = decrypt_message grp gen privatekey encmsg in 
-   dec_msg   
- 
+   let enc_last = Pair.get_second encmsg in 
+   Pair.get_second enc_last *)
+
 let () = 
    let safep = safe_prime (big_int_from_string  "170141183460469231731687303715884114527") in
    let grp = group_from_safe_prime safep in
@@ -183,7 +207,7 @@ let () =
    print_endline (Gstar_mod_element.to_string publickey);
    print_endline (Zmod_element.to_string privatekey);
    print_endline (Element.to_string encm);
-   print_endline (Element.to_string decm);
+   print_endline (Element.to_string decm)
    
 
 
