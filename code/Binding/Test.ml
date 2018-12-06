@@ -39,7 +39,7 @@ object
       method to_string : string = "toString"
 end
 
-
+(*
 class%java tuple "ch.bfh.unicrypt.math.algebra.general.classes.Tuple" = 
 object
      
@@ -56,7 +56,7 @@ object
      method [@static] construct_pair : element -> element -> pair = "getInstance"
      method get_second : element = "getSecond"
      method to_string : string = "toString"
-end
+end *)
 
 class%java zmod "ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod" = object end 
 
@@ -111,24 +111,80 @@ object
         method to_string : string = "toString"
 end
 
-(*
+class%java reencryption_scheme "ch.bfh.unicrypt.crypto.schemes.encryption.interfaces.ReEncryptionScheme" = 
+object 
+      method to_string : string = "toString"
+end
+
 class%java elgamal_encryption_scheme_algorithm "ch.bfh.unicrypt.crypto.schemes.encryption.interfaces.EncryptionScheme" = 
 object 
-         
+        inherit reencryption_scheme     
         method encrypt_element : element -> element -> element = "encrypt"
         method decrypt_element : element -> element -> element = "decrypt"
         method to_string : string = "toString"
-end *)
+end 
 
 class%java elgamal_encryption_scheme "ch.bfh.unicrypt.crypto.schemes.encryption.classes.ElGamalEncryptionScheme" = 
 object
-        (* inherit elgamal_encryption_scheme_algorithm *)
+        inherit elgamal_encryption_scheme_algorithm
         method [@static] get_scheme : element -> elgamal_encryption_scheme = "getInstance"
-        method encrypt_element : element -> element -> element = "encrypt"
-        method decrypt_element : element -> element -> element = "decrypt"
+        (*method encrypt_element : element -> element -> pair = "encrypt"
+        method decrypt_element : element -> pair -> element = "decrypt" *)
         method to_string : string = "toString"
 end
 
+
+
+class%java generator_function "ch.bfh.unicrypt.math.function.classes.GeneratorFunction" = 
+object 
+        method [@static] get_instance : element -> generator_function = "getInstance"
+        method to_string : string = "toString"
+end
+
+class%java equality_preimage_proof_system "ch.bfh.unicrypt.crypto.proofsystem.classes.EqualityPreimageProofSystem" = 
+object 
+        (* this function takes Arbitrary Number of Arguments so find a way to pass arguments from Ocaml to java. Currently I am getting class not found *)
+        method [@static] get_instance : generator_function  ->  generator_function -> equality_preimage_proof_system = "getInstance"
+        method to_string : string = "toString"
+end
+
+
+
+class%java permutation_element "ch.bfh.unicrypt.math.algebra.general.classes.PermutationElement" = 
+object 
+        
+        method get_random_element : permutation_element = "getRandomElement"
+        method to_string : string = "toString"
+end
+
+
+class%java  permutation_group "ch.bfh.unicrypt.math.algebra.general.classes.PermutationGroup" =
+object
+        inherit permutation_element
+        method to_string : string = "toString"
+end
+(*
+class%java abstract_set "ch.bfh.unicrypt.math.algebra.general.abstracts.AbstractSet" = 
+object 
+      
+      method get_random_element : permutation_element = "getRandomElement"
+      method to_string : string = "toString"
+end *)
+
+class%java mixer "ch.bfh.unicrypt.crypto.mixer.interfaces.Mixer" =
+object
+       
+       method get_permutation_group : permutation_group = "getPermutationGroup"
+       method to_string : string = "toString"
+end
+
+
+class%java reencryption_mixer "ch.bfh.unicrypt.crypto.mixer.classes.ReEncryptionMixer" = 
+object
+        inherit mixer  
+        method [@static] get_instance : reencryption_scheme -> element -> int -> reencryption_mixer = "getInstance"
+        method to_string : string = "toString"
+end
 
 
 (* Write small functions to construct these objects, so that subtyping is explicit and don't expose class binding*)
@@ -177,12 +233,20 @@ let compute_power gen msg =
 let encrypt_message grp gen publickey msg = 
     let elgamal = elgamal_encryption_scheme_from_generator gen in
     let pmsg = compute_power gen msg in
-    Elgamal_encryption_scheme.encrypt_element elgamal publickey pmsg  
+    Elgamal_encryption_scheme_algorithm.encrypt_element elgamal publickey pmsg  
 
 (* decryption of encrypted message *)
 let decrypt_message grp gen privatekey encmsg = 
    let elgamal = elgamal_encryption_scheme_from_generator gen in 
-   Elgamal_encryption_scheme.decrypt_element elgamal privatekey encmsg  
+   Elgamal_encryption_scheme_algorithm.decrypt_element elgamal privatekey encmsg  
+
+
+(** val generatePermutation : group -> nat -> 'a1 permutation. This function is taken from extracted code **)
+let generatePermutation grp gen publickey n =
+  let elgamal = elgamal_encryption_scheme_from_generator gen in
+  let mix = Reencryption_mixer.get_instance elgamal publickey n in
+  let permgrp = Mixer.get_permutation_group mix in 
+  permgrp
 
 (*
 let construct_encryption_zero_knowledge_proof grp gen publickey privatekey encmsg = 
@@ -200,6 +264,7 @@ let () =
    let privatekey = get_zmod_prime grp (big_int_from_string "60245260967214266009141128892124363925") in
    let encm = encrypt_message grp gen publickey (big_int_from_string "1") (*generate_element_of_group grp (big_int_from_string  "5")*) in
    let decm = decrypt_message grp gen privatekey encm in
+   let perm = generatePermutation grp gen publickey 4 in
    print_endline (Prime.to_string safep);
    print_endline (Gstar_mod_safe_prime.to_string grp);
    print_endline (Gstar_mod_element.to_string gen);
@@ -207,8 +272,8 @@ let () =
    print_endline (Gstar_mod_element.to_string publickey);
    print_endline (Zmod_element.to_string privatekey);
    print_endline (Element.to_string encm);
-   print_endline (Element.to_string decm)
-   
+   print_endline (Element.to_string decm);
+   print_endline (Permutation_element.to_string perm)
 
 
 
