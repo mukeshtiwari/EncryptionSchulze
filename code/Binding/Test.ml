@@ -33,11 +33,12 @@ object
         method is_tuple : bool = "isTuple"
 end
 
-(* Get Element from BigInteger https://github.com/bfh-evg/unicrypt/blob/master/src/main/java/ch/bfh/unicrypt/math/algebra/general/interfaces/Set.java *)
-class%java set "ch.bfh.unicrypt.math.algebra.general.interfaces.Set" = 
-object 
-      method to_string : string = "toString"
+class%java set "ch.bfh.unicrypt.math.algebra.general.interfaces.Set" =
+object
+
+       method get_random_element : element = "getRandomElement"
 end
+
 
 (*
 class%java tuple "ch.bfh.unicrypt.math.algebra.general.classes.Tuple" = 
@@ -116,20 +117,13 @@ object
       method to_string : string = "toString"
 end
 
-class%java elgamal_encryption_scheme_algorithm "ch.bfh.unicrypt.crypto.schemes.encryption.interfaces.EncryptionScheme" = 
-object 
-        inherit reencryption_scheme     
-        method encrypt_element : element -> element -> element = "encrypt"
-        method decrypt_element : element -> element -> element = "decrypt"
-        method to_string : string = "toString"
-end 
 
 class%java elgamal_encryption_scheme "ch.bfh.unicrypt.crypto.schemes.encryption.classes.ElGamalEncryptionScheme" = 
 object
-        inherit elgamal_encryption_scheme_algorithm
+        inherit reencryption_scheme
         method [@static] get_scheme : element -> elgamal_encryption_scheme = "getInstance"
-        (*method encrypt_element : element -> element -> pair = "encrypt"
-        method decrypt_element : element -> pair -> element = "decrypt" *)
+        method encrypt_element : element -> element -> element = "encrypt"
+        method decrypt_element : element -> element -> element = "decrypt"
         method to_string : string = "toString"
 end
 
@@ -149,27 +143,20 @@ object
 end
 
 
-
 class%java permutation_element "ch.bfh.unicrypt.math.algebra.general.classes.PermutationElement" = 
 object 
         
-        method get_random_element : permutation_element = "getRandomElement"
+        inherit element 
         method to_string : string = "toString"
 end
 
 
 class%java  permutation_group "ch.bfh.unicrypt.math.algebra.general.classes.PermutationGroup" =
 object
-        inherit permutation_element
+        inherit set  
         method to_string : string = "toString"
 end
-(*
-class%java abstract_set "ch.bfh.unicrypt.math.algebra.general.abstracts.AbstractSet" = 
-object 
-      
-      method get_random_element : permutation_element = "getRandomElement"
-      method to_string : string = "toString"
-end *)
+
 
 class%java mixer "ch.bfh.unicrypt.crypto.mixer.interfaces.Mixer" =
 object
@@ -186,6 +173,10 @@ object
         method to_string : string = "toString"
 end
 
+class%java permutation_commitment_scheme "ch.bfh.unicrypt.crypto.schemes.commitment.classes.PermutationCommitmentScheme" = 
+object 
+
+end 
 
 (* Write small functions to construct these objects, so that subtyping is explicit and don't expose class binding*)
 (* construct big integer from string *)
@@ -233,12 +224,12 @@ let compute_power gen msg =
 let encrypt_message grp gen publickey msg = 
     let elgamal = elgamal_encryption_scheme_from_generator gen in
     let pmsg = compute_power gen msg in
-    Elgamal_encryption_scheme_algorithm.encrypt_element elgamal publickey pmsg  
+    Elgamal_encryption_scheme.encrypt_element elgamal publickey pmsg  
 
 (* decryption of encrypted message *)
 let decrypt_message grp gen privatekey encmsg = 
    let elgamal = elgamal_encryption_scheme_from_generator gen in 
-   Elgamal_encryption_scheme_algorithm.decrypt_element elgamal privatekey encmsg  
+   Elgamal_encryption_scheme.decrypt_element elgamal privatekey encmsg  
 
 
 (** val generatePermutation : group -> nat -> 'a1 permutation. This function is taken from extracted code **)
@@ -246,7 +237,14 @@ let generatePermutation grp gen publickey n =
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let mix = Reencryption_mixer.get_instance elgamal publickey n in
   let permgrp = Mixer.get_permutation_group mix in 
-  permgrp
+  Set.get_random_element permgrp
+
+
+(** val generateS : group -> nat -> s **)
+
+let generateS grp gen publickey n = 
+  failwith "implement it" 
+ 
 
 (*
 let construct_encryption_zero_knowledge_proof grp gen publickey privatekey encmsg = 
@@ -273,7 +271,7 @@ let () =
    print_endline (Zmod_element.to_string privatekey);
    print_endline (Element.to_string encm);
    print_endline (Element.to_string decm);
-   print_endline (Permutation_element.to_string perm)
+   print_endline (Element.to_string perm)
 
 
 
