@@ -37,15 +37,15 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
 
 \section{Format of Ballots}
 
-\begin{itemize}
-  \item motivate the choice of ballots and compare with plaintext
-  version
-  \item define encryption function that changes representation
-  \item a ballot is valid if and only if there is evidence that
-  proves its validity
-  \item encrypting valid ballots leads to valid ballots, and the
-  same for invalid ballots 
-  \item 
+%\begin{itemize}
+%  \item motivate the choice of ballots and compare with plaintext
+%  version
+%  \item define encryption function that changes representation
+%  \item a ballot is valid if and only if there is evidence that
+%  proves its validity
+%  \item encrypting valid ballots leads to valid ballots, and the
+%  same for invalid ballots 
+%  \item 
   Each ballot, B, is a $n\times$n matrix where n is the number of candidates 
   participating in
   election. Each voter marks the entry (i,j) in ballot B as 1 if he prefers 
@@ -61,7 +61,7 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
   already be clear because of previous section) to compute the winners, and ease of 
   doing computation over encrypted data than linear representation of ballot.
    
-  \item  Each entry in ballot is encrypted by additive ElGamal i.e. encrypting the 
+  Each entry in ballot is encrypted by additive ElGamal i.e. encrypting the 
   message m as ($g^{r}, h^{r}g^{m}$) where $g$ is generator of cycle group $G$, and 
   $h = g^{x}$ is private key. After performing the encryption, a plain text ballot 
   i.e. matrix having entries of 0, and 1 changes to a matrix having pair for 
@@ -89,7 +89,7 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
  \begin{center}  
 	$enc_{k}(m_{1}) * enc_{k}(m_{2}) = enc_{k} (m_{1} + m_{2})$
  \end{center}
- \item Our choice of representing ballot as matrix comes with price. A malicious 
+ Our choice of representing ballot as matrix comes with price. A malicious 
  voter could try to encode all sort of ballots including cyclic ones i.e. candidate
  $A$ is preferred over candidate $B$, candidate $B$ is preferred over candidate $C$, 
  and candidate $C$ is preferred over candidate $A$, and it is clear that voter has
@@ -147,7 +147,7 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
          (Hsig : Bijective sig),
 	~valid A P <-> ~valid A (perm A P sig).
 \end{verbatim}
-\end{itemize}
+%\end{itemize}
 
 \section{Homomorphic Computation of Margin}
 \begin{itemize}
