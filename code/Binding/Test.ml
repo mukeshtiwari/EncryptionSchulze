@@ -32,12 +32,14 @@ class%java element "ch.bfh.unicrypt.math.algebra.general.interfaces.Element" =
 object
         method to_string : string = "toString"
         method is_tuple : bool = "isTuple"
+        method get_value : 'a Java.obj  = "getValue"
 end
 
 class%java set "ch.bfh.unicrypt.math.algebra.general.interfaces.Set" =
 object
 
        method get_random_element : element = "getRandomElement"
+       (* method get_element_from_big_int : big_integer -> element = "getElementFrom" *)
        method to_string : string = "toString"
 end
 
@@ -111,6 +113,7 @@ object
       inherit element
       method power_element : big_integer -> multiplicative_element = "power"
       method apply_inverse : element -> multiplicative_element = "applyInverse"
+      method multiply : element -> multiplicative_element = "multiply"
       method to_string : string = "toString"
 end
 
@@ -265,12 +268,18 @@ let compute_power gen msg =
 let encrypt_message grp gen publickey msg = 
     let elgamal = elgamal_encryption_scheme_from_generator gen in
     let pmsg = compute_power gen msg in
-    Elgamal_encryption_scheme.encrypt_element elgamal publickey pmsg  
+    let p =  Pair.of_obj (Elgamal_encryption_scheme.encrypt_element elgamal publickey pmsg) in
+    let first = Big_integer.of_obj (Element.get_value (Tuple.get_first p))  in
+    let second = Big_integer.of_obj (Element.get_value (Tuple.get_last p)) in 
+    (first, second)
 
 (* decryption of encrypted message *)
-let decrypt_message grp gen privatekey encmsg = 
+let decrypt_message grp gen privatekey (first, second) = 
    let elgamal = elgamal_encryption_scheme_from_generator gen in 
-   Elgamal_encryption_scheme.decrypt_element elgamal privatekey encmsg  
+   let first_el = generate_element_of_group grp first in
+   let second_el = generate_element_of_group grp second in 
+   let encmsg = Pair.construct_pair first_el second_el in
+   Big_integer.of_obj (Element.get_value (Elgamal_encryption_scheme.decrypt_element elgamal privatekey encmsg))  
 
 
 (** val generatePermutation : group -> nat -> 'a1 permutation. This function is taken from extracted code. 
@@ -313,10 +322,16 @@ let zkpPermutationVerification grp gen publickey n offline_proof offline_public_
   Proof_system.verify pcps offline_proof offline_public_input
 
 
-(** val homomorphic_addition :
+(** val homomorphic_addition : ciphertext is pair
     group -> ciphertext -> ciphertext -> ciphertext **)
-
-let homomorphic_addition gen grp publickey cone ctwo = cone (* leave it for the moment *)
+let homomorphic_addition grp gen publickey (c1, d1) (c2, d2) =
+  let c1_el = generate_element_of_group grp c1 in 
+  let d1_el = generate_element_of_group grp d1 in
+  let c2_el = generate_element_of_group grp c2 in     
+  let d2_el = generate_element_of_group grp d2 in
+  let r1 = Multiplicative_element.multiply c1_el c2_el in
+  let r2 = Multiplicative_element.multiply d1_el d2_el in
+  (Element.get_value r1, Element.get_value r2) 
 
 
 (** val generateR : group -> nat -> r **)
@@ -380,8 +395,8 @@ let () =
    let elgamal = elgamal_encryption_scheme_from_generator gen in
    let publickey = generate_public_key grp (big_int_from_string "49228593607874990954666071614777776087") in
    let privatekey = get_zmod_prime grp (big_int_from_string "60245260967214266009141128892124363925") in
-   let encm = encrypt_message grp gen publickey (big_int_from_string "1") (*generate_element_of_group grp (big_int_from_string  "5")*) in
-   let decm = decrypt_message grp gen privatekey encm in
+   let (encm1, encm2) = encrypt_message grp gen publickey (big_int_from_string "1") (*generate_element_of_group grp (big_int_from_string  "5")*) in
+   let decm = decrypt_message grp gen privatekey (encm1, encm2) in
    let perm = generatePermutation grp gen publickey 4 in
    let rands = generateS grp gen publickey 4 in 
    let pcommit = generatePermutationCommitment grp gen publickey 4 perm rands in
@@ -390,18 +405,22 @@ let () =
    let b = zkpPermutationVerification grp gen publickey 4 perm_zkp pcommit in
    (* generate randomness r*)
    let r = generateR grp gen publickey 4 in
+   let (fp, sp)  = homomorphic_addition grp gen publickey (big_int_from_string "100416739561152651274145741790360518071", big_int_from_string "38363998579001479480781620662162894616")
+                                                     (big_int_from_string "100416739561152651274145741790360518071", big_int_from_string "38363998579001479480781620662162894616") in 
    print_endline (Prime.to_string safep);
    print_endline (Gstar_mod_safe_prime.to_string grp);
    print_endline (Gstar_mod_element.to_string gen);
    print_endline (Elgamal_encryption_scheme.to_string elgamal);
    print_endline (Gstar_mod_element.to_string publickey);
    print_endline (Zmod_element.to_string privatekey);
-   print_endline (Element.to_string encm);
-   print_endline (Element.to_string decm);
+   print_endline ("(" ^ Big_integer.to_string encm1 ^ ", " ^ Big_integer.to_string encm2 ^ ")");
+   (* print_endline (Element.to_string encm); *)
+   print_endline (Big_integer.to_string decm); 
    print_endline (Element.to_string perm);
    print_endline (Element.to_string rands);
    print_endline (Element.to_string pcommit);
    print_endline (Element.to_string perm_zkp);
    print_endline (if b then "true" else "false"); (* it checks :) *)
    print_endline (Tuple.to_string r);
+   print_endline ("( " ^ Big_integer.to_string fp ^ ", " ^ Big_integer.to_string sp ^ ")");
    print_endline (Reencryption_shuffle_proof_system.to_string (Reencryption_shuffle_proof_system.get_instance 4 elgamal publickey))
