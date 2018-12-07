@@ -5,10 +5,13 @@ Require Import Coq.Strings.String.
 Require Import ZArith.
 Require Import EqNat.
 Require Import Coq.extraction.ExtrOcamlZBigInt.
-
+Require Import Coq.extraction.ExtrOcamlString.
 (*
 Extraction Language Haskell.
-Extraction "lib.hs" schulze_winners_pf. *)
+Extraction "lib.hs" schulze_winners_pf.
 
 Extraction Language Ocaml.
-Extraction "lib.ml" schulze_winners_pf.
+Extraction "lib.ml" schulze_winners_pf. *)
+
+Extraction Language Ocaml.
+Extraction "lib.ml"   eschulze_winners_pf.

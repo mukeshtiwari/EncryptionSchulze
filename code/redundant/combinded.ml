@@ -1280,7 +1280,6 @@ let _ =
   let e = Parser.prog Lexer.lexeme (Lexing.from_channel stdin) in
   let w = map (fun x -> map (fun (a, b, (c, d)) -> (cc a, cc b,  (Big.of_string c, Big.of_string d))) x) e in
   let v = map (fun x -> balfun x) w in
-  Format.printf "%s" "I have printed something";
   match schulze_winners_pf v with
   | ExistT (f, y) ->
      List.iter (fun x -> Format.printf "%s" x) (show_count y)
