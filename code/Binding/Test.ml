@@ -405,8 +405,8 @@ let () =
    let b = zkpPermutationVerification grp gen publickey 4 perm_zkp pcommit in
    (* generate randomness r*)
    let r = generateR grp gen publickey 4 in
-   let (fp, sp)  = homomorphic_addition grp gen publickey (big_int_from_string "100416739561152651274145741790360518071", big_int_from_string "38363998579001479480781620662162894616")
-                                                     (big_int_from_string "100416739561152651274145741790360518071", big_int_from_string "38363998579001479480781620662162894616") in 
+   let (fp, sp)  = homomorphic_addition grp gen publickey (encm1, encm2) (encm1, encm2) in 
+   let newdec = decrypt_message grp gen privatekey (fp, sp) in
    print_endline (Prime.to_string safep);
    print_endline (Gstar_mod_safe_prime.to_string grp);
    print_endline (Gstar_mod_element.to_string gen);
@@ -423,4 +423,4 @@ let () =
    print_endline (if b then "true" else "false"); (* it checks :) *)
    print_endline (Tuple.to_string r);
    print_endline ("( " ^ Big_integer.to_string fp ^ ", " ^ Big_integer.to_string sp ^ ")");
-   print_endline (Reencryption_shuffle_proof_system.to_string (Reencryption_shuffle_proof_system.get_instance 4 elgamal publickey))
+   print_endline (Big_integer.to_string newdec)
