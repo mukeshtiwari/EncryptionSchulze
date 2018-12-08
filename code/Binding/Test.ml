@@ -289,7 +289,7 @@ let decrypt_message grp gen privatekey (first, second) =
    let dec = Elgamal_encryption_scheme.decrypt_element elgamal privatekey encmsg in 
    Schulze_proof_system.discrete_log gen dec 
 
-
+(* zero knowledge proof construction *)
 let construct_encryption_zero_knowledge_proof grp gen publickey privatekey (first, second) = 
    let encoded_message = compute_power gen (decrypt_message grp gen privatekey (first, second)) in 
    let partial_dec = generate_element_of_group grp second in 
@@ -300,7 +300,7 @@ let construct_encryption_zero_knowledge_proof grp gen publickey privatekey (firs
    let public_input = Pair.construct_pair publickey partial_dec_el in 
    Proof_system.generate preimageprf privatekey public_input
 
-
+(* zero knowledge proof decryption *)
 let verify_decryption grp gen publickey dec_msg (first, second) zkpprf = 
    let encoded_message = compute_power gen dec_msg in 
    let partial_dec = generate_element_of_group grp second in 
@@ -403,7 +403,7 @@ let shuffle_zkp grp gen publickey n ciphertext shuffled_ciphertext pi cpi s r =
    online_proof
 
 
-(* verify shuffle proof *)
+(* verify shuffle proof . Not tested *)
 let shuffle_zkp_verification grp gen publickey n online_proof online_public_input = 
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let reencryption_pf_system = Reencryption_shuffle_proof_system.get_instance n elgamal publickey in
@@ -430,8 +430,10 @@ let () =
    let b = zkpPermutationVerification grp gen publickey 4 perm_zkp pcommit in
    (* generate randomness r*)
    let r = generateR grp gen publickey 4 in
-   let (fp, sp)  = homomorphic_addition grp gen publickey (encm1, encm2) (encm1, encm2) in 
+   let (fp, sp)  = homomorphic_addition grp gen publickey (encm1, encm2) (encm1, encm2) in
+   let eqs =construct_encryption_zero_knowledge_proof grp gen publickey privatekey (fp, sp) in 
    let newdec = decrypt_message grp gen privatekey (fp, sp) in
+   let verifyndec = verify_decryption grp gen publickey newdec (fp, sp) eqs in
    print_endline (Prime.to_string safep);
    print_endline (Gstar_mod_safe_prime.to_string grp);
    print_endline (Gstar_mod_element.to_string gen);
@@ -449,4 +451,5 @@ let () =
    print_endline (if b then "true" else "false"); (* it checks :) *)
    print_endline (Tuple.to_string r);
    print_endline ("( " ^ Big_integer.to_string fp ^ ", " ^ Big_integer.to_string sp ^ ")");
-   print_endline (Big_integer.to_string newdec)
+   print_endline (Big_integer.to_string newdec);
+   print_endline (if verifyndec then "true" else "false")
