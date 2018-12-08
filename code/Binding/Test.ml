@@ -291,7 +291,7 @@ let decrypt_message grp gen privatekey (first, second) =
 
 
 let construct_encryption_zero_knowledge_proof grp gen publickey privatekey (first, second) = 
-   let encoded_message = generate_element_of_group grp (decrypt_message grp gen privatekey (first, second)) in 
+   let encoded_message = compute_power gen (decrypt_message grp gen privatekey (first, second)) in 
    let partial_dec = generate_element_of_group grp second in 
    let partial_dec_el = Multiplicative_element.apply_inverse partial_dec encoded_message in 
    let g = Generator_function.get_instance gen in
@@ -418,7 +418,7 @@ let () =
    let elgamal = elgamal_encryption_scheme_from_generator gen in
    let publickey = generate_public_key grp (big_int_from_string "49228593607874990954666071614777776087") in
    let privatekey = get_zmod_prime grp (big_int_from_string "60245260967214266009141128892124363925") in
-   let (encm1, encm2) = encrypt_message grp gen publickey (big_int_from_string "10")  in
+   let (encm1, encm2) = encrypt_message grp gen publickey (big_int_from_string "1")  in
    let eqi = construct_encryption_zero_knowledge_proof grp gen publickey privatekey (encm1, encm2) in
    let decm = decrypt_message grp gen privatekey (encm1, encm2) in
    let verifydec = verify_decryption grp gen publickey decm (encm1, encm2) eqi in
