@@ -1,4 +1,4 @@
-let () = Java.init [| "-Djava.class.path=ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:." |]
+let () = Java.init [| "-Djava.class.path=ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:schulze.jar:." |]
 
 (* Java Big integer binding *)
 class%java big_integer "java.math.BigInteger" =
@@ -147,12 +147,6 @@ object
         method to_string : string = "toString"
 end
 
-class%java equality_preimage_proof_system "ch.bfh.unicrypt.crypto.proofsystem.classes.EqualityPreimageProofSystem" = 
-object 
-        (* this function takes Arbitrary Number of Arguments so find a way to pass arguments from Ocaml to java. Currently I am getting class not found *)
-        method [@static] get_instance : generator_function  ->  generator_function -> equality_preimage_proof_system = "getInstance"
-        method to_string : string = "toString"
-end
 
 
 class%java permutation_element "ch.bfh.unicrypt.math.algebra.general.classes.PermutationElement" = 
@@ -221,6 +215,19 @@ object
         method to_string : string = "toString"
 end
 
+class%java equality_preimage_proof_system "ch.bfh.unicrypt.crypto.proofsystem.classes.EqualityPreimageProofSystem" =
+object
+        inherit proof_system
+        method to_string : string = "toString"
+end
+
+class%java schulze_proof_system "schulze.CryptoWrapper" =
+object
+        (* this function takes Arbitrary Number of Arguments so find a way to pass arguments from Ocaml to java. Currently I am getting class not found *)
+        method [@static] get_instance : generator_function  ->  generator_function -> equality_preimage_proof_system = "getInstance"
+        method [@static] discrete_log : gstar_mod_element -> element -> big_integer = "dLog"
+        method to_string : string = "toString"
+end
 
 (* Write small functions to construct these objects, so that subtyping is explicit and don't expose class binding*)
 (* construct big integer from string *)
@@ -279,9 +286,33 @@ let decrypt_message grp gen privatekey (first, second) =
    let first_el = generate_element_of_group grp first in
    let second_el = generate_element_of_group grp second in 
    let encmsg = Pair.construct_pair first_el second_el in
-   Big_integer.of_obj (Element.get_value (Elgamal_encryption_scheme.decrypt_element elgamal privatekey encmsg))  
+   let dec = Elgamal_encryption_scheme.decrypt_element elgamal privatekey encmsg in 
+   Schulze_proof_system.discrete_log gen dec 
 
 
+let construct_encryption_zero_knowledge_proof grp gen publickey privatekey (first, second) = 
+   let encoded_message = generate_element_of_group grp (decrypt_message grp gen privatekey (first, second)) in 
+   let partial_dec = generate_element_of_group grp second in 
+   let partial_dec_el = Multiplicative_element.apply_inverse partial_dec encoded_message in 
+   let g = Generator_function.get_instance gen in
+   let c1 = Generator_function.get_instance (generate_element_of_group grp first) in
+   let preimageprf = Schulze_proof_system.get_instance g c1 in 
+   let public_input = Pair.construct_pair publickey partial_dec_el in 
+   Proof_system.generate preimageprf privatekey public_input
+
+
+let verify_decryption grp gen publickey dec_msg (first, second) zkpprf = 
+   let encoded_message = compute_power gen dec_msg in 
+   let partial_dec = generate_element_of_group grp second in 
+   let partial_dec_el = Multiplicative_element.apply_inverse partial_dec encoded_message in 
+   let g = Generator_function.get_instance gen in
+   let c1 = Generator_function.get_instance (generate_element_of_group grp first) in
+   let preimageprf = Schulze_proof_system.get_instance g c1 in 
+   let public_input = Pair.construct_pair publickey partial_dec_el in 
+   Proof_system.verify preimageprf zkpprf public_input
+
+ 
+ 
 (** val generatePermutation : group -> nat -> 'a1 permutation. This function is taken from extracted code. 
     The only difference is here it Java data structure while it's function in OCaml so We need to find a way
     convert this back and forth  **)
@@ -380,14 +411,6 @@ let shuffle_zkp_verification grp gen publickey n online_proof online_public_inpu
 
 
 
-
-
-(*
-let construct_encryption_zero_knowledge_proof grp gen publickey privatekey encmsg = 
-   let elgamal = elgamal_encryption_scheme_from_generator gen in
-   let dec_msg = decrypt_message grp gen privatekey encmsg in 
-   dec_msg *)
-
 let () = 
    let safep = safe_prime (big_int_from_string  "170141183460469231731687303715884114527") in
    let grp = group_from_safe_prime safep in
@@ -395,8 +418,10 @@ let () =
    let elgamal = elgamal_encryption_scheme_from_generator gen in
    let publickey = generate_public_key grp (big_int_from_string "49228593607874990954666071614777776087") in
    let privatekey = get_zmod_prime grp (big_int_from_string "60245260967214266009141128892124363925") in
-   let (encm1, encm2) = encrypt_message grp gen publickey (big_int_from_string "1") (*generate_element_of_group grp (big_int_from_string  "5")*) in
+   let (encm1, encm2) = encrypt_message grp gen publickey (big_int_from_string "10")  in
+   let eqi = construct_encryption_zero_knowledge_proof grp gen publickey privatekey (encm1, encm2) in
    let decm = decrypt_message grp gen privatekey (encm1, encm2) in
+   let verifydec = verify_decryption grp gen publickey decm (encm1, encm2) eqi in
    let perm = generatePermutation grp gen publickey 4 in
    let rands = generateS grp gen publickey 4 in 
    let pcommit = generatePermutationCommitment grp gen publickey 4 perm rands in
@@ -414,8 +439,9 @@ let () =
    print_endline (Gstar_mod_element.to_string publickey);
    print_endline (Zmod_element.to_string privatekey);
    print_endline ("(" ^ Big_integer.to_string encm1 ^ ", " ^ Big_integer.to_string encm2 ^ ")");
-   (* print_endline (Element.to_string encm); *)
+   print_endline (Element.to_string eqi);
    print_endline (Big_integer.to_string decm); 
+   print_endline (if verifydec then "true" else "false");
    print_endline (Element.to_string perm);
    print_endline (Element.to_string rands);
    print_endline (Element.to_string pcommit);
