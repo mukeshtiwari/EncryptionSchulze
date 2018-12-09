@@ -54,6 +54,12 @@ public class CryptoWrapper {
 			BigInteger dlog = BigInteger.valueOf(IntStream.iterate(0, i -> i+1).filter(i -> generator.power(i).getValue().equals(element.getValue())).findFirst().getAsInt());
 			return dlog;
 	}	
+	
+	//empty tuple 
+	public static Tuple constructEmptyTuple() 
+	{
+		return Tuple.getInstance();
+	}
 
 	// Main method to test the code 
 	public static void main(String[] args) {

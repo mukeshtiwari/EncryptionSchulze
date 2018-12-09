@@ -52,6 +52,7 @@ object
      method get_first : element = "getFirst"    
      method get_last : element = "getLast" 
      method get_at : int -> element = "getAt"
+     method add : element -> tuple = "add"
      method to_string : string = "toString"
 end
 
@@ -223,9 +224,11 @@ end
 
 class%java schulze_proof_system "schulze.CryptoWrapper" =
 object
-        (* this function takes Arbitrary Number of Arguments so find a way to pass arguments from Ocaml to java. Currently I am getting class not found *)
+        (* this function takes Arbitrary Number of Arguments so find a way to pass arguments from Ocaml to java. *)
+        (* Work around is once java file which contains function that take arbitrary arugments *)
         method [@static] get_instance : generator_function  ->  generator_function -> equality_preimage_proof_system = "getInstance"
         method [@static] discrete_log : gstar_mod_element -> element -> big_integer = "dLog"
+        method [@static] get_empty_tuple : tuple = "constructEmptyTuple"
         method to_string : string = "toString"
 end
 
@@ -320,7 +323,7 @@ let generatePermutation_binding grp gen publickey n =
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let mix = Reencryption_mixer.get_instance elgamal publickey n in
   let permgrp = Mixer.get_permutation_group mix in 
-  Set.get_random_element permgrp
+  Permutation_element.of_obj (Set.get_random_element permgrp)
 
 
 (** val generateS : group -> nat -> s **)
@@ -393,7 +396,6 @@ let shuffle_binding grp gen publickey n ballot perm r =
 (** val shuffle_zkp :
     group -> nat -> ('a1 -> ciphertext) -> ('a1 -> ciphertext) -> 'a1
     permutation -> commitment -> s -> r -> zKP **)
-(* Not tested yet! *)
 let shuffle_zkp_binding grp gen publickey n ciphertext shuffled_ciphertext pi cpi s r = 
    let elgamal = elgamal_encryption_scheme_from_generator gen in 
    let reencryption_pf_system = Reencryption_shuffle_proof_system.get_instance n elgamal publickey in 
@@ -403,12 +405,21 @@ let shuffle_zkp_binding grp gen publickey n ciphertext shuffled_ciphertext pi cp
    online_proof
 
 
-(* verify shuffle proof . Not tested *)
+(* verify shuffle proof. *)
 let shuffle_zkp_verification_binding grp gen publickey n online_proof online_public_input = 
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let reencryption_pf_system = Reencryption_shuffle_proof_system.get_instance n elgamal publickey in
   Proof_system.verify reencryption_pf_system online_proof online_public_input
 
+(* ballot from list. It constructs tuple *)
+let rec construct_ballot_from_list grp etuple l = 
+   match l with
+   | [] -> etuple
+   | (c1, c2) :: tl -> 
+      let c1_el = generate_element_of_group grp c1 in 
+      let c2_el = generate_element_of_group grp c2 in
+      let ret_tuple = Tuple.add etuple (Pair.construct_pair c1_el c2_el) in
+      construct_ballot_from_list grp ret_tuple tl 
 
 (* Glue code *)
 let construct_group prime gen pubkey =   
@@ -427,24 +438,32 @@ let publickey = big_int_from_string "49228593607874990954666071614777776087"
 let privatekey = big_int_from_string "60245260967214266009141128892124363925"
 
 let () = 
+   (* construct infrastructure *)
    let (grp, gen, pubkey) = construct_group prime generator publickey in
    let prikey = construct_private_key (grp, gen, pubkey) privatekey in
+   (* encrypt message, construct zero knowledge proof, decrypt it, and verify it *)
    let (encm1, encm2) = encrypt_message_binding grp gen pubkey (big_int_from_string "1")  in
    let eqi = construct_encryption_zero_knowledge_proof_binding grp gen pubkey prikey (encm1, encm2) in
    let decm = decrypt_message_binding grp gen prikey (encm1, encm2) in
    let verifydec = verify_decryption_binding grp gen pubkey decm (encm1, encm2) eqi in
+   (*generate permutation, randomness s, commit to permutation, geenrate zero knowledge proof, verify zero knowledge proof *)
    let perm = generatePermutation_binding grp gen pubkey 4 in
    let rands = generateS_binding grp gen pubkey 4 in 
    let pcommit = generatePermutationCommitment_binding grp gen pubkey 4 perm rands in
    let perm_zkp = zkpPermutationCommitment_binding grp gen pubkey 4 perm pcommit rands in
-   (* if you have constructed this honestly then it should verify *)
    let b = zkpPermutationVerification_binding grp gen pubkey 4 perm_zkp pcommit in
-   (* generate randomness r*)
-   let r = generateR_binding grp gen pubkey 4 in
+   (* use homormorphic addition, construct proof, verify them and decrypt the final value *)
    let (fp, sp)  = homomorphic_addition_binding grp gen pubkey (encm1, encm2) (encm1, encm2) in
    let eqs = construct_encryption_zero_knowledge_proof_binding grp gen pubkey prikey (fp, sp) in 
    let newdec = decrypt_message_binding grp gen prikey (fp, sp) in
    let verifyndec = verify_decryption_binding grp gen pubkey newdec (fp, sp) eqs in
+   (* generate R, construct ballot, shuffle the ballot, construct zero knowledge proof, verify shuffle zero knowledge proof *)
+   let emptytuple = Schulze_proof_system.get_empty_tuple () in
+   let r = generateR_binding grp gen pubkey 4 in
+   let ballot = construct_ballot_from_list grp emptytuple [(fp, sp); (fp, sp); (fp, sp); (fp, sp)] in
+   let shuffled_ballot = shuffle_binding grp gen pubkey 4 ballot perm r in
+   let shuffle_zkp = shuffle_zkp_binding grp gen pubkey 4 ballot shuffled_ballot perm pcommit rands r in
+   let verify_shuffle = shuffle_zkp_verification_binding grp gen pubkey 4 shuffle_zkp (Triple.get_instance pcommit ballot shuffled_ballot) in 
    print_endline (Gstar_mod_element.to_string pubkey);
    print_endline (Zmod_element.to_string prikey);
    print_endline ("(" ^ Big_integer.to_string encm1 ^ ", " ^ Big_integer.to_string encm2 ^ ")");
@@ -455,8 +474,12 @@ let () =
    print_endline (Element.to_string rands);
    print_endline (Element.to_string pcommit);
    print_endline (Element.to_string perm_zkp);
-   print_endline (if b then "true" else "false"); (* it checks :) *)
+   print_endline (if b then "true" else "false");
    print_endline (Tuple.to_string r);
    print_endline ("( " ^ Big_integer.to_string fp ^ ", " ^ Big_integer.to_string sp ^ ")");
    print_endline (Big_integer.to_string newdec);
-   print_endline (if verifyndec then "true" else "false")
+   print_endline (if verifyndec then "true" else "false");
+   print_endline (Tuple.to_string ballot);
+   print_endline (Tuple.to_string shuffled_ballot);
+   print_endline (Element.to_string shuffle_zkp);
+   print_endline (if verify_shuffle then "true" else "false")
