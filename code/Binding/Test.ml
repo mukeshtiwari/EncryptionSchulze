@@ -474,6 +474,11 @@ f 0 = 1
 f 2 = 2
 f 1 = 3 *)
 
+let permutation_function_reverse perm_list =
+  let n = List.length perm_list in 
+  let zip_list = List.combine perm_list (List.init n (fun x -> x)) in
+  fun c -> List.assoc c zip_list
+
 
 
 (* Glue code *)
