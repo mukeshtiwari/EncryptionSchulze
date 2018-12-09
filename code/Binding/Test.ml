@@ -272,7 +272,7 @@ let compute_power gen msg =
 
 (* encryption function which takes grp, generator, publickey and msg, and returns 
    encrypted message as Pair of element *)
-let encrypt_message grp gen publickey msg = 
+let encrypt_message_binding grp gen publickey msg = 
     let elgamal = elgamal_encryption_scheme_from_generator gen in
     let pmsg = compute_power gen msg in
     let p =  Pair.of_obj (Elgamal_encryption_scheme.encrypt_element elgamal publickey pmsg) in
@@ -281,7 +281,7 @@ let encrypt_message grp gen publickey msg =
     (first, second)
 
 (* decryption of encrypted message *)
-let decrypt_message grp gen privatekey (first, second) = 
+let decrypt_message_binding grp gen privatekey (first, second) = 
    let elgamal = elgamal_encryption_scheme_from_generator gen in 
    let first_el = generate_element_of_group grp first in
    let second_el = generate_element_of_group grp second in 
@@ -290,8 +290,8 @@ let decrypt_message grp gen privatekey (first, second) =
    Schulze_proof_system.discrete_log gen dec 
 
 (* zero knowledge proof construction *)
-let construct_encryption_zero_knowledge_proof grp gen publickey privatekey (first, second) = 
-   let encoded_message = compute_power gen (decrypt_message grp gen privatekey (first, second)) in 
+let construct_encryption_zero_knowledge_proof_binding grp gen publickey privatekey (first, second) = 
+   let encoded_message = compute_power gen (decrypt_message_binding grp gen privatekey (first, second)) in 
    let partial_dec = generate_element_of_group grp second in 
    let partial_dec_el = Multiplicative_element.apply_inverse partial_dec encoded_message in 
    let g = Generator_function.get_instance gen in
@@ -301,7 +301,7 @@ let construct_encryption_zero_knowledge_proof grp gen publickey privatekey (firs
    Proof_system.generate preimageprf privatekey public_input
 
 (* zero knowledge proof decryption *)
-let verify_decryption grp gen publickey dec_msg (first, second) zkpprf = 
+let verify_decryption_binding grp gen publickey dec_msg (first, second) zkpprf = 
    let encoded_message = compute_power gen dec_msg in 
    let partial_dec = generate_element_of_group grp second in 
    let partial_dec_el = Multiplicative_element.apply_inverse partial_dec encoded_message in 
@@ -316,7 +316,7 @@ let verify_decryption grp gen publickey dec_msg (first, second) zkpprf =
 (** val generatePermutation : group -> nat -> 'a1 permutation. This function is taken from extracted code. 
     The only difference is here it Java data structure while it's function in OCaml so We need to find a way
     convert this back and forth  **)
-let generatePermutation grp gen publickey n =
+let generatePermutation_binding grp gen publickey n =
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let mix = Reencryption_mixer.get_instance elgamal publickey n in
   let permgrp = Mixer.get_permutation_group mix in 
@@ -324,7 +324,7 @@ let generatePermutation grp gen publickey n =
 
 
 (** val generateS : group -> nat -> s **)
-let generateS grp gen publickey n = 
+let generateS_binding grp gen publickey n = 
   let perm_com_scheme = Permutation_commitment_scheme.get_instance grp n in 
   let scm = Randomization_commitment_scheme.get_randomization_space  perm_com_scheme in
   Set.get_random_element scm
@@ -333,7 +333,7 @@ let generateS grp gen publickey n =
 (** val generatePermutationCommitment :
     group -> nat -> 'a1 permutation -> s -> commitment. Remember permutation here is function but Java returns 
     list so we need a intermediate functions which takes Java Object and turns it into a function **)
-let generatePermutationCommitment grp gen publickey n perm s = 
+let generatePermutationCommitment_binding grp gen publickey n perm s = 
   let perm_com_scheme = Permutation_commitment_scheme.get_instance grp n in
   Randomization_commitment_scheme.commit perm_com_scheme perm s
 
@@ -341,21 +341,21 @@ let generatePermutationCommitment grp gen publickey n perm s =
 (** val zkpPermutationCommitment :
     group -> nat -> 'a1 permutation -> commitment -> s -> zKP **)
 
-let zkpPermutationCommitment grp gen publickey n perm comm s = 
+let zkpPermutationCommitment_binding grp gen publickey n perm comm s = 
   let pcps = Permutation_commitment_proof_system.get_instance grp n in
   let offline_private_input = Pair.construct_pair perm s in
   let offline_public_input  = comm in 
   Proof_system.generate pcps offline_private_input offline_public_input
   
 (* Verify the zkp permutation *) 
-let zkpPermutationVerification grp gen publickey n offline_proof offline_public_input = 
+let zkpPermutationVerification_binding grp gen publickey n offline_proof offline_public_input = 
   let pcps = Permutation_commitment_proof_system.get_instance grp n in
   Proof_system.verify pcps offline_proof offline_public_input
 
 
 (** val homomorphic_addition : ciphertext is pair
     group -> ciphertext -> ciphertext -> ciphertext **)
-let homomorphic_addition grp gen publickey (c1, d1) (c2, d2) =
+let homomorphic_addition_binding grp gen publickey (c1, d1) (c2, d2) =
   let c1_el = generate_element_of_group grp c1 in 
   let d1_el = generate_element_of_group grp d1 in
   let c2_el = generate_element_of_group grp c2 in     
@@ -367,7 +367,7 @@ let homomorphic_addition grp gen publickey (c1, d1) (c2, d2) =
 
 (** val generateR : group -> nat -> r **)
 
-let generateR grp gen publickey n = 
+let generateR_binding grp gen publickey n = 
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let mix = Reencryption_mixer.get_instance elgamal publickey n in
   let r = Mixer.generate_randomizations mix in
@@ -382,7 +382,7 @@ let generateR grp gen publickey n =
    which takes java array of ciphertext and prouduces Tuple. 
    The java function would return tuple which needs to converted back in function form. *)
 (* not tested yet *)
-let shuffle grp gen publickey n ballot perm r =
+let shuffle_binding grp gen publickey n ballot perm r =
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let mix = Reencryption_mixer.get_instance elgamal publickey n in
   let shuffled_ciphertext = Mixer.shuffle mix ballot perm r in
@@ -394,7 +394,7 @@ let shuffle grp gen publickey n ballot perm r =
     group -> nat -> ('a1 -> ciphertext) -> ('a1 -> ciphertext) -> 'a1
     permutation -> commitment -> s -> r -> zKP **)
 (* Not tested yet! *)
-let shuffle_zkp grp gen publickey n ciphertext shuffled_ciphertext pi cpi s r = 
+let shuffle_zkp_binding grp gen publickey n ciphertext shuffled_ciphertext pi cpi s r = 
    let elgamal = elgamal_encryption_scheme_from_generator gen in 
    let reencryption_pf_system = Reencryption_shuffle_proof_system.get_instance n elgamal publickey in 
    let online_private_input = Triple.get_instance pi s r in
@@ -404,42 +404,49 @@ let shuffle_zkp grp gen publickey n ciphertext shuffled_ciphertext pi cpi s r =
 
 
 (* verify shuffle proof . Not tested *)
-let shuffle_zkp_verification grp gen publickey n online_proof online_public_input = 
+let shuffle_zkp_verification_binding grp gen publickey n online_proof online_public_input = 
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let reencryption_pf_system = Reencryption_shuffle_proof_system.get_instance n elgamal publickey in
   Proof_system.verify reencryption_pf_system online_proof online_public_input
 
 
+(* Glue code *)
+let construct_group prime gen pubkey =   
+   let safep = safe_prime prime in
+   let group = group_from_safe_prime safep in
+   let generator = generator_from_group group gen in
+   let publickey = generate_public_key group pubkey in   
+   (group, generator, publickey)
+
+let construct_private_key (group, generator, publickey) prikey =
+   get_zmod_prime group prikey
+
+let prime = big_int_from_string  "170141183460469231731687303715884114527"
+let generator = big_int_from_string "4"
+let publickey = big_int_from_string "49228593607874990954666071614777776087"
+let privatekey = big_int_from_string "60245260967214266009141128892124363925"
 
 let () = 
-   let safep = safe_prime (big_int_from_string  "170141183460469231731687303715884114527") in
-   let grp = group_from_safe_prime safep in
-   let gen = generator_from_group grp (big_int_from_string "4") in 
-   let elgamal = elgamal_encryption_scheme_from_generator gen in
-   let publickey = generate_public_key grp (big_int_from_string "49228593607874990954666071614777776087") in
-   let privatekey = get_zmod_prime grp (big_int_from_string "60245260967214266009141128892124363925") in
-   let (encm1, encm2) = encrypt_message grp gen publickey (big_int_from_string "1")  in
-   let eqi = construct_encryption_zero_knowledge_proof grp gen publickey privatekey (encm1, encm2) in
-   let decm = decrypt_message grp gen privatekey (encm1, encm2) in
-   let verifydec = verify_decryption grp gen publickey decm (encm1, encm2) eqi in
-   let perm = generatePermutation grp gen publickey 4 in
-   let rands = generateS grp gen publickey 4 in 
-   let pcommit = generatePermutationCommitment grp gen publickey 4 perm rands in
-   let perm_zkp = zkpPermutationCommitment grp gen publickey 4 perm pcommit rands in
+   let (grp, gen, pubkey) = construct_group prime generator publickey in
+   let prikey = construct_private_key (grp, gen, pubkey) privatekey in
+   let (encm1, encm2) = encrypt_message_binding grp gen pubkey (big_int_from_string "1")  in
+   let eqi = construct_encryption_zero_knowledge_proof_binding grp gen pubkey prikey (encm1, encm2) in
+   let decm = decrypt_message_binding grp gen prikey (encm1, encm2) in
+   let verifydec = verify_decryption_binding grp gen pubkey decm (encm1, encm2) eqi in
+   let perm = generatePermutation_binding grp gen pubkey 4 in
+   let rands = generateS_binding grp gen pubkey 4 in 
+   let pcommit = generatePermutationCommitment_binding grp gen pubkey 4 perm rands in
+   let perm_zkp = zkpPermutationCommitment_binding grp gen pubkey 4 perm pcommit rands in
    (* if you have constructed this honestly then it should verify *)
-   let b = zkpPermutationVerification grp gen publickey 4 perm_zkp pcommit in
+   let b = zkpPermutationVerification_binding grp gen pubkey 4 perm_zkp pcommit in
    (* generate randomness r*)
-   let r = generateR grp gen publickey 4 in
-   let (fp, sp)  = homomorphic_addition grp gen publickey (encm1, encm2) (encm1, encm2) in
-   let eqs =construct_encryption_zero_knowledge_proof grp gen publickey privatekey (fp, sp) in 
-   let newdec = decrypt_message grp gen privatekey (fp, sp) in
-   let verifyndec = verify_decryption grp gen publickey newdec (fp, sp) eqs in
-   print_endline (Prime.to_string safep);
-   print_endline (Gstar_mod_safe_prime.to_string grp);
-   print_endline (Gstar_mod_element.to_string gen);
-   print_endline (Elgamal_encryption_scheme.to_string elgamal);
-   print_endline (Gstar_mod_element.to_string publickey);
-   print_endline (Zmod_element.to_string privatekey);
+   let r = generateR_binding grp gen pubkey 4 in
+   let (fp, sp)  = homomorphic_addition_binding grp gen pubkey (encm1, encm2) (encm1, encm2) in
+   let eqs = construct_encryption_zero_knowledge_proof_binding grp gen pubkey prikey (fp, sp) in 
+   let newdec = decrypt_message_binding grp gen prikey (fp, sp) in
+   let verifyndec = verify_decryption_binding grp gen pubkey newdec (fp, sp) eqs in
+   print_endline (Gstar_mod_element.to_string pubkey);
+   print_endline (Zmod_element.to_string prikey);
    print_endline ("(" ^ Big_integer.to_string encm1 ^ ", " ^ Big_integer.to_string encm2 ^ ")");
    print_endline (Element.to_string eqi);
    print_endline (Big_integer.to_string decm); 
