@@ -423,7 +423,7 @@ let construct_ballot_from_list grp lst =
            let c2_el = generate_element_of_group grp c2 in
            let ret_tuple = Tuple.add etuple (Pair.construct_pair c1_el c2_el) in
            loop ret_tuple tl
-    in loop ( Schulze_proof_system.get_empty_tuple ()) lst 
+    in loop empty_tuple lst 
 
 (* convert tuple into pair of list ([(c1, c2) ....]*)
 let construct_list_from_ballot tup = 
@@ -437,6 +437,20 @@ let construct_list_from_ballot tup =
             loop (i + 1) ((first, second) :: acc)
    in loop 0 []
 
+
+(* construct list from function *)
+let construct_list_from_function cand_all f = 
+    List.map f cand_all
+
+(* construct function from list *)
+let construct_function_from_list dec_cand cand_lst lst = 
+   fun c -> 
+     let rec loop cand_l l = 
+         match cand_l, l with 
+         | [], _ | _, []  ->  assert false (* absurd case *)
+         | d :: cand_t, h :: tl -> 
+              if dec_cand c d then h else loop cand_t tl 
+     in loop cand_lst lst
 
 (* Glue code *)
 let construct_group prime gen pubkey =   
@@ -496,6 +510,8 @@ let () =
    let verify_shuffle = shuffle_zkp_verification_binding grp gen pubkey 4 shuffle_zkp (Triple.get_instance pcommit ballot shuffled_ballot) in
    (* convert ballot into ocaml list *) 
    let ballot_list = construct_list_from_ballot ballot in 
+   let ballot_fun = construct_function_from_list (=) [0; 1; 2; 3] ballot_list in
+   let ballot_list_from_fun = construct_list_from_function [0; 1; 2; 3] ballot_fun in  
    print_endline (Gstar_mod_element.to_string pubkey);
    print_endline (Zmod_element.to_string prikey);
    print_endline ("(" ^ Big_integer.to_string encm1 ^ ", " ^ Big_integer.to_string encm2 ^ ")");
@@ -515,4 +531,7 @@ let () =
    print_endline (Tuple.to_string shuffled_ballot);
    print_endline (Element.to_string shuffle_zkp);
    print_endline (if verify_shuffle then "true" else "false");
-   print_list print_pair ballot_list
+   print_list print_pair ballot_list;
+   print_newline ();
+   print_list print_pair ballot_list_from_fun;
+   print_newline (); 
