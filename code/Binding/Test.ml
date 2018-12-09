@@ -53,6 +53,7 @@ object
      method get_last : element = "getLast" 
      method get_at : int -> element = "getAt"
      method add : element -> tuple = "add"
+     method get_arity : int = "getArity"
      method to_string : string = "toString"
 end
 
@@ -412,14 +413,30 @@ let shuffle_zkp_verification_binding grp gen publickey n online_proof online_pub
   Proof_system.verify reencryption_pf_system online_proof online_public_input
 
 (* ballot from list. It constructs tuple *)
-let rec construct_ballot_from_list grp etuple l = 
-   match l with
-   | [] -> etuple
-   | (c1, c2) :: tl -> 
-      let c1_el = generate_element_of_group grp c1 in 
-      let c2_el = generate_element_of_group grp c2 in
-      let ret_tuple = Tuple.add etuple (Pair.construct_pair c1_el c2_el) in
-      construct_ballot_from_list grp ret_tuple tl 
+let construct_ballot_from_list grp lst = 
+   let empty_tuple =  Schulze_proof_system.get_empty_tuple () in
+   let rec loop etuple l = 
+        match l with
+        | [] -> etuple
+        | (c1, c2) :: tl -> 
+           let c1_el = generate_element_of_group grp c1 in 
+           let c2_el = generate_element_of_group grp c2 in
+           let ret_tuple = Tuple.add etuple (Pair.construct_pair c1_el c2_el) in
+           loop ret_tuple tl
+    in loop ( Schulze_proof_system.get_empty_tuple ()) lst 
+
+(* convert tuple into pair of list ([(c1, c2) ....]*)
+let construct_list_from_ballot tup = 
+   let n = Tuple.get_arity tup in 
+   let rec loop i acc = 
+           if i >= n then (List.rev acc) 
+           else 
+            let p = Pair.of_obj (Tuple.get_at tup i) in
+            let first = Big_integer.of_obj (Element.get_value (Tuple.get_first p)) in
+            let second = Big_integer.of_obj (Element.get_value (Tuple.get_last p)) in
+            loop (i + 1) ((first, second) :: acc)
+   in loop 0 []
+
 
 (* Glue code *)
 let construct_group prime gen pubkey =   
@@ -432,10 +449,24 @@ let construct_group prime gen pubkey =
 let construct_private_key (group, generator, publickey) prikey =
    get_zmod_prime group prikey
 
+(* end of glue code *)
+
 let prime = big_int_from_string  "170141183460469231731687303715884114527"
 let generator = big_int_from_string "4"
 let publickey = big_int_from_string "49228593607874990954666071614777776087"
 let privatekey = big_int_from_string "60245260967214266009141128892124363925"
+
+(* printing function *)
+let print_pair (c1, c2) = "(" ^ Big_integer.to_string c1 ^ ", " ^ Big_integer.to_string c2 ^ ")"
+
+let print_list f lst =
+  let rec print_elements = function
+    | [] -> ()
+    | h  :: t -> print_string (f h); print_string ";"; print_elements t
+  in
+  print_string "[";
+  print_elements lst;
+  print_string "]";;
 
 let () = 
    (* construct infrastructure *)
@@ -458,12 +489,13 @@ let () =
    let newdec = decrypt_message_binding grp gen prikey (fp, sp) in
    let verifyndec = verify_decryption_binding grp gen pubkey newdec (fp, sp) eqs in
    (* generate R, construct ballot, shuffle the ballot, construct zero knowledge proof, verify shuffle zero knowledge proof *)
-   let emptytuple = Schulze_proof_system.get_empty_tuple () in
    let r = generateR_binding grp gen pubkey 4 in
-   let ballot = construct_ballot_from_list grp emptytuple [(fp, sp); (fp, sp); (fp, sp); (fp, sp)] in
+   let ballot = construct_ballot_from_list grp [(fp, sp); (fp, sp); (fp, sp); (fp, sp)] in
    let shuffled_ballot = shuffle_binding grp gen pubkey 4 ballot perm r in
    let shuffle_zkp = shuffle_zkp_binding grp gen pubkey 4 ballot shuffled_ballot perm pcommit rands r in
-   let verify_shuffle = shuffle_zkp_verification_binding grp gen pubkey 4 shuffle_zkp (Triple.get_instance pcommit ballot shuffled_ballot) in 
+   let verify_shuffle = shuffle_zkp_verification_binding grp gen pubkey 4 shuffle_zkp (Triple.get_instance pcommit ballot shuffled_ballot) in
+   (* convert ballot into ocaml list *) 
+   let ballot_list = construct_list_from_ballot ballot in 
    print_endline (Gstar_mod_element.to_string pubkey);
    print_endline (Zmod_element.to_string prikey);
    print_endline ("(" ^ Big_integer.to_string encm1 ^ ", " ^ Big_integer.to_string encm2 ^ ")");
@@ -482,4 +514,5 @@ let () =
    print_endline (Tuple.to_string ballot);
    print_endline (Tuple.to_string shuffled_ballot);
    print_endline (Element.to_string shuffle_zkp);
-   print_endline (if verify_shuffle then "true" else "false")
+   print_endline (if verify_shuffle then "true" else "false");
+   print_list print_pair ballot_list
