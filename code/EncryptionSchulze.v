@@ -928,14 +928,14 @@ Section Encryption.
     Axiom Generator : Type.
     Axiom Pubkey : Type.
     Axiom Prikey : Type.
-     
+    Axiom DecZkp : Type. (* Honest Decryption Zero knowledge Proof *)  
 
     (* private and public key *)
     Axiom prime : Prime.
     Axiom gen : Generator.
     Axiom privatekey : Prikey.
     Axiom publickey : Pubkey.
-
+     
     Inductive Group : Type :=
       group : Prime -> Generator -> Pubkey -> Group.
     
@@ -954,12 +954,12 @@ Section Encryption.
     
     (* This function returns zero knowledge proof of encrypted message (c1, c2) *)
     Axiom construct_zero_knowledge_decryption_proof :
-      Group -> Prikey -> ciphertext -> string.
+      Group -> Prikey -> ciphertext -> DecZkp.
 
     (* This function verifies the zero knowledge proof of plaintext, m, is honest decryption 
        of ciphertext *)
     Axiom verify_zero_knowledge_decryption_proof :
-      Group -> plaintext -> ciphertext -> string -> bool.
+      Group -> plaintext -> ciphertext -> DecZkp -> bool.
  
     (* Axiom about honest decryption zero knowledge proof *)
     Axiom verify_true :
@@ -974,7 +974,7 @@ Section Encryption.
     (* permutation is Bijective function *)
     Definition Permutation := existsT (pi : cand -> cand), (Bijective pi).
     Axiom Commitment : Type. 
-    Axiom ZKP : Type.
+    Axiom PermZkp : Type. (* Permutation Zero Knowledge Proof. It will replaced Java Data structure *)
     Axiom S : Type. 
 
     (* The idea is for each ballot u, we are going to count 
@@ -1011,18 +1011,18 @@ Section Encryption.
       Permutation -> (* pi *)
       Commitment -> (* cpi *)
       S -> (* randomness *)
-      ZKP.
+      PermZkp.
       
     Axiom verify_permutation_commitment :
       Group -> (* group *)
       nat -> (* length *)
       Commitment -> (* cpi *)
-      ZKP -> (* zero knowledge proof *)
+      PermZkp -> (* zero knowledge proof *)
       bool. (* pcps.verify offlineProof offlinePublicInpu *)
 
     
     Axiom permutation_commitment_axiom :
-      forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S) (zkppermcommit : ZKP)
+      forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S) (zkppermcommit : PermZkp)
         (H1 : cpi = generatePermutationCommitment grp (List.length cand_all) pi s)
         (H2 : zkppermcommit = zkpPermutationCommitment
                                 grp (List.length cand_all) pi cpi s),
@@ -1041,6 +1041,7 @@ Section Encryption.
     
     (* Start of Shuffle code *)     
     Axiom R : Type.
+    Axiom ShuffleZkp : Type.
    
     (* Generate Randomness R separately *)
     Axiom generateR : Group -> nat -> R. (* Group and length *) 
@@ -1066,7 +1067,7 @@ Section Encryption.
       Commitment -> (* cpi *)
       S -> (* s, permutation commitment randomness *)
       R -> (* r, shuffle randomness *)
-      ZKP. (* zero knowledge proof of shuffle *)
+      ShuffleZkp. (* zero knowledge proof of shuffle *)
     
     (* verify shuffle *)
     Axiom verify_shuffle:
@@ -1075,14 +1076,14 @@ Section Encryption.
       (cand -> ciphertext) -> (* cipertext *)
       (cand -> ciphertext) -> (* shuffled cipertext *)
       Commitment -> (* permutation commitment *)
-      ZKP -> (* zero knowledge proof of shuffle *)
+      ShuffleZkp -> (* zero knowledge proof of shuffle *)
       bool. (* true or false *)
      
     (* Changed data structure *)
     Axiom verify_shuffle_axiom :
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S)
         (cp shuffledcp : cand -> ciphertext)
-        (r : R) (zkprowshuffle : ZKP)
+        (r : R) (zkprowshuffle : ShuffleZkp)
         (* H0 : s = generateS grp (List.length cand_all) *)
         (H1 : cpi = generatePermutationCommitment grp (List.length cand_all) pi s)
         (H2 : shuffledcp = shuffle grp (List.length cand_all) cp pi r)
@@ -1242,14 +1243,14 @@ Section Encryption.
    (* Returns true if v is row permutation of u by pi *)
     Definition verify_row_permutation_ballot grp
                (u : eballot) (v : eballot)
-               (cpi : Commitment) (zkppermuv : cand -> ZKP) : cand -> bool := 
+               (cpi : Commitment) (zkppermuv : cand -> ShuffleZkp) : cand -> bool := 
       fun c => verify_shuffle grp (List.length cand_all)
                            (u c) (v c) cpi (zkppermuv c). 
       
     (* cth column of w is permutation of cth column of v by pi *)                  
     Definition verify_col_permutation_ballot (grp : Group)
                (v : eballot) (w : eballot)
-               (cpi : Commitment) (zkppermvw  : cand -> ZKP) : cand ->  bool :=
+               (cpi : Commitment) (zkppermvw  : cand -> ShuffleZkp) : cand ->  bool :=
       fun c => verify_shuffle grp (List.length cand_all)
                            (fun d => v d c) (fun d => w d c) cpi (zkppermvw c).
 
@@ -1265,16 +1266,16 @@ Section Encryption.
     Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
     | ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
            (decm : cand -> cand -> plaintext)
-           (zkpdec : cand -> cand -> string) :
+           (zkpdec : cand -> cand -> DecZkp) :
         us = bs ->
         (forall c d : cand, decm c d = 0) -> 
         (forall c d, verify_zero_knowledge_decryption_proof 
                   grp (decm c d) (encm c d) (zkpdec c d) = true) ->
         ECount grp bs (epartial (us, []) encm)
     | ecvalid (u : eballot) (v : eballot) (w : eballot)
-              (b : pballot) (zkppermuv : cand -> ZKP)
-              (zkppermvw : cand -> ZKP) (zkpdecw : cand -> cand -> string)
-              (cpi : Commitment) (zkpcpi : ZKP)
+              (b : pballot) (zkppermuv : cand -> ShuffleZkp)
+              (zkppermvw : cand -> ShuffleZkp) (zkpdecw : cand -> cand -> DecZkp)
+              (cpi : Commitment) (zkpcpi : PermZkp)
               (us : list eballot) (m nm : cand -> cand -> ciphertext)
               (inbs : list eballot) :
         ECount grp bs (epartial (u :: us, inbs) m) ->
@@ -1288,9 +1289,9 @@ Section Encryption.
         (forall c d, nm c d = homomorphic_addition grp (u c d) (m c d)) -> 
         ECount grp bs (epartial (us, inbs) nm)
     | ecinvalid (u : eballot) (v : eballot) (w : eballot)
-              (b : pballot) (zkppermuv : cand -> ZKP)
-              (zkppermvw : cand -> ZKP) (zkpdecw : cand -> cand -> string)
-              (cpi : Commitment) (zkpcpi : ZKP)
+              (b : pballot) (zkppermuv : cand -> ShuffleZkp)
+              (zkppermvw : cand -> ShuffleZkp) (zkpdecw : cand -> cand -> DecZkp)
+              (cpi : Commitment) (zkpcpi : PermZkp)
               (us : list eballot) (m : cand -> cand -> ciphertext)
               (inbs : list eballot) :
         ECount grp bs (epartial (u :: us, inbs) m) ->
@@ -1304,7 +1305,7 @@ Section Encryption.
         ECount grp bs (epartial (us, (u :: inbs)) m)
     | ecdecrypt inbs (encm : cand -> cand -> ciphertext)
                 (decm : cand -> cand -> plaintext)
-                (zkp : cand -> cand -> string) :
+                (zkp : cand -> cand -> DecZkp) :
         ECount grp bs (epartial ([], inbs) encm) ->
         (forall c d, verify_zero_knowledge_decryption_proof
                   grp (decm c d) (encm c d) (zkp c d) = true) ->
@@ -2397,7 +2398,7 @@ Section Encryption.
     Axiom perm_axiom :
       forall grp cpi zkpcpi, 
         verify_permutation_commitment grp (Datatypes.length cand_all) cpi zkpcpi = true ->
-        existsT (pi : Permutation), forall (f g : cand -> ciphertext) (zkppf : ZKP), 
+        existsT (pi : Permutation), forall (f g : cand -> ciphertext) (zkppf : ShuffleZkp), 
       verify_shuffle grp (Datatypes.length cand_all) f g cpi zkppf = true ->
           forall c, decrypt_message grp privatekey (g c) =
                decrypt_message grp privatekey (compose f (projT1 pi) c).
