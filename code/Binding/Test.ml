@@ -1,5 +1,12 @@
 let () = Java.init [| "-Djava.class.path=ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:schulze.jar:." |]
 
+
+class%java integer "java.lang.Integer" = 
+object 
+     method int_value : int = "intValue"
+     method to_string : string = "toString"
+end
+
 (* Java Big integer binding *)
 class%java big_integer "java.math.BigInteger" =
 object 
@@ -149,12 +156,18 @@ object
         method to_string : string = "toString"
 end
 
-
+class%java permutation "ch.bfh.unicrypt.helper.math.Permutation" = 
+object 
+       inherit element 
+       method [@static] get_instance : int array -> permutation = "getInstance"
+       method to_string : string = "toString"
+end
 
 class%java permutation_element "ch.bfh.unicrypt.math.algebra.general.classes.PermutationElement" = 
 object 
         
-        inherit element 
+        inherit element
+        method [@static] get_instance : permutation -> permutation_element = "getInstance" 
         method to_string : string = "toString"
 end
 
@@ -230,6 +243,8 @@ object
         method [@static] get_instance : generator_function  ->  generator_function -> equality_preimage_proof_system = "getInstance"
         method [@static] discrete_log : gstar_mod_element -> element -> big_integer = "dLog"
         method [@static] get_empty_tuple : tuple = "constructEmptyTuple"
+        method [@static] array_from_permutation_element : permutation_element -> int array = "convertPermtoIntArray"
+        method [@static] permutation_element_from_array : int array -> permutation_element = "convertIntArraytoPerm"
         method to_string : string = "toString"
 end
 
@@ -412,6 +427,34 @@ let shuffle_zkp_verification_binding grp gen publickey n online_proof online_pub
   let reencryption_pf_system = Reencryption_shuffle_proof_system.get_instance n elgamal publickey in
   Proof_system.verify reencryption_pf_system online_proof online_public_input
 
+
+(* construct Java Array from Ocaml list. This function will be needed for changing PermutationElement into list *)
+let construct_array_from_permutation_element perm_el = 
+   Schulze_proof_system.array_from_permutation_element perm_el
+
+(* construct Ocaml list from Java Array *)
+let create_list_from_array arr = 
+    let len = Jarray.length arr in 
+    let rec loop i acc = 
+     if i >= len then (List.rev acc)
+     else let v = Jarray.get_int arr i in
+          loop (i + 1) (v :: acc) in  loop 0 []
+
+(* Convert OCaml List into Java Array. This will be used to convert permutation function into list -> Java Array -> PermutationElement *)
+let construct_array_from_list lst = 
+    let len = List.length lst in
+    let ballot = Jarray.create_int len in
+    let rec loop i = function 
+        | [] -> ()
+        | h :: tl -> Jarray.set_int ballot i h;
+                     loop (i + 1) tl
+    in loop 0 lst;
+    ballot
+
+
+let construct_permutation_element_from_array perm_array = 
+   Schulze_proof_system.permutation_element_from_array perm_array
+
 (* ballot from list. It constructs tuple *)
 let construct_ballot_from_list grp lst = 
    let empty_tuple =  Schulze_proof_system.get_empty_tuple () in
@@ -535,6 +578,13 @@ let () =
    (* Now decrypt the ballot and see how permutation behaves *)
    let olist =  construct_list_from_ballot jshuffled_ballot in 
    let dlist = List.map (fun x -> decrypt_message_binding grp gen prikey x) olist in
+   let permel = construct_array_from_permutation_element perm in
+   let plist = create_list_from_array  permel in
+   let construc_arr = construct_array_from_list plist in
+   let permelemen = construct_permutation_element_from_array construc_arr in
+   print_endline (Element.to_string permelemen); 
+   print_list string_of_int plist;
+   print_newline ();
    print_list Big_integer.to_string pballot;
    print_newline ();
    print_list Big_integer.to_string dlist;
