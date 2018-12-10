@@ -452,6 +452,7 @@ let construct_array_from_list lst =
     ballot
 
 
+(* construct permutation element from array *)
 let construct_permutation_element_from_array perm_array = 
    Schulze_proof_system.permutation_element_from_array perm_array
 
