@@ -1,7 +1,13 @@
-
-(* Starting of java library code. Keep it here for the moment, but try to find more modular way to do this *)
+(* Binding code *)
 
 let () = Java.init [| "-Djava.class.path=ocaml-java/bin/ocaml-java.jar:javacryptocode/jarfiles/unicrypt-2.3.jar:javacryptocode/jarfiles/jnagmp-2.0.0.jar:javacryptocode/jarfiles/jna-4.5.0.jar:schulze.jar:." |]
+
+
+class%java integer "java.lang.Integer" = 
+object 
+     method int_value : int = "intValue"
+     method to_string : string = "toString"
+end
 
 (* Java Big integer binding *)
 class%java big_integer "java.math.BigInteger" =
@@ -55,6 +61,8 @@ object
      method get_first : element = "getFirst"    
      method get_last : element = "getLast" 
      method get_at : int -> element = "getAt"
+     method add : element -> tuple = "add"
+     method get_arity : int = "getArity"
      method to_string : string = "toString"
 end
 
@@ -150,12 +158,18 @@ object
         method to_string : string = "toString"
 end
 
-
+class%java permutation "ch.bfh.unicrypt.helper.math.Permutation" = 
+object 
+       inherit element 
+       method [@static] get_instance : int array -> permutation = "getInstance"
+       method to_string : string = "toString"
+end
 
 class%java permutation_element "ch.bfh.unicrypt.math.algebra.general.classes.PermutationElement" = 
 object 
         
-        inherit element 
+        inherit element
+        method [@static] get_instance : permutation -> permutation_element = "getInstance" 
         method to_string : string = "toString"
 end
 
@@ -226,9 +240,13 @@ end
 
 class%java schulze_proof_system "schulze.CryptoWrapper" =
 object
-        (* this function takes Arbitrary Number of Arguments so find a way to pass arguments from Ocaml to java. Currently I am getting class not found *)
+        (* this function takes Arbitrary Number of Arguments so find a way to pass arguments from Ocaml to java. *)
+        (* Work around is once java file which contains function that take arbitrary arugments *)
         method [@static] get_instance : generator_function  ->  generator_function -> equality_preimage_proof_system = "getInstance"
         method [@static] discrete_log : gstar_mod_element -> element -> big_integer = "dLog"
+        method [@static] get_empty_tuple : tuple = "constructEmptyTuple"
+        method [@static] array_from_permutation_element : permutation_element -> int array = "convertPermtoIntArray"
+        method [@static] permutation_element_from_array : int array -> permutation_element = "convertIntArraytoPerm"
         method to_string : string = "toString"
 end
 
@@ -323,7 +341,7 @@ let generatePermutation_binding grp gen publickey n =
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let mix = Reencryption_mixer.get_instance elgamal publickey n in
   let permgrp = Mixer.get_permutation_group mix in 
-  Set.get_random_element permgrp
+  Permutation_element.of_obj (Set.get_random_element permgrp)
 
 
 (** val generateS : group -> nat -> s **)
@@ -396,7 +414,6 @@ let shuffle_binding grp gen publickey n ballot perm r =
 (** val shuffle_zkp :
     group -> nat -> ('a1 -> ciphertext) -> ('a1 -> ciphertext) -> 'a1
     permutation -> commitment -> s -> r -> zKP **)
-(* Not tested yet! *)
 let shuffle_zkp_binding grp gen publickey n ciphertext shuffled_ciphertext pi cpi s r = 
    let elgamal = elgamal_encryption_scheme_from_generator gen in 
    let reencryption_pf_system = Reencryption_shuffle_proof_system.get_instance n elgamal publickey in 
@@ -406,34 +423,123 @@ let shuffle_zkp_binding grp gen publickey n ciphertext shuffled_ciphertext pi cp
    online_proof
 
 
-(* verify shuffle proof . Not tested *)
+(* verify shuffle proof. *)
 let shuffle_zkp_verification_binding grp gen publickey n online_proof online_public_input = 
   let elgamal = elgamal_encryption_scheme_from_generator gen in
   let reencryption_pf_system = Reencryption_shuffle_proof_system.get_instance n elgamal publickey in
   Proof_system.verify reencryption_pf_system online_proof online_public_input
 
 
-(* Glue code. This function takes Java Big Integer and returns group *)
-let construct_group (prime, gen, pubkey) =
+(* construct Java Array from Ocaml list. This function will be needed for changing PermutationElement into list *)
+let construct_array_from_permutation_element perm_el = 
+   Schulze_proof_system.array_from_permutation_element perm_el
+
+(* construct Ocaml list from Java Array *)
+let create_list_from_array arr = 
+    let len = Jarray.length arr in 
+    let rec loop i acc = 
+     if i >= len then (List.rev acc)
+     else let v = Jarray.get_int arr i in
+          loop (i + 1) (v :: acc) in  loop 0 []
+
+(* Convert OCaml List into Java Array. This will be used to convert permutation function into list -> Java Array -> PermutationElement *)
+let construct_array_from_list lst = 
+    let len = List.length lst in
+    let ballot = Jarray.create_int len in
+    let rec loop i = function 
+        | [] -> ()
+        | h :: tl -> Jarray.set_int ballot i h;
+                     loop (i + 1) tl
+    in loop 0 lst;
+    ballot
+
+
+(* construct permutation element from array *)
+let construct_permutation_element_from_array perm_array = 
+   Schulze_proof_system.permutation_element_from_array perm_array
+
+(* ballot from list. It constructs tuple *)
+let construct_ballot_from_list grp lst = 
+   let empty_tuple =  Schulze_proof_system.get_empty_tuple () in
+   let rec loop etuple l = 
+        match l with
+        | [] -> etuple
+        | (c1, c2) :: tl -> 
+           let c1_el = generate_element_of_group grp c1 in 
+           let c2_el = generate_element_of_group grp c2 in
+           let ret_tuple = Tuple.add etuple (Pair.construct_pair c1_el c2_el) in
+           loop ret_tuple tl
+    in loop empty_tuple lst 
+
+(* convert tuple into pair of list ([(c1, c2) ....]*)
+let construct_list_from_ballot tup = 
+   let n = Tuple.get_arity tup in 
+   let rec loop i acc = 
+           if i >= n then (List.rev acc) 
+           else 
+            let p = Pair.of_obj (Tuple.get_at tup i) in
+            let first = Big_integer.of_obj (Element.get_value (Tuple.get_first p)) in
+            let second = Big_integer.of_obj (Element.get_value (Tuple.get_last p)) in
+            loop (i + 1) ((first, second) :: acc)
+   in loop 0 []
+
+
+(* construct list from function *)
+let construct_list_from_function cand_all f = 
+    List.map f cand_all
+
+(* construct function from list *)
+let construct_function_from_list dec_cand cand_lst lst = 
+   fun c -> 
+     let rec loop cand_l l = 
+         match cand_l, l with 
+         | [], _ | _, []  ->  assert false (* absurd case *)
+         | d :: cand_t, h :: tl -> 
+              if dec_cand c d then h else loop cand_t tl 
+     in loop cand_lst lst
+
+
+
+(* This is what we need in our implementation. Converts permutation list into permutation function *)
+let perm_function cand_list perm_list = 
+  let zip_list = List.combine cand_list perm_list in 
+  fun c -> List.nth cand_list (List.assoc c zip_list)
+
+(* Converts permutation function into list which will be converted back into java data structure PermutationElement *)
+let perm_list cand_all perm_fun = 
+   List.map perm_fun cand_all
+
+(* Glue code *)
+let construct_group prime gen pubkey =   
    let safep = safe_prime prime in
    let group = group_from_safe_prime safep in
    let generator = generator_from_group group gen in
-   let publickey = generate_public_key group pubkey in
+   let publickey = generate_public_key group pubkey in   
    (group, generator, publickey)
 
-let construct_private_key (prime, gen, pubkey) prikey =
-   let (group, generator, publickey) = construct_group (prime, gen, pubkey) in
+let construct_private_key (group, generator, publickey) prikey =
    get_zmod_prime group prikey
-
 
 let ocaml_big_int_java_big_int pt = 
     big_int_from_string (Big.to_string pt)
 
 let java_big_int_ocaml_big_int pt = 
    Big.of_string (Big_integer.to_string pt)  
-(* End of java binding *)
+
+(* end of glue code *)
+
+(*
+let prime = big_int_from_string  "170141183460469231731687303715884114527"
+let generator = big_int_from_string "4"
+let publickey = big_int_from_string "49228593607874990954666071614777776087"
+let privatekey = big_int_from_string "60245260967214266009141128892124363925"
+*)
+(* end of binding *)
 
 
+
+
+(* Extracted code from library *)
 
 
 type __ = Obj.t
@@ -1092,52 +1198,55 @@ type 'cand pballot = 'cand -> 'cand -> plaintext
 
 type 'cand eballot = 'cand -> 'cand -> ciphertext
 
-type prime = Big_integer.c Big_integer.t'
+type prime =  Big_integer.c Big_integer.t' (* AXIOM TO BE REALIZED *)
 
-type generator = Big_integer.c Big_integer.t'
+type generator =  Big_integer.c Big_integer.t' (* AXIOM TO BE REALIZED *)
 
-type pubkey = Big_integer.c Big_integer.t'
+type pubkey = Big_integer.c Big_integer.t' (* AXIOM TO BE REALIZED *)
 
-type prikey = Big_integer.c Big_integer.t'
+type prikey =  Big_integer.c Big_integer.t' (* AXIOM TO BE REALIZED *)
+
+type decZkp =  string (* AXIOM TO BE REALIZED *)
 
 
-let prime0 : prime = big_int_from_string "170141183460469231731687303715884114527"
-let gen : generator = big_int_from_string "4"
-let publickey : pubkey = big_int_from_string "49228593607874990954666071614777776087"
-let privatekey : prikey = big_int_from_string "60245260967214266009141128892124363925"
+let prime = big_int_from_string  "170141183460469231731687303715884114527"
+let generator = big_int_from_string "4"
+let publickey = big_int_from_string "49228593607874990954666071614777776087"
+let privatekey = big_int_from_string "60245260967214266009141128892124363925"
+
+(** val privatekey : prikey **)
+
+let privatekey = big_int_from_string "60245260967214266009141128892124363925"
 
 type group =
 | Group of prime * generator * pubkey
 
 (** val encrypt_message : group -> plaintext -> ciphertext **)
 
-let encrypt_message (Group (prime, generator, publickey)) pt = 
-  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in 
-  let (c1, c2) = encrypt_message_binding grp gen pubkey (ocaml_big_int_java_big_int pt) in 
-  (java_big_int_ocaml_big_int c1, java_big_int_ocaml_big_int c2)
+let encrypt_message (Group (pr, ge, pu)) pt = 
+   let (grp, gen, pubkey) = construct_group (pr, ge, pu) in 
+   encrypt_message_binding grp gen pubkey pt
+
 (** val decrypt_message : group -> prikey -> ciphertext -> plaintext **)
 
-let decrypt_message (Group (prime, generator, publickey)) privatekey (c1, c2) =
-  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
-  let prikey = construct_private_key (prime, generator, publickey) privatekey in 
-  let decmsg = decrypt_message_binding grp gen prikey (ocaml_big_int_java_big_int c1, ocaml_big_int_java_big_int c2) in 
-  java_big_int_ocaml_big_int decmsg
+let decrypt_message =
+  failwith "AXIOM TO BE REALIZED"
 
 (** val construct_zero_knowledge_decryption_proof :
-    group -> prikey -> ciphertext -> char list **)
+    group -> prikey -> ciphertext -> decZkp **)
 
-let construct_zero_knowledge_decryption_proof (Group (p, q, r)) privatekey (c1, c2) =
+let construct_zero_knowledge_decryption_proof =
   failwith "AXIOM TO BE REALIZED"
 
 type 'cand permutation = ('cand -> 'cand, __) sigT
 
-type commitment (* Java data structure type *)
+type commitment (* AXIOM TO BE REALIZED *)
 
-type zKP (* AXIOM TO BE REALIZED *)
+type permZkp (* AXIOM TO BE REALIZED *)
 
 type s (* AXIOM TO BE REALIZED *)
 
-(** val generatePermutation : group -> nat -> 'a1 permutation **)
+(** val generatePermutation : group -> nat -> 'a1 list -> 'a1 permutation **)
 
 let generatePermutation =
   failwith "AXIOM TO BE REALIZED"
@@ -1148,13 +1257,13 @@ let generateS =
   failwith "AXIOM TO BE REALIZED"
 
 (** val generatePermutationCommitment :
-    group -> nat -> 'a1 permutation -> s -> commitment **)
+    group -> nat -> 'a1 list -> 'a1 permutation -> s -> commitment **)
 
 let generatePermutationCommitment =
   failwith "AXIOM TO BE REALIZED"
 
 (** val zkpPermutationCommitment :
-    group -> nat -> 'a1 permutation -> commitment -> s -> zKP **)
+    group -> nat -> 'a1 list -> 'a1 permutation -> commitment -> s -> permZkp **)
 
 let zkpPermutationCommitment =
   failwith "AXIOM TO BE REALIZED"
@@ -1167,21 +1276,23 @@ let homomorphic_addition =
 
 type r (* AXIOM TO BE REALIZED *)
 
+type shuffleZkp (* AXIOM TO BE REALIZED *)
+
 (** val generateR : group -> nat -> r **)
 
 let generateR =
   failwith "AXIOM TO BE REALIZED"
 
 (** val shuffle :
-    group -> nat -> ('a1 -> ciphertext) -> 'a1 permutation -> r -> 'a1 ->
-    ciphertext **)
+    group -> nat -> 'a1 list -> ('a1 -> 'a1 -> bool) -> ('a1 -> ciphertext)
+    -> 'a1 permutation -> r -> 'a1 -> ciphertext **)
 
 let shuffle =
   failwith "AXIOM TO BE REALIZED"
 
 (** val shuffle_zkp :
-    group -> nat -> ('a1 -> ciphertext) -> ('a1 -> ciphertext) -> 'a1
-    permutation -> commitment -> s -> r -> zKP **)
+    group -> nat -> 'a1 list -> ('a1 -> ciphertext) -> ('a1 -> ciphertext) ->
+    'a1 permutation -> commitment -> s -> r -> shuffleZkp **)
 
 let shuffle_zkp =
   failwith "AXIOM TO BE REALIZED"
@@ -1267,18 +1378,18 @@ let matrix_ballot_valid_dec cand_all0 dec_cand p =
 
 type 'cand eCount =
 | Ecax of 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * ('cand -> 'cand -> plaintext) * ('cand -> 'cand -> char list)
+   * ('cand -> 'cand -> plaintext) * ('cand -> 'cand -> decZkp)
 | Ecvalid of 'cand eballot * 'cand eballot * 'cand eballot * 'cand pballot
-   * ('cand -> zKP) * ('cand -> zKP) * ('cand -> 'cand -> char list)
-   * commitment * zKP * 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * ('cand -> 'cand -> ciphertext) * 'cand eballot list * 'cand eCount
-| Ecinvalid of 'cand eballot * 'cand eballot * 'cand eballot * 'cand pballot
-   * ('cand -> zKP) * ('cand -> zKP) * ('cand -> 'cand -> char list)
-   * commitment * zKP * 'cand eballot list * ('cand -> 'cand -> ciphertext)
+   * ('cand -> shuffleZkp) * ('cand -> shuffleZkp)
+   * ('cand -> 'cand -> decZkp) * commitment * permZkp * 'cand eballot list
+   * ('cand -> 'cand -> ciphertext) * ('cand -> 'cand -> ciphertext)
    * 'cand eballot list * 'cand eCount
+| Ecinvalid of 'cand eballot * 'cand eballot * 'cand eballot * 'cand pballot
+   * ('cand -> shuffleZkp) * ('cand -> shuffleZkp)
+   * ('cand -> 'cand -> decZkp) * commitment * permZkp * 'cand eballot list
+   * ('cand -> 'cand -> ciphertext) * 'cand eballot list * 'cand eCount
 | Ecdecrypt of 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * ('cand -> 'cand -> plaintext) * ('cand -> 'cand -> char list)
-   * 'cand eCount
+   * ('cand -> 'cand -> plaintext) * ('cand -> 'cand -> decZkp) * 'cand eCount
 | Ecfin of ('cand -> 'cand -> Big.big_int) * ('cand -> bool)
    * ('cand -> ('cand wins_type, 'cand loses_type) sum) * 'cand eCount
 
@@ -1313,20 +1424,26 @@ let rec ppartial_count_all_counted cand_all0 dec_cand grp bs ts inbs m0 he =
   match ts with
   | [] -> ExistT (inbs, (ExistT (m0, he)))
   | y :: l ->
-    let pi = generatePermutation grp (length cand_all0) in
+    let pi = generatePermutation grp (length cand_all0) cand_all0 in
     let s0 = generateS grp (length cand_all0) in
-    let cpi = generatePermutationCommitment grp (length cand_all0) pi s0 in
-    let zkpcpi = zkpPermutationCommitment grp (length cand_all0) pi cpi s0 in
+    let cpi =
+      generatePermutationCommitment grp (length cand_all0) cand_all0 pi s0
+    in
+    let zkpcpi =
+      zkpPermutationCommitment grp (length cand_all0) cand_all0 pi cpi s0
+    in
     let rrowlistvalues =
       map (fun _ -> generateR grp (length cand_all0)) cand_all0
     in
     let rrowfunvalues = fun c ->
       idx_search_list dec_cand c cand_all0 rrowlistvalues
     in
-    let v = fun c -> shuffle grp (length cand_all0) (y c) pi (rrowfunvalues c)
+    let v = fun c ->
+      shuffle grp (length cand_all0) cand_all0 dec_cand (y c) pi
+        (rrowfunvalues c)
     in
     let zkppermuv = fun c ->
-      shuffle_zkp grp (length cand_all0) (y c) (v c) pi cpi s0
+      shuffle_zkp grp (length cand_all0) cand_all0 (y c) (v c) pi cpi s0
         (rrowfunvalues c)
     in
     let rcollistvalues =
@@ -1336,12 +1453,13 @@ let rec ppartial_count_all_counted cand_all0 dec_cand grp bs ts inbs m0 he =
       idx_search_list dec_cand c cand_all0 rcollistvalues
     in
     let t = fun c ->
-      shuffle grp (length cand_all0) (fun d -> v d c) pi (rcolfunvalues c)
+      shuffle grp (length cand_all0) cand_all0 dec_cand (fun d -> v d c) pi
+        (rcolfunvalues c)
     in
     let w = fun c d -> t d c in
     let zkppermvw = fun c ->
-      shuffle_zkp grp (length cand_all0) (fun d -> v d c) (fun d -> w d c) pi
-        cpi s0 (rcolfunvalues c)
+      shuffle_zkp grp (length cand_all0) cand_all0 (fun d -> v d c) (fun d ->
+        w d c) pi cpi s0 (rcolfunvalues c)
     in
     let b = fun c d -> decrypt_message grp privatekey (w c d) in
     let zkpdecw = fun c d ->

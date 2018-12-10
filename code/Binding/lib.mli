@@ -203,6 +203,8 @@ type pubkey (* AXIOM TO BE REALIZED *)
 
 type prikey (* AXIOM TO BE REALIZED *)
 
+type decZkp (* AXIOM TO BE REALIZED *)
+
 val privatekey : prikey
 
 type group =
@@ -213,39 +215,41 @@ val encrypt_message : group -> plaintext -> ciphertext
 val decrypt_message : group -> prikey -> ciphertext -> plaintext
 
 val construct_zero_knowledge_decryption_proof :
-  group -> prikey -> ciphertext -> char list
+  group -> prikey -> ciphertext -> decZkp
 
 type 'cand permutation = ('cand -> 'cand, __) sigT
 
 type commitment (* AXIOM TO BE REALIZED *)
 
-type zKP (* AXIOM TO BE REALIZED *)
+type permZkp (* AXIOM TO BE REALIZED *)
 
 type s (* AXIOM TO BE REALIZED *)
 
-val generatePermutation : group -> nat -> 'a1 permutation
+val generatePermutation : group -> nat -> 'a1 list -> 'a1 permutation
 
 val generateS : group -> nat -> s
 
 val generatePermutationCommitment :
-  group -> nat -> 'a1 permutation -> s -> commitment
+  group -> nat -> 'a1 list -> 'a1 permutation -> s -> commitment
 
 val zkpPermutationCommitment :
-  group -> nat -> 'a1 permutation -> commitment -> s -> zKP
+  group -> nat -> 'a1 list -> 'a1 permutation -> commitment -> s -> permZkp
 
 val homomorphic_addition : group -> ciphertext -> ciphertext -> ciphertext
 
 type r (* AXIOM TO BE REALIZED *)
 
+type shuffleZkp (* AXIOM TO BE REALIZED *)
+
 val generateR : group -> nat -> r
 
 val shuffle :
-  group -> nat -> ('a1 -> ciphertext) -> 'a1 permutation -> r -> 'a1 ->
-  ciphertext
+  group -> nat -> 'a1 list -> ('a1 -> 'a1 -> bool) -> ('a1 -> ciphertext) ->
+  'a1 permutation -> r -> 'a1 -> ciphertext
 
 val shuffle_zkp :
-  group -> nat -> ('a1 -> ciphertext) -> ('a1 -> ciphertext) -> 'a1
-  permutation -> commitment -> s -> r -> zKP
+  group -> nat -> 'a1 list -> ('a1 -> ciphertext) -> ('a1 -> ciphertext) ->
+  'a1 permutation -> commitment -> s -> r -> shuffleZkp
 
 val pair_cand_dec : ('a1 -> 'a1 -> bool) -> ('a1 * 'a1) -> ('a1 * 'a1) -> bool
 
@@ -269,18 +273,18 @@ val matrix_ballot_valid_dec :
 
 type 'cand eCount =
 | Ecax of 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * ('cand -> 'cand -> plaintext) * ('cand -> 'cand -> char list)
+   * ('cand -> 'cand -> plaintext) * ('cand -> 'cand -> decZkp)
 | Ecvalid of 'cand eballot * 'cand eballot * 'cand eballot * 'cand pballot
-   * ('cand -> zKP) * ('cand -> zKP) * ('cand -> 'cand -> char list)
-   * commitment * zKP * 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * ('cand -> 'cand -> ciphertext) * 'cand eballot list * 'cand eCount
-| Ecinvalid of 'cand eballot * 'cand eballot * 'cand eballot * 'cand pballot
-   * ('cand -> zKP) * ('cand -> zKP) * ('cand -> 'cand -> char list)
-   * commitment * zKP * 'cand eballot list * ('cand -> 'cand -> ciphertext)
+   * ('cand -> shuffleZkp) * ('cand -> shuffleZkp)
+   * ('cand -> 'cand -> decZkp) * commitment * permZkp * 'cand eballot list
+   * ('cand -> 'cand -> ciphertext) * ('cand -> 'cand -> ciphertext)
    * 'cand eballot list * 'cand eCount
+| Ecinvalid of 'cand eballot * 'cand eballot * 'cand eballot * 'cand pballot
+   * ('cand -> shuffleZkp) * ('cand -> shuffleZkp)
+   * ('cand -> 'cand -> decZkp) * commitment * permZkp * 'cand eballot list
+   * ('cand -> 'cand -> ciphertext) * 'cand eballot list * 'cand eCount
 | Ecdecrypt of 'cand eballot list * ('cand -> 'cand -> ciphertext)
-   * ('cand -> 'cand -> plaintext) * ('cand -> 'cand -> char list)
-   * 'cand eCount
+   * ('cand -> 'cand -> plaintext) * ('cand -> 'cand -> decZkp) * 'cand eCount
 | Ecfin of ('cand -> 'cand -> Big.big_int) * ('cand -> bool)
    * ('cand -> ('cand wins_type, 'cand loses_type) sum) * 'cand eCount
 
