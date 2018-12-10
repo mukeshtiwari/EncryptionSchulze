@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
+import java.util.stream.StreamSupport;
 
 import ch.bfh.unicrypt.UniCryptException;
 import ch.bfh.unicrypt.crypto.proofsystem.classes.EqualityPreimageProofSystem;
@@ -19,6 +19,7 @@ import ch.bfh.unicrypt.helper.prime.SafePrime;
 import ch.bfh.unicrypt.helper.random.deterministic.DeterministicRandomByteSequence;
 import ch.bfh.unicrypt.math.algebra.dualistic.classes.ZMod;
 import ch.bfh.unicrypt.math.algebra.general.classes.Pair;
+import ch.bfh.unicrypt.helper.math.Permutation;
 import ch.bfh.unicrypt.math.algebra.general.classes.PermutationElement;
 import ch.bfh.unicrypt.math.algebra.general.classes.PermutationGroup;
 import ch.bfh.unicrypt.math.algebra.general.classes.ProductGroup;
@@ -61,6 +62,16 @@ public class CryptoWrapper {
 		return Tuple.getInstance();
 	}
 
+	public static int[]  convertPermtoIntArray (PermutationElement el)
+	 {
+		 return StreamSupport.stream(el.getValue().spliterator(), false).collect(Collectors.toList()).stream().mapToInt(i -> Integer.valueOf(i)).toArray();
+	 }
+	 
+	public static PermutationElement convertIntArraytoPerm(int[] arr)
+	 {
+		 return PermutationElement.getInstance(Permutation.getInstance(arr));
+	 }
+	
 	// Main method to test the code 
 	public static void main(String[] args) {
           System.out.println("Hello world");        
