@@ -988,6 +988,7 @@ Section Encryption.
     Axiom generatePermutation :
       Group -> (* group *)
       nat -> (* length  *)
+      list cand -> (* cand_all *) 
       Permutation.   
 
 
@@ -999,7 +1000,8 @@ Section Encryption.
        will be used in zero knowledge proof *)
     Axiom generatePermutationCommitment :
       Group -> (* group *)
-      nat -> (* length *) 
+      nat -> (* length *)
+      list cand -> (* cand_all *)
       Permutation -> (* pi *)
       S -> (*randomness *)
       Commitment. (* cpi *)
@@ -1008,6 +1010,7 @@ Section Encryption.
     Axiom zkpPermutationCommitment :
       Group -> (* group *)
       nat -> (* length *)
+      list cand -> (* cand_all *)
       Permutation -> (* pi *)
       Commitment -> (* cpi *)
       S -> (* randomness *)
@@ -1023,9 +1026,9 @@ Section Encryption.
     
     Axiom permutation_commitment_axiom :
       forall (grp : Group) (pi : Permutation) (cpi : Commitment) (s : S) (zkppermcommit : PermZkp)
-        (H1 : cpi = generatePermutationCommitment grp (List.length cand_all) pi s)
+        (H1 : cpi = generatePermutationCommitment grp (List.length cand_all) cand_all pi s)
         (H2 : zkppermcommit = zkpPermutationCommitment
-                                grp (List.length cand_all) pi cpi s),
+                                grp (List.length cand_all) cand_all pi cpi s),
         verify_permutation_commitment grp (List.length cand_all)
                                       cpi zkppermcommit = true.
     
@@ -1050,7 +1053,9 @@ Section Encryption.
        elGamal, publickey and n *)
     Axiom shuffle :
       Group -> (* group *)
-      nat -> 
+      nat ->
+      list cand -> (* cand_all because we need to convert function into list *)
+      (forall n m : cand, {n = m} + {n <> m}) -> (* This is need because we want to construct the ballot *)
       (cand -> ciphertext) -> (* ciphertext *)
       Permutation -> (* pi *)
       R -> (* Randomness R *)
@@ -1061,6 +1066,7 @@ Section Encryption.
     Axiom shuffle_zkp :
       Group -> (* group *)
       nat -> (* length *)
+      list cand -> (* cand_all *)
       (cand -> ciphertext) -> (* cipertext *)
       (cand -> ciphertext) -> (* shuffle cipertext *)
       Permutation -> (* pi *)
@@ -1073,6 +1079,7 @@ Section Encryption.
     Axiom verify_shuffle:
       Group -> (* group *)
       nat -> (* length *)
+      list cand ->
       (cand -> ciphertext) -> (* cipertext *)
       (cand -> ciphertext) -> (* shuffled cipertext *)
       Commitment -> (* permutation commitment *)
@@ -1085,19 +1092,19 @@ Section Encryption.
         (cp shuffledcp : cand -> ciphertext)
         (r : R) (zkprowshuffle : ShuffleZkp)
         (* H0 : s = generateS grp (List.length cand_all) *)
-        (H1 : cpi = generatePermutationCommitment grp (List.length cand_all) pi s)
-        (H2 : shuffledcp = shuffle grp (List.length cand_all) cp pi r)
+        (H1 : cpi = generatePermutationCommitment grp (List.length cand_all) cand_all pi s)
+        (H2 : shuffledcp = shuffle grp (List.length cand_all) cand_all dec_cand cp pi r)
         (H3 : zkprowshuffle = shuffle_zkp grp (List.length cand_all)
-                                          cp shuffledcp pi cpi s r),
+                                          cand_all cp shuffledcp pi cpi s r),
         verify_shuffle grp (List.length cand_all)
-                       cp shuffledcp cpi zkprowshuffle = true. 
+                       cand_all cp shuffledcp cpi zkprowshuffle = true. 
     
 
   
     (* Shuffle introduce reencryption *)
     Axiom shuffle_perm :
       forall grp n f pi r g, 
-        shuffle grp n (f : cand -> ciphertext) (pi : Permutation) r = g ->
+        shuffle grp n cand_all dec_cand (f : cand -> ciphertext) (pi : Permutation) r = g ->
         forall c, decrypt_message grp privatekey (g c) =
              decrypt_message grp privatekey (compose f (projT1 pi) c).
 
@@ -1245,14 +1252,14 @@ Section Encryption.
                (u : eballot) (v : eballot)
                (cpi : Commitment) (zkppermuv : cand -> ShuffleZkp) : cand -> bool := 
       fun c => verify_shuffle grp (List.length cand_all)
-                           (u c) (v c) cpi (zkppermuv c). 
+                           cand_all (u c) (v c) cpi (zkppermuv c). 
       
     (* cth column of w is permutation of cth column of v by pi *)                  
     Definition verify_col_permutation_ballot (grp : Group)
                (v : eballot) (w : eballot)
                (cpi : Commitment) (zkppermvw  : cand -> ShuffleZkp) : cand ->  bool :=
       fun c => verify_shuffle grp (List.length cand_all)
-                           (fun d => v d c) (fun d => w d c) cpi (zkppermvw c).
+                           cand_all (fun d => v d c) (fun d => w d c) cpi (zkppermvw c).
 
 
     
@@ -1385,14 +1392,14 @@ Section Encryption.
       (* The idea is u valid or not valid which can be shown via u -> (* row permutation *) -> v
         -> (* colume permutation *) -> w -> (* decryption *) -> b *)
       (* generate permutation pi to permute ballot*) 
-      remember (generatePermutation grp (List.length cand_all)) as pi.
+      remember (generatePermutation grp (List.length cand_all) cand_all) as pi.
       (* generate randomness S *)
       remember (generateS grp (List.length cand_all)) as s.
       (* commit to this permutation  using randomness s*)
-      remember (generatePermutationCommitment grp (List.length cand_all) pi s) as cpi.
+      remember (generatePermutationCommitment grp (List.length cand_all) cand_all pi s) as cpi.
       (* generate zero knowledge proof of commitment *)
       remember (zkpPermutationCommitment grp (List.length cand_all)
-                                         pi cpi s) as zkpcpi.
+                                         cand_all pi cpi s) as zkpcpi.
       (* At this point I can assert that 
          verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true 
          using the Axiom permutation_commitment_axiom *)
@@ -1414,12 +1421,12 @@ Section Encryption.
       (* get the ballot v by shuffling each row by pi and randomness R *)
       remember (fun c =>
                   shuffle grp (List.length cand_all)
-                          (u c) pi (rrowfunvalues c)) as v.
+                          cand_all dec_cand (u c) pi (rrowfunvalues c)) as v.
       (* construct zero knowledge proof of shuffle that v is row shuffle of u by pi
          using the same randomness R which used in shuffle *)
       remember (fun c =>
                   shuffle_zkp grp (List.length cand_all)
-                              (u c) (v c) pi cpi s (rrowfunvalues c)) as zkppermuv.
+                              cand_all (u c) (v c) pi cpi s (rrowfunvalues c)) as zkppermuv.
       
            
       (* Show that verify_row_permutation_ballot u v cpi zkppermuv return true.
@@ -1431,7 +1438,7 @@ Section Encryption.
       pose proof (verify_shuffle_axiom grp pi cpi s (u c) (v c) (rrowfunvalues c) (zkppermuv c)
                                         Heqcpi).
       assert (Hvr : v c = shuffle grp (List.length cand_all)
-                                  (u c) pi (rrowfunvalues c)).
+                                  cand_all dec_cand (u c) pi (rrowfunvalues c)).
       rewrite Heqv; try auto.
       specialize (H1 Hvr). clear Hvr. rewrite Heqzkppermuv in H1.
       specialize (H1 eq_refl). rewrite Heqzkppermuv; try auto. 
@@ -1452,13 +1459,13 @@ Section Encryption.
          permuted cth column of v. Important *)
       remember (fun c =>
                   shuffle grp (List.length cand_all)
-                          (fun d => v d c) pi (rcolfunvalues c)) as t. 
+                          cand_all dec_cand (fun d => v d c) pi (rcolfunvalues c)) as t. 
       remember (fun c d => t d c) as w. (* transpose t to get w in row form *)
         
       (* construct zero knowledge proof of shuffle that w is column permutation of v by pi *)
       remember (fun c =>
                   shuffle_zkp grp (List.length cand_all)
-                              (fun d => v d c) (fun d => w d c) pi cpi s (rcolfunvalues c))
+                              cand_all (fun d => v d c) (fun d => w d c) pi cpi s (rcolfunvalues c))
         as zkppermvw.
       
       assert (Ht2 : forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true).
@@ -1467,7 +1474,7 @@ Section Encryption.
                                        (rcolfunvalues c) (zkppermvw c)  Heqcpi).
       rewrite Heqw in H2.
       assert ((fun d => t c d) = shuffle grp (List.length cand_all)
-                                      (fun d : cand => v d c) pi (rcolfunvalues c)).
+                                      cand_all dec_cand (fun d : cand => v d c) pi (rcolfunvalues c)).
       rewrite Heqt; try auto.
       specialize (H2 H3).
       rewrite Heqzkppermvw in H2. rewrite Heqw in H2. specialize (H2 eq_refl).
@@ -1713,14 +1720,14 @@ Section Encryption.
       pose proof (ecvalid grp ebs).
       (* u = en, v = row permutation of u, w is column permutation of v *)
       (* generate permutation *)  
-      remember (generatePermutation grp (List.length cand_all)) as pi.
+      remember (generatePermutation grp (List.length cand_all) cand_all) as pi.
       (* generate randomness S *)
       remember  (generateS grp (List.length cand_all)) as s.
       (* commit it *)
-      remember (generatePermutationCommitment grp (List.length cand_all) pi s) as cpi.
+      remember (generatePermutationCommitment grp (List.length cand_all) cand_all pi s) as cpi.
       (* generate zero knowledge proof of commitment *)
       remember (zkpPermutationCommitment grp (List.length cand_all)
-                                         pi cpi s) as zkpcpi. 
+                                         cand_all pi cpi s) as zkpcpi. 
       (* At this point I can assert that 
          verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true 
          using the Axiom permutation_commitment_axiom *)
@@ -1747,12 +1754,12 @@ Section Encryption.
       (* get the ballot v by shuffling each row by pi and randomness R *)
       remember (fun c =>
                   shuffle grp (List.length cand_all)
-                          (en c) pi (rrowfunvalues c)) as v.
+                          cand_all dec_cand (en c) pi (rrowfunvalues c)) as v.
       (* construct zero knowledge proof of shuffle that v is row shuffle of u by pi
          using the same randomness R which used in shuffle *)
       remember (fun c =>
                   shuffle_zkp grp (List.length cand_all)
-                              (en c) (v c) pi cpi s (rrowfunvalues c)) as zkppermuv.
+                              cand_all (en c) (v c) pi cpi s (rrowfunvalues c)) as zkppermuv.
       
       
       (* Show that verify_row_permutation_ballot u v cpi zkppermuv return true.
@@ -1764,7 +1771,7 @@ Section Encryption.
       pose proof (verify_shuffle_axiom grp pi cpi s (en c) (v c) (rrowfunvalues c) (zkppermuv c)
                                         Heqcpi).
       assert (Hvr : v c = shuffle grp (List.length cand_all)
-                                  (en c) pi (rrowfunvalues c)).
+                                  cand_all dec_cand (en c) pi (rrowfunvalues c)).
       rewrite Heqv; try auto.
       specialize (H11 Hvr). clear Hvr. rewrite Heqzkppermuv in H11.
       specialize (H11 eq_refl). rewrite Heqzkppermuv; try auto. 
@@ -1788,13 +1795,13 @@ Section Encryption.
          permuted cth column of v. Important *)
       remember (fun c =>
                   shuffle grp (List.length cand_all)
-                          (fun d => v d c) pi (rcolfunvalues c)) as tt. 
+                          cand_all dec_cand (fun d => v d c) pi (rcolfunvalues c)) as tt. 
       remember (fun c d => tt d c) as w. (* transpose t to get w in row form *)
         
       (* construct zero knowledge proof of shuffle that w is column permutation of v by pi *)
       remember (fun c =>
                   shuffle_zkp grp (List.length cand_all)
-                              (fun d => v d c) (fun d => w d c) pi cpi s (rcolfunvalues c))
+                              cand_all (fun d => v d c) (fun d => w d c) pi cpi s (rcolfunvalues c))
         as zkppermvw.
       
       assert (Ht2 : forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true).
@@ -1803,7 +1810,7 @@ Section Encryption.
                                        (rcolfunvalues c) (zkppermvw c)  Heqcpi).
       rewrite Heqw in H12.
       assert ((fun d => tt c d) = shuffle grp (List.length cand_all)
-                                       (fun d : cand => v d c) pi (rcolfunvalues c)).
+                                       cand_all dec_cand (fun d : cand => v d c) pi (rcolfunvalues c)).
       rewrite Heqtt; try auto.
       specialize (H12 H13).
       rewrite Heqzkppermvw in H12. rewrite Heqw in H12. specialize (H12 eq_refl).
@@ -1854,7 +1861,7 @@ Section Encryption.
       assert (forall c d, decrypt_message grp privatekey (v c d) =
                      decrypt_message grp privatekey (en c (pi d))). 
       rewrite Heqv. intros. 
-      assert (shuffle grp (List.length cand_all) (en c)
+      assert (shuffle grp (List.length cand_all) cand_all dec_cand (en c)
                       (existT (fun pi : cand -> cand => Bijective pi) pi Sig) (rrowfunvalues c) = v c).
       rewrite Heqv. auto.
       rewrite H13. eapply shuffle_perm in H13. 
@@ -1864,7 +1871,7 @@ Section Encryption.
       assert (forall c d, decrypt_message grp privatekey (w c d) =
                      decrypt_message grp privatekey (v (pi c) d)).  
       rewrite Heqw. intros. rewrite Heqtt.
-      assert (shuffle grp (List.length cand_all) (fun d0 : cand => v d0 d)
+      assert (shuffle grp (List.length cand_all) cand_all dec_cand (fun d0 : cand => v d0 d)
                       (existT (fun pi0 : cand -> cand => Bijective pi0) pi Sig) (rcolfunvalues d) =
               fun d0 => w d0 d).
       rewrite Heqw. rewrite Heqtt. auto.
@@ -1975,14 +1982,14 @@ Section Encryption.
       (* ecinvalid *)
 
       (* generate permutation *)  
-      remember (generatePermutation grp (List.length cand_all)) as pi.
+      remember (generatePermutation grp (List.length cand_all) cand_all) as pi.
       (* generate randomness S *)
       remember (generateS grp (List.length cand_all)) as s.
       (* commit it *)
-      remember (generatePermutationCommitment grp (List.length cand_all) pi s) as cpi.
+      remember (generatePermutationCommitment grp (List.length cand_all) cand_all pi s) as cpi.
       (* generate zero knowledge proof of commitment *)
       remember (zkpPermutationCommitment grp (List.length cand_all)
-                                         pi cpi s) as zkpcpi. 
+                                         cand_all pi cpi s) as zkpcpi. 
       (* At this point I can assert that 
          verify_permutation_commitment grp (List.length cand_all) cpi zkpcpi = true 
          using the Axiom permutation_commitment_axiom *)
@@ -2008,12 +2015,12 @@ Section Encryption.
       (* get the ballot v by shuffling each row by pi and randomness R *)
       remember (fun c =>
                   shuffle grp (List.length cand_all)
-                          (en c) pi (rrowfunvalues c)) as v.
+                          cand_all dec_cand (en c) pi (rrowfunvalues c)) as v.
       (* construct zero knowledge proof of shuffle that v is row shuffle of u by pi
          using the same randomness R which used in shuffle *)
       remember (fun c =>
                   shuffle_zkp grp (List.length cand_all)
-                              (en c) (v c) pi cpi s (rrowfunvalues c)) as zkppermuv.
+                              cand_all (en c) (v c) pi cpi s (rrowfunvalues c)) as zkppermuv.
       
            
       (* Show that verify_row_permutation_ballot u v cpi zkppermuv return true.
@@ -2025,7 +2032,7 @@ Section Encryption.
       pose proof (verify_shuffle_axiom grp pi cpi s (en c) (v c) (rrowfunvalues c) (zkppermuv c)
                                         Heqcpi).
       assert (Hvr : v c = shuffle grp (List.length cand_all)
-                                  (en c) pi (rrowfunvalues c)).
+                                  cand_all dec_cand (en c) pi (rrowfunvalues c)).
       rewrite Heqv; try auto.
       specialize (H14 Hvr). clear Hvr. rewrite Heqzkppermuv in H14.
       specialize (H14 eq_refl). rewrite Heqzkppermuv; try auto. 
@@ -2049,13 +2056,13 @@ Section Encryption.
          permuted cth column of v. Important *)
       remember (fun c =>
                   shuffle grp (List.length cand_all)
-                          (fun d => v d c) pi (rcolfunvalues c)) as tt. 
+                          cand_all dec_cand (fun d => v d c) pi (rcolfunvalues c)) as tt. 
       remember (fun c d => tt d c) as w. (* transpose t to get w in row form *)
         
       (* construct zero knowledge proof of shuffle that w is column permutation of v by pi *)
       remember (fun c =>
                   shuffle_zkp grp (List.length cand_all)
-                              (fun d => v d c) (fun d => w d c) pi cpi s (rcolfunvalues c))
+                              cand_all (fun d => v d c) (fun d => w d c) pi cpi s (rcolfunvalues c))
         as zkppermvw.
       
       assert (Ht2 : forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true).
@@ -2064,7 +2071,7 @@ Section Encryption.
                                        (rcolfunvalues c) (zkppermvw c)  Heqcpi).
       rewrite Heqw in H15.
       assert ((fun d => tt c d) = shuffle grp (List.length cand_all)
-                                      (fun d : cand => v d c) pi (rcolfunvalues c)).
+                                      cand_all dec_cand (fun d : cand => v d c) pi (rcolfunvalues c)).
       rewrite Heqtt; try auto.
       specialize (H15 H16).
       rewrite Heqzkppermvw in H15. rewrite Heqw in H15. specialize (H15 eq_refl).
@@ -2113,7 +2120,7 @@ Section Encryption.
       assert (forall c d, decrypt_message grp privatekey (v c d) =
                      decrypt_message grp privatekey (en c (pi d))). 
       rewrite Heqv. intros. 
-      assert (shuffle grp (List.length cand_all) (en c)
+      assert (shuffle grp (List.length cand_all) cand_all dec_cand (en c)
                       (existT (fun pi : cand -> cand => Bijective pi) pi Sig) (rrowfunvalues c) = v c).
       rewrite Heqv. auto.
       rewrite H18. eapply shuffle_perm in H18. 
@@ -2123,7 +2130,7 @@ Section Encryption.
       assert (forall c d, decrypt_message grp privatekey (w c d) =
                      decrypt_message grp privatekey (v (pi c) d)).   
       rewrite Heqw. intros. rewrite Heqtt.
-      assert (shuffle grp (List.length cand_all ) (fun d0 : cand => v d0 d)
+      assert (shuffle grp (List.length cand_all ) cand_all dec_cand (fun d0 : cand => v d0 d)
                       (existT (fun pi0 : cand -> cand => Bijective pi0) pi Sig) (rcolfunvalues d) =
               fun d0 => w d0 d).
       rewrite Heqw. rewrite Heqtt. auto.
@@ -2399,7 +2406,7 @@ Section Encryption.
       forall grp cpi zkpcpi, 
         verify_permutation_commitment grp (Datatypes.length cand_all) cpi zkpcpi = true ->
         existsT (pi : Permutation), forall (f g : cand -> ciphertext) (zkppf : ShuffleZkp), 
-      verify_shuffle grp (Datatypes.length cand_all) f g cpi zkppf = true ->
+      verify_shuffle grp (Datatypes.length cand_all) cand_all f g cpi zkppf = true ->
           forall c, decrypt_message grp privatekey (g c) =
                decrypt_message grp privatekey (compose f (projT1 pi) c).
     
