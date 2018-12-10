@@ -453,32 +453,6 @@ let construct_function_from_list dec_cand cand_lst lst =
      in loop cand_lst lst
 
 
-(* permutation function in forward direction 
- index 0; 1; 2; 3
- ===========
- permlist [3; 0; 2; 1] 
-f 0 = 3
-f 1 = 0
-f 2 = 2
-f 3 = 1 *)
-let permutation_function_forward perm_list = 
-   fun c -> List.nth perm_list c
-
-(* reverse interpreation. I think this is what we assumed in our implementation 
- index 0; 1; 2; 3
- ===========
- permlist [3; 0; 2; 1] 
-
-f 3 = 0 
-f 0 = 1
-f 2 = 2
-f 1 = 3 *)
-
-let permutation_function_reverse perm_list =
-  let n = List.length perm_list in 
-  let zip_list = List.combine perm_list (List.init n (fun x -> x)) in
-  fun c -> List.assoc c zip_list
-
 
 (* This is what we need in our implementation. Converts permutation list into permutation function *)
 let perm_function cand_list perm_list = 
