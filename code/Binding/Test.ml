@@ -480,6 +480,14 @@ let permutation_function_reverse perm_list =
   fun c -> List.assoc c zip_list
 
 
+(* This is what we need in our implementation. Converts permutation list into permutation function *)
+let perm_function cand_list perm_list = 
+  let zip_list = List.combine cand_list perm_list in 
+  fun c -> List.nth cand_list (List.assoc c zip_list)
+
+(* Converts permutation function into list which will be converted back into java data structure PermutationElement *)
+let perm_list cand_all perm_fun = 
+   List.map perm_fun cand_all
 
 (* Glue code *)
 let construct_group prime gen pubkey =   
@@ -519,7 +527,7 @@ let () =
    let (encm1, encm2) = encrypt_message_binding grp gen pubkey (big_int_from_string "1")  in
    let eqi = construct_encryption_zero_knowledge_proof_binding grp gen pubkey prikey (encm1, encm2) in
    let decm = decrypt_message_binding grp gen prikey (encm1, encm2) in
-   let verifydec = verify_decryption_binding grp gen pubkey decm (encm1, encm2) eqi in
+   let verifydec = verify_decryption_binding grp gen pubkey (*big_int_from_string "2"*) decm (encm1, encm2) eqi in
    (*generate permutation, randomness s, commit to permutation, geenrate zero knowledge proof, verify zero knowledge proof *)
    let perm = generatePermutation_binding grp gen pubkey 4 in
    let rands = generateS_binding grp gen pubkey 4 in 
@@ -540,10 +548,27 @@ let () =
    (* convert ballot into ocaml list *) 
    let ballot_list = construct_list_from_ballot ballot in 
    let ballot_fun = construct_function_from_list (=) [0; 1; 2; 3] ballot_list in
-   let ballot_list_from_fun = construct_list_from_function [0; 1; 2; 3] ballot_fun in  
+   let ballot_list_from_fun = construct_list_from_function [0; 1; 2; 3] ballot_fun in 
+   (* This is for testing behaviour of permtuation function *)
+   (* Generate ballot, encrypt it *)
+   let pballot = [big_int_from_string "10"; big_int_from_string "11"; big_int_from_string "12"; big_int_from_string "13"] in
+   let eballot = List.map (fun x -> encrypt_message_binding grp gen pubkey x) pballot in
+   let rn = generateR_binding grp gen pubkey 4 in
+   let jballot =  construct_ballot_from_list grp eballot in
+   let jshuffled_ballot = shuffle_binding grp gen pubkey 4 jballot perm rn in 
+   let jshuffled_zkp = shuffle_zkp_binding grp gen pubkey 4 jballot jshuffled_ballot perm pcommit rands rn in (* use r and it will not check *)
+   let jverify_shuffle = shuffle_zkp_verification_binding grp gen pubkey 4 jshuffled_zkp (Triple.get_instance pcommit jballot jshuffled_ballot) in  
+   (* Now decrypt the ballot and see how permutation behaves *)
+   let olist =  construct_list_from_ballot jshuffled_ballot in 
+   let dlist = List.map (fun x -> decrypt_message_binding grp gen prikey x) olist in
+   print_list Big_integer.to_string pballot;
+   print_newline ();
+   print_list Big_integer.to_string dlist;
+   print_newline ();
+   print_endline (if jverify_shuffle then "true" else "false");
    print_endline (Gstar_mod_element.to_string pubkey);
    print_endline (Zmod_element.to_string prikey);
-   print_endline ("(" ^ Big_integer.to_string encm1 ^ ", " ^ Big_integer.to_string encm2 ^ ")");
+   print_endline (print_pair (encm1, encm2));
    print_endline (Element.to_string eqi);
    print_endline (Big_integer.to_string decm); 
    print_endline (if verifydec then "true" else "false");
@@ -553,7 +578,7 @@ let () =
    print_endline (Element.to_string perm_zkp);
    print_endline (if b then "true" else "false");
    print_endline (Tuple.to_string r);
-   print_endline ("( " ^ Big_integer.to_string fp ^ ", " ^ Big_integer.to_string sp ^ ")");
+   print_endline (print_pair (fp, sp));
    print_endline (Big_integer.to_string newdec);
    print_endline (if verifyndec then "true" else "false");
    print_endline (Tuple.to_string ballot);
