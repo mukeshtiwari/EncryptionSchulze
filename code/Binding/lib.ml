@@ -1286,8 +1286,8 @@ let generatePermutation (Group (prime, generator, publickey)) n cand_list =
   let perm = generatePermutation_binding grp gen pubkey (nat_to_int n) in
   let parr = construct_array_from_permutation_element perm in
   let plist = create_list_from_array parr in
-  print_list string_of_int plist;
-  print_newline ();
+  (* print_list string_of_int plist;
+  print_newline (); *)
   ExistT (perm_function cand_list plist, __) 
 
 (** val generateS : group -> nat -> s **)
@@ -1821,42 +1821,43 @@ let rec add_string = function
   | 0 -> ""
   | n -> "-" ^ add_string (n - 1)
                             
-let underline s = s ^ "\n" ^ add_string (String.length s) ^ "\n"
+let underline s = s ^ "\n" ^ add_string (min 200 (String.length s)) ^ "\n"
 
 
 
-(*
+
 let show_count l =
   let rec show_count_aux acc = function 
-  | Ecax (us, encm, decm, zkpdec) -> (underline ("M: " ^ show_enc_marg m ^ ", Decrypted margin " ^ show_marg dm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ Big.to_string v)) :: acc 
+  | Ecax (us, encm, decm, zkpdec) -> (underline ("M: " ^ show_enc_marg encm ^ ", Decrypted margin " ^ show_marg decm ^ ", Zero Knowledge Proof of Honest Decryption: ")) :: acc 
   | Ecvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, nm, inbs, c) ->
      show_count_aux (underline (
        "V: [" ^ show_enc_ballot u ^ (if bool_b us then "]" else ",..]")  ^
          ", I:  " ^ show_list_inv_ballot inbs  ^ ", M: " ^ show_enc_marg m ^ ", Row Permuted Ballot: " ^ show_enc_ballot v ^
          ", Column Permuted Ballot: " ^ show_enc_ballot w ^
-         ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ Big.to_string zkppermuv ^ 
-         ", Zero Knowledge Proof of Column Permutation: " ^ Big.to_string zkppermvw ^
-         ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecw) :: acc) c 
+         ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^
+         ", Zero Knowledge Proof of Column Permutation: " ^
+         ", Zero Knowledge Proof of Decryption: ") :: acc) c 
   | Ecinvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, inbs, c)  ->
      show_count_aux (underline (
        "V: [" ^ show_enc_ballot u ^
          (if bool_b us then "]" else ",..]") ^ ", I: " ^ show_list_inv_ballot inbs ^ 
            ", M: " ^ show_enc_marg m ^ ", Row Permuted Ballot: " ^ show_enc_ballot v ^ 
            ", Column Permuted Ballot: " ^ show_enc_ballot w ^
-           ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ Big.to_string zkppermuv ^ 
-           ", Zero Knowledge Proof of Column Permutation: " ^ Big.to_string zkppermvw ^
-           ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecw) :: acc) c
+           ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ 
+           ", Zero Knowledge Proof of Column Permutation: " ^
+           ", Zero Knowledge Proof of Decryption: ") :: acc) c
   | Ecdecrypt (inbs, encm, decm, zkpdecm, c) -> 
      show_count_aux (underline (
-       "V: [], I: " ^ show_list_inv_ballot inbs ^ ", M: " ^ show_enc_marg m ^ ", DM: " ^ show_marg dm ^ 
-       ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecm) :: acc) c 
+       "V: [], I: " ^ show_list_inv_ballot inbs ^ ", M: " ^ show_enc_marg encm ^ ", DM: " ^ show_marg decm ^ 
+       ", Zero Knowledge Proof of Decryption: ") :: acc) c 
   | Ecfin (m, p, f, c) ->
      show_count_aux (underline (
        "DM: " ^ show_marg m ^
        String.concat "\n" (List.map (fun x -> show_cand f x) cand_all) ^ "\n") :: acc) c
-in show_count_aux [] l  *)
+in show_count_aux [] l 
 
-let rec list_to_string = function []
+(*
+let rec list_to_string = function
  | [] -> ""
  | h :: t -> h ^ " " ^ list_to_string t
 
@@ -1872,11 +1873,13 @@ let show_list u =
 let rec show_count = function 
 | Ecax (us, encm, decm, zkpdec) -> (underline ("M: " ^ show_enc_marg encm ^ ", Decrypted margin " ^ show_marg decm ))
 | Ecvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, nm, inbs, c) -> 
-           (show_count c) ^ "\nShowing ballot u\n" ^ show_list u ^ "\nShowing row permuted v\n" ^ show_list v ^ "\nShowing column permuted w\n" ^ show_list w ^ "\nDecrypted ballot b\n" ^ show_ballot b  
+           (show_count c) ^ "\nValid case Showing ballot u\n" ^ show_list u ^ 
+           "\nShowing row permuted v\n" ^ show_list v ^ "\nShowing column permuted w\n" ^ show_list w ^ "\nDecrypted ballot b\n" ^ show_ballot b  
 | Ecinvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, inbs, c) -> 
-           show_count c ^ "\nShowing ballot u\n" ^ show_list u ^ "\nShowing row permuted v\n" ^ show_list v ^ "\nShowing column permuted w\n" ^ show_list w ^ "\nDecrypted ballot b\n" ^ show_ballot b
-| Ecdecrypt (inbs, encm, decm, zkpdecm, c) -> show_count c 
-| Ecfin (m, p, f, c) -> show_count c 
+           show_count c ^ "\nInvalid case Showing ballot u\n" ^ show_list u ^ 
+           "\nShowing row permuted v\n" ^ show_list v ^ "\nShowing column permuted w\n" ^ show_list w ^ "\nDecrypted ballot b\n" ^ show_ballot b
+| Ecdecrypt (inbs, encm, decm, zkpdecm, c) -> "Decrypted margin \n" ^ show_marg decm ^ "\n" ^ show_count c 
+| Ecfin (m, p, f, c) -> show_count c  *)
 
 
 
@@ -1926,7 +1929,7 @@ let _ =
   let w = map (fun x -> map (fun (a, b, (c, d)) -> (cc a, cc b,  (Big.of_string c, Big.of_string d))) x) e in
   let v = map (fun x -> balfun x) w in
   match eschulze_winners_pf (Group (prime, generator, publickey)) v with
-  | ExistT (f, y) ->  List.iter (fun x -> Format.printf "%s" x) [(show_count y)]
+  | ExistT (f, y) ->  (* List.iter (fun x -> print_endline (string_of_bool (f x))) [A; B; C] *) List.iter (fun x -> Format.printf "%s" x) (show_count y)
 
 (* Format.printf "%s" (show_enc_marg f)  List.iter (fun x -> Format.printf "%s" x) (show_count y) *)
 
