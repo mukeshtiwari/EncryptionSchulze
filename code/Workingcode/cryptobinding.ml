@@ -1,7 +1,7 @@
 open Big
 open Lib
 
-let () = Java.init [| "-Djava.class.path=ocaml-java/bin/ocaml-java.jar:jarfiles/unicrypt-2.3.jar:jarfiles/jnagmp-2.0.0.jar:jarfiles/jna-4.5.0.jar:jarfiles/schulze.jar:." |]
+let () = Java.init [| "-Djava.class.path=jarfiles/ocaml-java.jar:jarfiles/unicrypt-2.3.jar:jarfiles/jnagmp-2.0.0.jar:jarfiles/jna-4.5.0.jar:jarfiles/schulze.jar:." |]
 
 type __ = Obj.t
 let __ = let rec f _ = Obj.repr f in Obj.repr f
