@@ -505,12 +505,18 @@ let perm_function cand_list perm_list =
   let zip_list = List.combine cand_list perm_list in 
   fun c -> List.nth cand_list (List.assoc c zip_list)
 
+let rec list_enum a b = 
+  if a >= b then []
+  else a :: list_enum (a + 1) b 
+
 (* Converts permutation function into list which will be converted back into java data structure PermutationElement *)
 let perm_list cand_all perm_fun = 
-   List.map perm_fun cand_all
+  let zip_list = List.combine cand_all (list_enum 0 (List.length cand_all)) in 
+  let plist = List.map perm_fun cand_all in
+  List.map (fun x -> List.assoc x zip_list) plist   
 
 (* Glue code *)
-let construct_group prime gen pubkey =   
+let construct_group (prime, gen, pubkey) =   
    let safep = safe_prime prime in
    let group = group_from_safe_prime safep in
    let generator = generator_from_group group gen in
@@ -518,12 +524,13 @@ let construct_group prime gen pubkey =
    (group, generator, publickey)
 
 let construct_private_key (group, generator, publickey) prikey =
-   get_zmod_prime group prikey
+   let (grp, gen, pubkey) = construct_group (group, generator, publickey) in
+   get_zmod_prime grp prikey
 
-let ocaml_big_int_java_big_int pt = 
+let ocaml_big_int_to_java_big_int pt = 
     big_int_from_string (Big.to_string pt)
 
-let java_big_int_ocaml_big_int pt = 
+let java_big_int_to_ocaml_big_int pt = 
    Big.of_string (Big_integer.to_string pt)  
 
 (* end of glue code *)
@@ -1223,79 +1230,141 @@ type group =
 
 (** val encrypt_message : group -> plaintext -> ciphertext **)
 
-let encrypt_message (Group (pr, ge, pu)) pt = 
-   let (grp, gen, pubkey) = construct_group (pr, ge, pu) in 
-   encrypt_message_binding grp gen pubkey pt
+let encrypt_message (Group (prime, generator, publickey)) pt = 
+  let jpt = ocaml_big_int_to_java_big_int pt in
+  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in 
+  let (c1, c2) = encrypt_message_binding grp gen pubkey jpt in 
+  (java_big_int_to_ocaml_big_int c1, java_big_int_to_ocaml_big_int c2)
 
 (** val decrypt_message : group -> prikey -> ciphertext -> plaintext **)
 
-let decrypt_message =
-  failwith "AXIOM TO BE REALIZED"
+let decrypt_message (Group (prime, generator, publickey)) privatekey (c1, c2) =
+  let (d1, d2) = (ocaml_big_int_to_java_big_int c1, ocaml_big_int_to_java_big_int c2) in
+  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
+  let prikey = construct_private_key (prime, generator, publickey) privatekey in 
+  let decmsg = decrypt_message_binding grp gen prikey (d1, d2) in 
+  java_big_int_to_ocaml_big_int decmsg
+  
 
 (** val construct_zero_knowledge_decryption_proof :
     group -> prikey -> ciphertext -> decZkp **)
 
-let construct_zero_knowledge_decryption_proof =
-  failwith "AXIOM TO BE REALIZED"
+let construct_zero_knowledge_decryption_proof (Group (prime, generator, publickey)) privatekey (c1, c2) =
+    let (d1, d2) =  (ocaml_big_int_to_java_big_int c1, ocaml_big_int_to_java_big_int c2) in
+    let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
+    let prikey = construct_private_key (prime, generator, publickey) privatekey in
+    Element.to_string (construct_encryption_zero_knowledge_proof_binding grp gen pubkey prikey (d1, d2)) (* Just for testing purpose this is string. Replace it with Java object *)
+  
 
 type 'cand permutation = ('cand -> 'cand, __) sigT
 
-type commitment (* AXIOM TO BE REALIZED *)
+type commitment = Element.t (* AXIOM TO BE REALIZED *)
 
-type permZkp (* AXIOM TO BE REALIZED *)
+type permZkp = Element.t (* AXIOM TO BE REALIZED *)
 
-type s (* AXIOM TO BE REALIZED *)
+type s = Element.t (* AXIOM TO BE REALIZED *)
+
+
+let rec nat_to_int = function 
+  | O -> 0
+  | S n' -> 1 + nat_to_int n'
+
+
+let print_list f lst =
+  let rec print_elements = function
+    | [] -> ()
+    | h  :: t -> print_string (f h); print_string ";"; print_elements t
+  in
+  print_string "[";
+  print_elements lst;
+  print_string "]";;
 
 (** val generatePermutation : group -> nat -> 'a1 list -> 'a1 permutation **)
 
-let generatePermutation =
-  failwith "AXIOM TO BE REALIZED"
+let generatePermutation (Group (prime, generator, publickey)) n cand_list =
+  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in  
+  let perm = generatePermutation_binding grp gen pubkey (nat_to_int n) in
+  let parr = construct_array_from_permutation_element perm in
+  let plist = create_list_from_array parr in
+  print_list string_of_int plist;
+  print_newline ();
+  ExistT (perm_function cand_list plist, __) 
 
 (** val generateS : group -> nat -> s **)
 
-let generateS =
-  failwith "AXIOM TO BE REALIZED"
+let generateS (Group (prime, generator, publickey)) n =
+  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
+  generateS_binding grp gen pubkey (nat_to_int n)  
 
 (** val generatePermutationCommitment :
     group -> nat -> 'a1 list -> 'a1 permutation -> s -> commitment **)
 
-let generatePermutationCommitment =
-  failwith "AXIOM TO BE REALIZED"
+let generatePermutationCommitment (Group (prime, generator, publickey)) n cand_list (ExistT (f, __)) rands =
+  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
+  let plist = perm_list cand_list f in 
+  let parr = construct_array_from_list plist in 
+  let perm = construct_permutation_element_from_array parr in    
+  generatePermutationCommitment_binding grp gen pubkey (nat_to_int n) perm rands
 
 (** val zkpPermutationCommitment :
     group -> nat -> 'a1 list -> 'a1 permutation -> commitment -> s -> permZkp **)
 
-let zkpPermutationCommitment =
-  failwith "AXIOM TO BE REALIZED"
+let zkpPermutationCommitment (Group (prime, generator, publickey)) n cand_list (ExistT (f, __)) pcommit rands = 
+  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
+  let plist = perm_list cand_list f in 
+  let parr = construct_array_from_list plist in
+  let perm = construct_permutation_element_from_array parr in
+  zkpPermutationCommitment_binding grp gen pubkey (nat_to_int n) perm pcommit rands
 
 (** val homomorphic_addition :
     group -> ciphertext -> ciphertext -> ciphertext **)
 
-let homomorphic_addition =
-  failwith "AXIOM TO BE REALIZED"
+let homomorphic_addition (Group (prime, generator, publickey)) (c1, c2) (d1, d2) = 
+  let (c1', c2') =  (ocaml_big_int_to_java_big_int c1, ocaml_big_int_to_java_big_int c2) in
+  let (d1', d2') =  (ocaml_big_int_to_java_big_int d1, ocaml_big_int_to_java_big_int d2) in
+  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
+  let (fp, sp) = homomorphic_addition_binding grp gen pubkey (c1', c2') (d1', d2') in
+  (java_big_int_to_ocaml_big_int fp, java_big_int_to_ocaml_big_int sp)
 
-type r (* AXIOM TO BE REALIZED *)
+type r = Tuple.t (* AXIOM TO BE REALIZED *)
 
-type shuffleZkp (* AXIOM TO BE REALIZED *)
+type shuffleZkp = Element.t (* AXIOM TO BE REALIZED *)
 
 (** val generateR : group -> nat -> r **)
 
-let generateR =
-  failwith "AXIOM TO BE REALIZED"
+let generateR (Group (prime, generator, publickey)) n = 
+  let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
+  generateR_binding grp gen pubkey (nat_to_int n)
+
 
 (** val shuffle :
     group -> nat -> 'a1 list -> ('a1 -> 'a1 -> bool) -> ('a1 -> ciphertext)
     -> 'a1 permutation -> r -> 'a1 -> ciphertext **)
 
-let shuffle =
-  failwith "AXIOM TO BE REALIZED"
+let shuffle (Group (prime, generator, publickey)) n cand_all dec_cand bf (ExistT (f, __)) rn =
+   let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in 
+   let blist = List.map (fun (c1, c2) -> (ocaml_big_int_to_java_big_int c1, ocaml_big_int_to_java_big_int c2)) (List.map bf cand_all) in 
+   let jballot = construct_ballot_from_list grp blist in
+   let plist = construct_array_from_list (perm_list cand_all f) in 
+   let perm = construct_permutation_element_from_array  plist in
+   let sballot = shuffle_binding grp gen pubkey (nat_to_int n) jballot perm rn in
+   let shuffled_ballot = List.map (fun (c1, c2) -> (java_big_int_to_ocaml_big_int c1, java_big_int_to_ocaml_big_int c2)) (construct_list_from_ballot sballot) in
+   construct_function_from_list dec_cand cand_all shuffled_ballot 
+   
 
 (** val shuffle_zkp :
     group -> nat -> 'a1 list -> ('a1 -> ciphertext) -> ('a1 -> ciphertext) ->
     'a1 permutation -> commitment -> s -> r -> shuffleZkp **)
 
-let shuffle_zkp =
-  failwith "AXIOM TO BE REALIZED"
+let shuffle_zkp (Group (prime, generator, publickey)) n cand_all ballot shuffled_ballot (ExistT (f, __)) pcommit rands rn = 
+   let (grp, gen, pubkey) = construct_group (prime, generator, publickey) in
+   let blist = List.map (fun (c1, c2) -> (ocaml_big_int_to_java_big_int c1, ocaml_big_int_to_java_big_int c2)) (List.map ballot cand_all) in
+   let blist_shuffled = List.map (fun (c1, c2) -> (ocaml_big_int_to_java_big_int c1, ocaml_big_int_to_java_big_int c2)) (List.map shuffled_ballot cand_all) in
+   let jballot = construct_ballot_from_list grp blist in 
+   let jballot_shuffled = construct_ballot_from_list grp blist_shuffled in
+   let plist =  construct_array_from_list (perm_list cand_all f) in 
+   let perm = construct_permutation_element_from_array  plist in 
+   shuffle_zkp_binding grp gen pubkey (nat_to_int n) jballot jballot_shuffled perm pcommit rands rn
 
 (** val pair_cand_dec :
     ('a1 -> 'a1 -> bool) -> ('a1 * 'a1) -> ('a1 * 'a1) -> bool **)
@@ -1541,3 +1610,329 @@ let cand_eq_dec a b =
 
 let eschulze_winners_pf =
   pschulze_winners cand_all cand_eq_dec
+
+(* end of extracted code *)
+
+
+(* print values *)
+
+(*
+let show_bool = function 
+  | Lib.True -> "True"
+  | Lib.False -> "False" *)
+
+let rec nat_int = function
+  | O -> 0
+  | S n' -> 1 + nat_int n'
+(*
+let rec ocamllist = function
+  | Nil -> []
+  | Cons (h, t) -> h :: ocamllist t *)
+                                  
+let show_nat n = string_of_int (nat_int n)         
+
+(*
+let rec ocaml_pos = function
+  | Lib.XH -> 1
+  | p ->
+     let rec ocaml_help t c =
+       match t with
+       | Lib.XH -> c
+       | Lib.XO r -> ocaml_help r (2 * c)
+       | Lib.XI r -> c + ocaml_help r (2 * c)
+     in ocaml_help p 1
+
+let ocaml_z = function
+  | Lib.Z0 -> 0
+  | Lib.Zpos p -> ocaml_pos p
+  | Lib.Zneg p -> -1 * ocaml_pos p
+
+let show_z p = string_of_int (ocaml_z p) *)
+                             
+let show_cand = function
+  | A -> "A"
+  | B -> "B"
+  | C -> "C"
+  (*| Lib.D -> "D"
+  | Lib.E -> "E"
+  | Lib.F -> "F"
+  | Lib.G -> "G"
+  | Lib.H -> "H"
+  | Lib.I -> "I"
+  | Lib.J -> "J"
+  | Lib.K -> "K"
+  | Lib.L -> "L"
+  | Lib.N -> "N"
+  | Lib.P -> "P"
+  | Lib.Q -> "Q"
+  | Lib.R -> "R"
+  | Lib.T -> "T"
+  | Lib.U -> "U"
+  | Lib.V -> "V"
+  | Lib.X -> "X"
+  | Lib.Y -> "Y"
+  | Lib.Z -> "Z"*)
+
+(*
+let compare x y =
+  match Lib.cand_eq_dec x y with
+  | Left -> true
+  | _ -> false *)
+
+
+let compare x y = cand_eq_dec x y
+
+(*
+let compare_pair x y =
+  match x, y with
+  | Lib.Pair (x1, y1), Lib.Pair (x2, y2) -> compare x1 x2 && compare y1 y2 *)
+ 
+let cartesian l l' = 
+          List.concat (List.map (fun e -> List.map (fun e' -> (e,e')) l') l)
+
+let rec cross_prod_orig l = cartesian l l
+
+                                                                  
+let show_cand_pair (c1, c2) = "(" ^ show_cand c1 ^ "," ^ show_cand c2 ^ ")"
+
+(*
+let compare_truth x y =
+  match x, y with
+  | Lib.True, Lib.True | Lib.False, Lib.False -> true
+  | _, _ -> false *)
+
+let compare_truth x y = x = y
+ 
+(* 
+let show_coclosed f l =
+  "[" ^ String.concat
+          ","
+          (List.map show_cand_pair  
+          (List.filter (fun (x, y) -> compare_truth (f (Lib.Pair (x, y))) Lib.True)
+                       (cross_prod_orig l))) ^ "]" *)
+
+let show_coclosed f l =
+  "[" ^ String.concat
+          ","
+          (List.map show_cand_pair
+          (List.filter (fun (x, y) -> compare_truth (f (x, y)) true)
+                       (cross_prod_orig l))) ^ "]"
+
+
+let show_help f c d = show_cand c ^ show_cand d ^ Big.to_string (f c d)
+  
+let show_ballot f =
+  String.concat " " (List.map (fun (c, d) -> show_help f c d) (cross_prod_orig cand_all))
+
+let show_enc_pair (f, s) = 
+        "(" ^ Big.to_string f ^ ", " ^ Big.to_string s ^ ")"
+
+let show_enc_help f c d = show_cand c ^ show_cand d ^ show_enc_pair (f c d)
+
+let show_enc_ballot f = 
+    String.concat " " (List.map (fun (c, d) -> show_enc_help f c d) (cross_prod_orig cand_all))
+
+let show_enc_marg m = show_enc_ballot m 
+
+(*
+let bool_b = function
+  | Nil -> true
+  | _ -> false *)
+
+let bool_b = function
+  | [] -> true
+  | _ -> false
+
+(*  
+let show_list_inv_ballot = function
+  | Nil ->"[]"
+  | Cons (b, Nil) -> "[" ^ show_enc_ballot b ^ "]"
+  | Cons (b, _) -> "[" ^ show_enc_ballot b ^ ",..]" *)
+
+let show_list_inv_ballot = function
+  | [] ->"[]"
+  | [b] -> "[" ^ show_enc_ballot b ^ "]"
+  | b :: _ -> "[" ^ show_enc_ballot b ^ ",..]"
+
+
+let rec cross_prod = function
+  | [] -> []
+  | h :: t -> List.map (fun x -> (h, x)) t @ cross_prod t
+                                                     
+let show_pair c1 c2 n = show_cand c1 ^ show_cand c2 ^ ": " ^ Big.to_string n                                       
+
+let show_marg m =
+  "[" ^ String.concat
+          " "
+          (List.map (fun (x, y) -> show_pair x y (m x y)) (cross_prod_orig  cand_all))
+  ^ "]"
+      
+let rec show_path = function
+  | UnitT (x, y) -> show_cand x ^ " --> " ^ show_cand y
+  | ConsT (x, _, _, p) -> show_cand x ^ " --> " ^ show_path p
+
+(*
+let rec show_winner g x xs =
+  match xs with
+  | [] -> ""
+  | y :: ys -> if compare x y then show_winner g x ys
+               else
+                 match (g y) with
+                 | ExistT (u, Pair (v, ExistT (f, _))) ->
+                    "   for " ^ show_cand y ^ ": " ^ "path " ^
+                      show_path v ^ " of strenght "  ^ show_z u ^  ", " ^
+                        string_of_int (1 + ocaml_z u) ^ 
+                          "-" ^ "coclosed set: " ^ show_coclosed f (ocamllist Lib.cand_all)
+                       ^ (if ys = [] then " " else "\n")  ^ show_winner g x ys  *)
+
+let rec show_winner g x xs =
+  match xs with
+  | [] -> ""
+  | y :: ys -> if compare x y then show_winner g x ys
+               else
+                 match (g y) with
+                 | ExistT (u, (v, ExistT (f, _))) ->
+                    "   for " ^ show_cand y ^ ": " ^ "path " ^
+                      show_path v ^ " of strenght "  ^ Big.to_string u ^  ", " ^
+                        Big.to_string (Big.add_int 1 u) ^
+                          "-" ^ "coclosed set: " ^ show_coclosed f cand_all
+                       ^ (if ys = [] then " " else "\n")  ^ show_winner g x ys
+
+(*                         
+let show_loser g x =
+  match g with
+  | ExistT (u, ExistT (c, Pair (p, ExistT (f, _)))) ->
+     "   exists " ^ show_cand c ^ ": " ^ "path " ^ show_path p ^ " of strength "
+     ^ show_z u ^ ", " ^ show_z u ^ "-" ^ "coclosed set: " ^ show_coclosed f (ocamllist Lib.cand_all) *)
+
+
+let show_loser g x =
+  match g with
+  | ExistT (u, ExistT (c, (p, ExistT (f, _)))) ->
+     "   exists " ^ show_cand c ^ ": " ^ "path " ^ show_path p ^ " of strength "
+     ^ Big.to_string u ^ ", " ^ Big.to_string u ^ "-" ^ "coclosed set: " ^ show_coclosed f cand_all
+ 
+let show_cand f x =
+  match f x with
+  | Inl g -> "winning: " ^ show_cand x ^ "\n" ^ show_winner g x cand_all
+  | Inr h -> "losing: " ^ show_cand x ^ "\n" ^ show_loser h x
+                                                          
+let rec add_string = function
+  | 0 -> ""
+  | n -> "-" ^ add_string (n - 1)
+                            
+let underline s = s ^ "\n" ^ add_string (String.length s) ^ "\n"
+
+
+
+(*
+let show_count l =
+  let rec show_count_aux acc = function 
+  | Ecax (us, encm, decm, zkpdec) -> (underline ("M: " ^ show_enc_marg m ^ ", Decrypted margin " ^ show_marg dm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ Big.to_string v)) :: acc 
+  | Ecvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, nm, inbs, c) ->
+     show_count_aux (underline (
+       "V: [" ^ show_enc_ballot u ^ (if bool_b us then "]" else ",..]")  ^
+         ", I:  " ^ show_list_inv_ballot inbs  ^ ", M: " ^ show_enc_marg m ^ ", Row Permuted Ballot: " ^ show_enc_ballot v ^
+         ", Column Permuted Ballot: " ^ show_enc_ballot w ^
+         ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ Big.to_string zkppermuv ^ 
+         ", Zero Knowledge Proof of Column Permutation: " ^ Big.to_string zkppermvw ^
+         ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecw) :: acc) c 
+  | Ecinvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, inbs, c)  ->
+     show_count_aux (underline (
+       "V: [" ^ show_enc_ballot u ^
+         (if bool_b us then "]" else ",..]") ^ ", I: " ^ show_list_inv_ballot inbs ^ 
+           ", M: " ^ show_enc_marg m ^ ", Row Permuted Ballot: " ^ show_enc_ballot v ^ 
+           ", Column Permuted Ballot: " ^ show_enc_ballot w ^
+           ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ Big.to_string zkppermuv ^ 
+           ", Zero Knowledge Proof of Column Permutation: " ^ Big.to_string zkppermvw ^
+           ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecw) :: acc) c
+  | Ecdecrypt (inbs, encm, decm, zkpdecm, c) -> 
+     show_count_aux (underline (
+       "V: [], I: " ^ show_list_inv_ballot inbs ^ ", M: " ^ show_enc_marg m ^ ", DM: " ^ show_marg dm ^ 
+       ", Zero Knowledge Proof of Decryption: " ^ Big.to_string zkpdecm) :: acc) c 
+  | Ecfin (m, p, f, c) ->
+     show_count_aux (underline (
+       "DM: " ^ show_marg m ^
+       String.concat "\n" (List.map (fun x -> show_cand f x) cand_all) ^ "\n") :: acc) c
+in show_count_aux [] l  *)
+
+let rec list_to_string = function []
+ | [] -> ""
+ | h :: t -> h ^ " " ^ list_to_string t
+
+let show_row r = 
+   let rw = List.map r cand_all in 
+   let dec_value = List.map (fun x -> decrypt_message (Group (prime, generator, publickey)) privatekey x) rw in 
+   list_to_string (List.map Big.to_string dec_value)  
+
+let show_list u =
+  let bl = List.map u cand_all in 
+  String.concat "\n" (List.map show_row bl )
+ 
+let rec show_count = function 
+| Ecax (us, encm, decm, zkpdec) -> (underline ("M: " ^ show_enc_marg encm ^ ", Decrypted margin " ^ show_marg decm ))
+| Ecvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, nm, inbs, c) -> 
+           (show_count c) ^ "\nShowing ballot u\n" ^ show_list u ^ "\nShowing row permuted v\n" ^ show_list v ^ "\nShowing column permuted w\n" ^ show_list w ^ "\nDecrypted ballot b\n" ^ show_ballot b  
+| Ecinvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, inbs, c) -> 
+           show_count c ^ "\nShowing ballot u\n" ^ show_list u ^ "\nShowing row permuted v\n" ^ show_list v ^ "\nShowing column permuted w\n" ^ show_list w ^ "\nDecrypted ballot b\n" ^ show_ballot b
+| Ecdecrypt (inbs, encm, decm, zkpdecm, c) -> show_count c 
+| Ecfin (m, p, f, c) -> show_count c 
+
+
+
+
+
+
+
+
+
+
+
+
+let cc c =
+  match c with
+  | 'A' -> A
+  | 'B' -> B
+  | 'C' -> C
+  | _ -> failwith "more candidate"
+
+
+(* use the same trick in coq for converting between list and function closure *)
+let cand_eq x y = 
+        match x, y with 
+        | A, A -> true
+        | B, B -> true
+        | C, C -> true 
+        | _, _ -> false
+
+let rec bal_find c d = function
+        | [] -> failwith "error "
+        | (x, y, value) :: rest ->
+                        if cand_eq c x && cand_eq d y then value
+                        else bal_find c d rest
+
+let balfun l = fun c d -> 
+    bal_find c d l
+
+let map f l =
+  let rec map_aux acc = function
+    | [] -> acc []
+    | x :: xs -> map_aux (fun ys -> acc (f x :: ys)) xs
+  in map_aux (fun ys -> ys) l 
+
+
+let _ = 
+  let e = Parser.prog Lexer.lexeme (Lexing.from_channel stdin) in
+  let w = map (fun x -> map (fun (a, b, (c, d)) -> (cc a, cc b,  (Big.of_string c, Big.of_string d))) x) e in
+  let v = map (fun x -> balfun x) w in
+  match eschulze_winners_pf (Group (prime, generator, publickey)) v with
+  | ExistT (f, y) ->  List.iter (fun x -> Format.printf "%s" x) [(show_count y)]
+
+(* Format.printf "%s" (show_enc_marg f)  List.iter (fun x -> Format.printf "%s" x) (show_count y) *)
+
+
+
+
+
+
+
