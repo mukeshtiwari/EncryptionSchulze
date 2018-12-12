@@ -1,5 +1,6 @@
 open Big
 open Lib
+open Derivation 
 
 let () = Java.init [| "-Djava.class.path=jarfiles/ocaml-java.jar:jarfiles/unicrypt-2.3.jar:jarfiles/jnagmp-2.0.0.jar:jarfiles/jna-4.5.0.jar:jarfiles/schulze.jar:." |]
 
@@ -670,7 +671,11 @@ let print_list f lst =
   print_elements lst;
   print_string "]";;
 
-(*
+
+(* This functions just here for testing purpose *)
+let rec int_to_nat n = 
+        if n <= 0 then O else S (int_to_nat (n - 1))
+
 let () = 
   let emsg = encrypt_message (Lib.Group (prime, generator, publickey)) (Big.of_string "1") in
   let dmsg = decrypt_message (Lib.Group (prime, generator, publickey)) privatekey emsg in 
@@ -680,8 +685,11 @@ let () =
   print_endline (Big.to_string dmsg);
   print_endline (Element.to_string deczkp);
   print_endline (string_of_bool verify);
+  let (Lib.ExistT (f, __)) = generatePermutation (Lib.Group (prime, generator, publickey)) (int_to_nat (List.length Lib.cand_all)) Lib.cand_all in
+  let plist = List.map f Lib.cand_all in
+  print_endline ""
+ 
 
-  *)
 (*
 let () = 
    (* construct infrastructure *)
@@ -759,4 +767,4 @@ let () =
    print_list print_pair ballot_list;
    print_newline ();
    print_list print_pair ballot_list_from_fun;
-   print_newline ();  *)
+   print_newline (); *)

@@ -10,6 +10,11 @@ Require Import Coq.Logic.ConstructiveEpsilon.
 Require Import Coq.ZArith.ZArith.
 Require Import ListLemma.
 Require Import ValidityExist.
+Require Import Cryptoaxioms.
+Require Import Coq.Logic.FinFun.
+Require Import Coq.Program.Basics.
+Require Import Coq.Logic.FunctionalExtensionality.
+Require Import Psatz.
 Import ListNotations.
 Open Scope Z.
 
@@ -899,17 +904,15 @@ Section Encryption.
   End Count.
   
   
-    
-  Require Import Coq.Strings.String.
-  Require Import Coq.Logic.FinFun.
-  Require Import Coq.Program.Basics.
+
+  
   Section ECount.
 
     
     (*Relation between Public and Private key. Although it won't change the proof
       because we are not generating the keys in our code, and assuming it, but it's 
       still nice to have the relation *)
-
+ 
     (* Plain text *)
     Definition plaintext := Z.
     
@@ -922,7 +925,7 @@ Section Encryption.
     (* eballot is encrypted value *)
     Definition eballot := cand -> cand -> ciphertext.
 
-      
+    
     (* Group Definition in Elgamal *) 
     Variable Prime : Type. 
     Variable Generator : Type.
@@ -1108,8 +1111,27 @@ Section Encryption.
         forall c, decrypt_message grp privatekey (g c) =
              decrypt_message grp privatekey (compose f (projT1 pi) c).
 
-    (* end of axioms about shuffle. *)     
+    (* end of axioms about shuffle. *)    
                                                          
+
+        (* This axiom states that 
+       if verify_zero_knowledge_decryption_proof grp d c zkp = true then 
+       d is honest decryption of c *)
+    Axiom decryption_from_zkp_proof :
+      forall grp c d zkp, 
+        verify_zero_knowledge_decryption_proof grp d c zkp = true -> 
+        d = decrypt_message grp privatekey c.
+    
+    (* Permutation Axiom *)
+    Axiom perm_axiom :
+      forall grp cpi zkpcpi, 
+        verify_permutation_commitment grp (Datatypes.length cand_all) cpi zkpcpi = true ->
+        existsT (pi : Permutation), forall (f g : cand -> ciphertext) (zkppf : ShuffleZkp), 
+      verify_shuffle grp (Datatypes.length cand_all) cand_all f g cpi zkppf = true ->
+      forall c, decrypt_message grp privatekey (g c) =
+           decrypt_message grp privatekey (compose f (projT1 pi) c).
+
+
     
   
     (* Decidability of pair of cand *)
@@ -1137,6 +1159,7 @@ Section Encryption.
       destruct cand_all. pose proof (cand_not_nil eq_refl). inversion H.
       simpl. intro. inversion H.
     Qed.
+
     
     
     (* A ballot is in matrix with all the entries are
@@ -1246,7 +1269,7 @@ Section Encryption.
       pose proof (n H). auto.
     Defined.
 
-   
+   Check Commitment.
    (* Returns true if v is row permutation of u by pi *)
     Definition verify_row_permutation_ballot grp
                (u : eballot) (v : eballot)
@@ -1645,7 +1668,7 @@ Section Encryption.
  
     
    
-    Require Import Coq.Logic.FunctionalExtensionality.
+  
     Lemma margin_same_from_both_existential 
           (grp : Group) (bs : list ballot) (ebs : list eballot) (pbs : list pballot)
           (Ht : pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs)
@@ -2393,22 +2416,7 @@ Section Encryption.
       rewrite H4. assumption.
     Qed.
 
-    (* This axiom states that 
-       if verify_zero_knowledge_decryption_proof grp d c zkp = true then 
-       d is honest decryption of c *)
-    Axiom decryption_from_zkp_proof :
-      forall grp c d zkp, 
-        verify_zero_knowledge_decryption_proof grp d c zkp = true -> 
-        d = decrypt_message grp privatekey c.
 
-    (* Permutation Axiom *)
-    Axiom perm_axiom :
-      forall grp cpi zkpcpi, 
-        verify_permutation_commitment grp (Datatypes.length cand_all) cpi zkpcpi = true ->
-        existsT (pi : Permutation), forall (f g : cand -> ciphertext) (zkppf : ShuffleZkp), 
-      verify_shuffle grp (Datatypes.length cand_all) cand_all f g cpi zkppf = true ->
-          forall c, decrypt_message grp privatekey (g c) =
-               decrypt_message grp privatekey (compose f (projT1 pi) c).
     
     (* existence of permutation pi which is used to permute the ballots 
        v, and w *)
@@ -2432,12 +2440,7 @@ Section Encryption.
       pose proof (X (fun c0 => v c0 d) (fun c0 => w c0 d) (zkppermvw d) (H1 d)).
       apply H2.
     Qed.
-    
    
-      
-   
-    
-    
     
     
     (* Correctness in reverse direction. From encrypted ballots to plaintext *)
@@ -2681,7 +2684,7 @@ Section Encryption.
         end
       end.
 
-    Require Import Psatz.
+ 
       
       
     Lemma valid_compute_margin_distributes_enc :
@@ -2997,7 +3000,4 @@ Definition eschulze_winners_pf :=
   pschulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
 
 
-(*
-Definition unicrypt_encryption_library_call :=
-  ecount_all_ballot cand (group prime gen publickey). *)
 
