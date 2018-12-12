@@ -1,3 +1,4 @@
+# use make JAVA_HOME="$JAVA_HOME" run to run the executable
 %.vo : %.v
 	coqc $*.v
 
@@ -31,5 +32,5 @@ Main : parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml deri
 	ocamlfind ocamlopt  -O3 -o a.out  -linkpkg -package str,num,menhirLib -I ocaml-java/bin/camljava camljava.cmxa -ppx ocaml-java/bin/ocaml-java-ppx parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml derivation.ml main.ml
 
 run : a.out
-	LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server ./a.out
+	LD_LIBRARY_PATH=$(JAVA_HOME)/jre/lib/server ./a.out
 

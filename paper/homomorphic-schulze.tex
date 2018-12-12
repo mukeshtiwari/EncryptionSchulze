@@ -14,8 +14,8 @@
 
 \begin{document}
 
-\title{No More Excuses: Automated Synthesis of Practical and
-Verifiable Vote-counting Programs for Complex Voting Schemes}
+\title{Verifiable Homomorphic Tallying for the Schulze Vote Counting
+Scheme}
 
 \author{Thomas Haines \inst{1} \and
       Dirk Pattinson\inst{2} \and Mukesh Tiwari \inst{2}}
@@ -24,20 +24,74 @@ Verifiable Vote-counting Programs for Complex Voting Schemes}
 \maketitle
 
 \begin{abstract}
+The encryption of ballots is crucial to maintain integrity and 
+anonymity of electronic voting schemes. It enables, amongst other 
+things, each voter to verify that their encrypted ballot has been 
+recorded as cast, by checking their ballot against a bulletin board. 
 
-
+We present a verifiable homomorphic tallying scheme for the Schulze 
+method that allows to verify the correctness of the count on the 
+basis of encrypted ballots that only reveals the final tally. We 
+achieve verifiability by using zero knowledge proofs for ballot 
+validity and honest decryption of the final tally. Or formalisation 
+takes places inside the Coq theorem prover and is based on an 
+axiomatisation of cryptogtaphic primitives, and our main result is 
+the correctness of homomorphic tallying. We then instantiate 
+these primitives using an external library and show the feasibility 
+of our approach by means of case studies.
 \end{abstract}
 
 
 \section{Introduction}
-(leave this until the very end)
+\begin{itemize}
+  \item general need for crypt in vote counting
+  \item gernal need for verifiablility in vote counting
+  \item Description of the Schulze Method 
+  \item related work
+\end{itemize}
 
-\section{The Schulze Method}
-(this should be similar to other papers that we already have)
+\section{Homomorphic Tallying}
+\begin{itemize}
+  \item general protocol, comparision with plaintext counting
+  \item two-phase structure: margin matrix, then winners with
+  winners as before: encryption commutes with margin computation
+  \item homomorphic computation of margin matrix, ballot
+  representation
+  \item computation of winners (as for plaintext)
+\end{itemize}
+
+\section{Realisation in a Theorem Prover}
+\begin{itemize}
+  \item Axiomatisation of the cryptographic primitives
+  \item correctness proof modulo correct crypto
+  \item describe certificates and how to check them
+  \item show that ``certificates certify''
+\end{itemize}
+
+\section{Extraction and Experiments}
+\begin{itemize}
+  \item coupling between library and extracted code
+  \item need for light weight wrappers
+  \item experimental results: how long, how much memory, certicicate
+  size
+\end{itemize}
+
+\section{Analysis}
+\begin{itemize}
+  \item trust base: library, wrapper, bindings
+  \item security: probabilistic aspects ignored, attacker model
+  \item applicability to real world scenarios
+\end{itemize}
+
+\bibliography{all2,delta2}
+
+\appendix
+\section*{Notes and Leftovers Start Here}
+
+
 
 \section{Format of Ballots}
 
-<<<<<<< HEAD
 %\begin{itemize}
 %  \item motivate the choice of ballots and compare with plaintext
 %  version
