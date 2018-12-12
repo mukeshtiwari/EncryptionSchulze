@@ -11,6 +11,7 @@
 \newcommand{\LFP}{\mathsf{LFP}}
 \newcommand{\Pow}{\mathsf{Pow}}
 \newcommand{\GFP}{\mathsf{GFP}}
+\newcommand{\str}{\mathsf{str}}
 
 \begin{document}
 
@@ -45,9 +46,8 @@ of our approach by means of case studies.
 \section{Introduction}
 \begin{itemize}
   \item general need for crypt in vote counting
-  \item gernal need for verifiablility in vote counting
-  \item Description of the Schulze Method 
-  \item related work
+  \item gernal need for verifiablility in vote counting:
+  certificates!
   \item In general, every election has purpose to elect candidates based on cast
   ballots while maintaining the integrity of election i.e. tallied correctly, 
   maintained individual ballot privacy, and coercions free. Many of these properties 
@@ -64,7 +64,46 @@ of our approach by means of case studies.
   
 \end{itemize}
 
+  \smallskip\noindent\emph{The Schulze Method.} The Schulze Method
+  \cite{Schulze:2011:NMC} is a preferential, single-winner vote
+  counting scheme that is gaining popularity due to its relative
+  simplicity while retaining near optimal fairness
+  \cite{Rivest:2010:OSW}.  
+  A \emph{ballot} is a rank-ordered list of
+  candidates where different candidates may be given the same rank.
+  The protocol proceeds in two steps, and first computes the
+  \emph{margin matrix} $m$ where, for candidates $x$ and $y$, 
+  \[ m(x, y) = \mbox{ballots that rank $x$ higher than $y$} - \mbox{ballots
+  that rank $y$ higher than $x$}. \]
+  We note that $m(x, y) = -m(y, x)$, i.e. the margin matrix is
+  symmetric. In a second step, a \emph{generalised margin} $g$ is
+  computed as the strongest path between two candidates
+  \[ g(x,y) = \max \lbrace \str(p) \mid p \mbox{ path from $x$ to
+  $y$} \rbrace \]
+  where a path from $x$ to $y$ is simply a sequence $x = x_0, \dots,
+  x_n = y$ of candidates, and the strength
+  \[ \str(x_0, \dots, x_n) = \min \lbrace m(x_i, x_{i+1}) \mid i < n
+  \rbrace  \]
+  is the lowest margin encountered on a path.
+
+  A candidate $w$ is a \emph{winner} if $g(w, x) \geq g(x, w)$ for
+  all other candidates $x$. Informally, one may think of the
+  generalised margin $g(x, y)$ as transitive accumulated support for
+  $x$ over $y$, so that $x$ beats $y$ if $g(x,y) \geq g(y, x)$ and a
+  winner is a candidate that cannot be beaten by anyone. Note that
+  winners may not be uniquely determined (e.g. in the case where no
+  ballots have been cast).
+
+  In previous work \cite{} we have demonstrated 
+
+
+  \smallskip\emph{Related Work.} 
+
 \section{Homomorphic Tallying}
+
+The implementation of homomorphic tallying that we are about to
+describe follows the same two phases as the protocol: we first
+compute the margin matrix, and then compute generalised margins. 
 \begin{itemize}
   \item general protocol, comparision with plaintext counting
   \item two-phase structure: margin matrix, then winners with
