@@ -10,7 +10,6 @@ Require Import Coq.Logic.ConstructiveEpsilon.
 Require Import Coq.ZArith.ZArith.
 Require Import ListLemma.
 Require Import ValidityExist.
-Require Import Cryptoaxioms.
 Require Import Coq.Logic.FinFun.
 Require Import Coq.Program.Basics.
 Require Import Coq.Logic.FunctionalExtensionality.
