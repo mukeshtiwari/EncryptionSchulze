@@ -51,8 +51,7 @@ let rec print_ballot b =
        "(" ^ c1 ^ ", " ^ c2 ^ ", (" ^ Big.to_string v1 ^ ", " ^ Big.to_string v2 ^ ")); " ^ print_ballot tl
 
 let gen_ballot vl =
-   let bl = List.map (fun x -> encrypt_message (Lib.Group (prime, generator, publickey)) (Big.of_string x)) vl 
-            (* |> List.map (fun (c1, c2) -> (Big.to_string c1, Big.to_string c2)) *)in
+   let bl = List.map (fun x -> encrypt_message (Lib.Group (prime, generator, publickey)) (Big.of_string x)) vl in
    let comb = List.combine (pair_cand l) bl in 
    print_ballot comb 
   
