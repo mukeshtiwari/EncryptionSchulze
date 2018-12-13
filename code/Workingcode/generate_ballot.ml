@@ -57,24 +57,14 @@ let gen_ballot vl =
    print_ballot comb 
   
 let gen_n_ballots n = 
-    for i = 0 to n do 
+    for i = 1 to n do 
        print_endline (gen_ballot (valid_ballot (List.length l)));
        print_endline (gen_ballot (invalid_ballot (List.length l)))
     done
 
-let () =
-  (* List.iter print_endline (valid_ballot 3);
-  print_newline ();
-  List.iter print_endline (invalid_ballot 3); *)
-  gen_n_ballots 100
+let () = 
+  gen_n_ballots (int_of_string (Sys.argv.(1)))
 
- (*
-encrypt_message (Lib.Group (prime, generator, publickey)) (Big.of_string "1")
-
-
-let ballot_gen_fun n = 
-
-*)
 
 
 

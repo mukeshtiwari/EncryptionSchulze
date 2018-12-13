@@ -17,14 +17,14 @@ lib.ml : Extraction.vo
 lib.mli : lib.ml
 
 ballot_gen : parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml derivation.ml generate_ballot.ml 
-	ocamlfind ocamlopt  -O3 -o ballot.out  -linkpkg -package str,num,menhirLib -I ocaml-java/bin/camljava camljava.cmxa -ppx ocaml-java/bin/ocaml-java-ppx parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml derivation.ml cryptobinding.ml generate_ballot.ml && ./ballot.out > ballot_100.txt 
+	ocamlfind ocamlopt  -O3 -o ballot.out  -linkpkg -package str,num,menhirLib -I ocaml-java/bin/camljava camljava.cmxa -ppx ocaml-java/bin/ocaml-java-ppx parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml derivation.ml cryptobinding.ml generate_ballot.ml
 
-benchByte : MainByte rand.pl
-	 @for i in 100 1000 10000 100000; do \
-	echo -n "Counting $$i ballots ..\n  "; \
-	./rand.pl $$i | time -f %E ./main.byte > /dev/null; \
-	done
 
+bench : ballot_gen Main
+		@for i in 50 100 1000 10000 100000; do \
+		   echo -n "Counting $$i ballots ..\n  "; \
+			time -f %E ./ballot.out $$i | LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server ./a.out > /dev/null; \
+		  done
 
 clean:
 	rm -rf _build *.vo *.glob *.class *.cmi *.cmx *.o a.out lib.ml lib.mli main.native main.byte 2>/dev/null || true
