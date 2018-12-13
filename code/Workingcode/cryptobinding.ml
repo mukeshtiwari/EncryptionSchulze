@@ -673,6 +673,7 @@ let print_list f lst =
 
 
 (* This functions just here for testing purpose *)
+(*
 let rec int_to_nat n = 
         if n <= 0 then O else S (int_to_nat (n - 1))
 
@@ -688,7 +689,7 @@ let () =
   let (Lib.ExistT (f, __)) = generatePermutation (Lib.Group (prime, generator, publickey)) (int_to_nat (List.length Lib.cand_all)) Lib.cand_all in
   let plist = List.map f Lib.cand_all in
   print_endline ""
- 
+*) 
 
 (*
 let () = 
