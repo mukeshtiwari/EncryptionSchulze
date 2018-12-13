@@ -8,10 +8,14 @@
 \newcommand{\Nat}{\mathbb{N}}
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\st}{\mathsf{st}}
-\newcommand{\LFP}{\mathsf{LFP}}
-\newcommand{\Pow}{\mathsf{Pow}}
-\newcommand{\GFP}{\mathsf{GFP}}
 \newcommand{\str}{\mathsf{str}}
+\newcommand{\encb}{\mathrm{eb}}
+\newcommand{\EncB}{\mathrm{EM}}
+\newcommand{\encm}{\mathrm{em}}
+\newcommand{\CT}{\mathbb{CT}}
+\newcommand{\dec}{\mathsf{dec}}
+\newcommand{\enc}{\mathsf{enc}}
+
 
 \begin{document}
 
@@ -94,16 +98,45 @@ of our approach by means of case studies.
   winners may not be uniquely determined (e.g. in the case where no
   ballots have been cast).
 
-  In previous work \cite{} we have demonstrated 
-
-
+  In previous work \cite{Pattinson:2017:SVE} we have demonstrated
+  how to achieve verifiability of counting plaintext ballots by
+  producing a verifiable \emph{certificate} of the count. The
+  certificate has two parts: The first part witnesses the
+  computation of the margin function where each line of the
+  certificate amounts to updating the margin function by a single
+  ballot. The second part witnesses the determination of winners
+  based on the margin function. In the first phase, i.e. the
+  computation of the margin function, we perform the following
+  operations for every ballot:
+  \begin{enumerate}
+    \item if the ballot is informal it will be discarded
+    \item if the ballot is formal, the margin function will be
+    updated
+  \end{enumerate}
+  The certificate then contains one line for each ballot and thus
+  allows to independently verify the computation of the margin
+  function. Based on the final margin function, the second part of
+  the certificate presents verifiable evidence for the computation
+  of winners. Specifically, if a candidate $w$ is a winner, it
+  includes:
+  \begin{enumerate}
+    \item an integer $k$ and a path of strength $k$ from $w$ to any
+    other candidate
+    \item evidence, in the form of a co-closed set, of the fact that
+    there cannot be a path of strength $> k$ from any other
+    candidate to $w$.
+  \end{enumerate}
+  Crucially, the evidence of $w$ winning the election \emph{only}
+  depends on the margin matrix. 
+  We refer to \cite{Pattinson:2017:SVE} for details of the second
+  part of the certificate as this will remain unchanged in the work
+  we are reporting here.
+    
   \smallskip\emph{Related Work.} 
 
-\section{Homomorphic Tallying}
-
-The implementation of homomorphic tallying that we are about to
-describe follows the same two phases as the protocol: we first
-compute the margin matrix, and then compute generalised margins. 
+\section{Verifiable Homomorphic Tallying}
+\texttt{
+  Bullet points of content for reference and later deletion
 \begin{itemize}
   \item general protocol, comparision with plaintext counting
   \item two-phase structure: margin matrix, then winners with
@@ -112,6 +145,147 @@ compute the margin matrix, and then compute generalised margins.
   representation
   \item computation of winners (as for plaintext)
 \end{itemize}
+}
+The realisation of verifiable of homomorphic tallying that we are about to
+describe follows the same two phases as the protocol: for each
+ballot, we decide whether it is formal, and if so, homomorphically
+update the margin function. We do this for every ballot, and record
+this in the certificate. We then record the decryption of the margin
+function in the certificate, and then publish the winner, together
+with evidence based on the margin matrix, as in the case of counting
+plaintext ballots (where evidence for winning also only depends on
+the margin matrix).  We now describe the two phases in detail.
+
+\smallskip\noindent\emph{Format of Ballots.} In preferential voting
+schemes, ballots are rank-ordered lists of candidates. For the
+Schulze Method, we require that all candidates are ranked, and two
+candidates may be given the same rank. That is, a ballot is most
+naturally represented as a function $b: C \to \Nat$ that assigns a
+numerical rank to each candidate, and the computation of the margin
+amounts to computing the sum
+\[ m(x, y) = \sum_{b \in B} \begin{cases} +1 & b(x) > b(y) \\ 0 &
+b(x) = b(y) \\ -1 & b(x) < b(y) \end{cases} \]
+where $B$ is the multi-set of ballots, and each $b \in B$ is a
+ranking function $b: C \to \Nat$ over a (finite) set $C$ of
+candidates. 
+
+We note that this representation of ballots is not well suited for
+homomorphic computation of the margin matrix as practically feasible
+homomorphic encryption schemes do not support comparison operators
+and case distinctions as used in the formula above. 
+
+We instead represent ballots as matrices
+$b(x, y)$ where $b(x, y) = +1$ if $x$ is preferred
+over $y$, $b(x, y) = -1$ if $y$ is preferred over $x$ and $b(x, y) =
+0$ if $x$ and $y$ are equally preferred.
+
+While the advantage of the first representation is that each ranking
+function is necessarily a valid ranking, the advantage of the matrix 
+representation is that the computation of
+the margin matrix is simple, that is
+\[ m(c, d) = \sum_{b \in B} b(x, y) \]
+where $B$ is the multi-set of ballots (in matrix form), and can
+moreover be transferred to the encrypted setting in a straight
+forward way: if ballots are matrices $e(x,y)$ where $e(x,y)$ is the
+encryption of an integer, then
+\[ \encm = \bigoplus_{\encb \in \EncB} \encb(x, y) \]
+where $\oplus$ denotes homomorphic addition, $\encb$ is an encrypted
+ballot in matrix form (i.e. decrypting $\encb(x, y)$ indicates
+whether $x$ is preferred over $y$), and $\EncB$ is the multi-set of
+encrypted ballots. The disadvantage is that we need to verify that a
+matrix ballot is indeed valid, that is
+\begin{itemize}
+\item that the decryption of $\encb(x, y)$ is indeed one of $1, 0$ or
+$-1$
+\item that $\encb$ indeed corresponds to a ranking function.
+\end{itemize}
+
+Indeed, to achieve verifiability, we not only need \emph{verify}
+that a ballot is valid, we also need to \emph{evidence} its validity
+(or otherwise) in the certificate.  
+
+\smallskip\noindent\emph{Validity of Ballots.} By a plaintext
+(matrix) ballot
+we simply mean a function $b: C \times C \to \Z$,
+where $C$ is the (finite) set of candidates. A 
+plaintext ballot $b(x, y)$ 
+is \emph{valid} if it is induced by a ranking function, i.e.
+there exists a function $r: C \to \Nat$ such that $b(x, y) = 1$ if
+$f(x) < f(y)$, $b(x, y) = 0$ if $f(x) = f(y)$ and $b(x, y) = -1$ if
+$f(x) > f(y)$. A \emph{ciphertext (matrix) ballot} is a function
+$\encb: C \times C \to \CT$ (where $\CT$ is a chosen set of
+ciphertexts), and it is valid if the pointwise encryption, i.e. the
+matrix ballot $b(x, y) = \dec(\enc(x,y))$ is valid (we use $\dec$ to
+denote decryption). 
+
+For a plaintext ballot, it is easy to decide whether it is
+valid (and should be counted) or not (and should be discarded). We
+use shuffles (ballot permutations) to evidence the validity of
+encrypted ballots. One observes that a matrix ballot is valid if and
+only if it is valid after permuting both rows and columns with the
+same permutation. That is, $b(x,y)$ is valid if and only if $b'(x,y)$
+is valid, where
+\[ b'(x,y) = b(\pi(x), \pi(y)) \]
+and $\pi: C \to C$ is a permutation of candidates. (Indeed, if $f$
+is a ranking function for $b$, then $f \circ \pi$ is a ranking
+function for $b'$). As a consequence, we can evidence the validity
+of a ciphertext ballot $\encb$ by
+\begin{itemize}
+  \item publishing a shuffled version $\encb'$ of $\encb$, that is
+  shuffled by a secret permutation, together with
+  evidence that $\encb'$ is indeed a shuffle of $\encb$
+  \item publishing the decryption $b'$ of $\encb'$ together with
+  evidence that $b'$ is indeed the decryption of $\encb'$.
+\end{itemize}
+
+We use zero-knowledge proofs in the style of \cite{Bayer:2012:EZK}
+to evidence the correctness of the shuffle, and zero-knowledge
+proofs of honest decryption [reference missing] to evidence
+correctness of decryption. This achieves ballot secrecy owing to the
+fact that the permutation is never revealed.
+
+
+In summary, the homomorphic computation of the margin matrix starts
+with an encryption of the zero margin $\encm$, and for each
+ciphertext ballot $\encb$
+\begin{enumerate}
+\item publishes a shuffle of $\encb$ together with a ZKP of 
+correctness
+\item publishes the decryption of a shuffle, together with a ZKP of
+correctness
+\item publishes the updated margin function, if the decrypted ballot
+was valid, and
+\item publishes the unchanged margin function, if the decrypted
+ballot is not valid.
+\end{enumerate}
+
+\smallskip\noindent\emph{Witnessing of Winners.}
+Once all ballots are counted, the computed margin is decrypted, and
+winners (together with evidence of winning) are being computed as
+for plaintext counting. We discuss this this part only briefly to be
+self contained as it is as for plaintext counting
+\cite{Pattinson:2017:SVE}. For each of the winners $w$ and each
+candidate $c$ we publish
+\begin{itemize}
+\item a natural number $k(w, x)$
+\item a path $w = x_0, \dots, x_n = x$ of strength $k$
+\item a set $C(w, x)$ of pairs of candidates that is $k$-coclosed
+and contains $(x, w)$
+\end{itemize}
+where a set $S$ is  $k$-coclosed if for all $(x,z) \in C$ we have
+that $m(x, z) < k$ and either $m(x, y) < k$ or $(y,z) \in S$ for
+all candidates $y$.  Informally, the first requirement ensures that
+there is no direct path (of length one) between a pair $(x, z) \in
+S$ ,and the second requirement ensures that for an element $(x, z)
+\in S$, there cannot be a path that connects $x$ to an intermediate
+node $y$ and then (transitively) to $z$ that is of strength $\geq
+k$. 
+We refer to \emph{op.cit.} for the (formal)
+proofs of the fact that existence of co-closed sets witnesses the
+winning conditions. 
+  
+
+
 
 \section{Realisation in a Theorem Prover}
 \begin{itemize}
