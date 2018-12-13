@@ -1,7 +1,7 @@
 open Big
 open Cryptobinding
 open Derivation
-
+open Lib
 
 (* Infrastructure *)
 let prime = big_int_from_string  "170141183460469231731687303715884114527"
@@ -39,7 +39,7 @@ let invalid_ballot n =
     |> List.concat |> List.map string_of_int
  
 
-let l =  ["A"; "B"; "C"]
+let l =  List.map show_cand Lib.cand_all  (* ["A"; "B"; "C"] *)
 let pair_cand l = Derivation.cross_prod_orig l
 
 
@@ -56,7 +56,7 @@ let gen_ballot vl =
    print_ballot comb 
   
 let gen_n_ballots n = 
-    for i = 1 to n do 
+    for i = 1 to n/2 do 
        print_endline (gen_ballot (valid_ballot (List.length l)));
        print_endline (gen_ballot (invalid_ballot (List.length l)))
     done
