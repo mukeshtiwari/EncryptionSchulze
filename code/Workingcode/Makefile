@@ -23,15 +23,18 @@ ballot_gen : parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.m
 bench : ballot_gen Main
 		@for i in 50 100 1000 10000; do \
 		   echo -n "Counting $$i ballots ..\n  "; \
-			time -f %E ./ballot.out $$i | LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server ./a.out > /dev/null; \
+			time -f %E ./ballot.out $$i |  LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server ./a.out > /dev/null ; \
 		  done
 
 clean:
-	rm -rf _build *.vo *.glob *.class *.cmi *.cmx *.o a.out lib.ml lib.mli main.native main.byte 2>/dev/null || true
+	rm -rf _build *.vo *.glob *.class *.cmi *.cmx *.o *.out lib.ml lib.mli main.native main.byte 2>/dev/null || true
 
 
 Main : parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml derivation.ml main.ml 
 	ocamlfind ocamlopt  -O3 -o a.out  -linkpkg -package str,num,menhirLib -I ocaml-java/bin/camljava camljava.cmxa -ppx ocaml-java/bin/ocaml-java-ppx parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml derivation.ml main.ml
+
+runlinux : Main
+	 LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server ./a.out 
 
 run : a.out
 	LD_LIBRARY_PATH=$(JAVA_HOME)/jre/lib/server ./a.out
