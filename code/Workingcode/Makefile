@@ -16,6 +16,8 @@ lib.ml : Extraction.vo
 
 lib.mli : lib.ml
 
+ballot_gen : parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml derivation.ml generate_ballot.ml 
+	ocamlfind ocamlopt  -O3 -o ballot.out  -linkpkg -package str,num,menhirLib -I ocaml-java/bin/camljava camljava.cmxa -ppx ocaml-java/bin/ocaml-java-ppx parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml derivation.ml cryptobinding.ml generate_ballot.ml && ./ballot.out > ballot_100.txt 
 
 benchByte : MainByte rand.pl
 	 @for i in 100 1000 10000 100000; do \
@@ -29,7 +31,7 @@ clean:
 
 
 Main : parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml derivation.ml main.ml 
-	ocamlfind ocamlopt  -O3 -o a.out  -linkpkg -package str,num,menhirLib -I ocaml-java/bin/camljava camljava.cmxa -ppx ocaml-java/bin/ocaml-java-ppx parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml derivation.ml main.ml
+	ocamlfind ocamlopt  -O3 -o a.out  -linkpkg -package str,num,menhirLib -I ocaml-java/bin/camljava camljava.cmxa -ppx ocaml-java/bin/ocaml-java-ppx parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml derivation.ml cryptobinding.ml main.ml
 
 run : a.out
 	LD_LIBRARY_PATH=$(JAVA_HOME)/jre/lib/server ./a.out
