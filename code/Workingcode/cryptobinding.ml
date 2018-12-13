@@ -1,6 +1,5 @@
 open Big
 open Lib
-open Derivation 
 
 let () = Java.init [| "-Djava.class.path=jarfiles/ocaml-java.jar:jarfiles/unicrypt-2.3.jar:jarfiles/jnagmp-2.0.0.jar:jarfiles/jna-4.5.0.jar:jarfiles/schulze.jar:." |]
 

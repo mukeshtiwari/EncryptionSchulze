@@ -53,7 +53,7 @@ public class CryptoWrapper {
 	// Write baby step giant step algorithm or Pollard Rho method to compute discrete logarithm
 	// This function is problem because we need to find the lower bound from where we want to start 
 	 public static BigInteger dLog(GStarModElement generator, Element<BigInteger> element) {
-			BigInteger dlog = BigInteger.valueOf(IntStream.iterate(-100, i -> i+1).filter(i -> generator.power(i).getValue().equals(element.getValue())).findFirst().getAsInt());
+			BigInteger dlog = BigInteger.valueOf(IntStream.iterate(-20000, i -> i+1).filter(i -> generator.power(i).getValue().equals(element.getValue())).findFirst().getAsInt());
 			return dlog;
 	}	
 	

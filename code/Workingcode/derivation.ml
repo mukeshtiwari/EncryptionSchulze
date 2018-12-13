@@ -1,5 +1,6 @@
 open Big
 open Lib
+open Cryptobinding
 (*
 let show_bool = function 
   | Lib.True -> "True"
@@ -79,21 +80,9 @@ let rec cross_prod_orig l = cartesian l l
                                                                   
 let show_cand_pair (c1, c2) = "(" ^ show_cand c1 ^ "," ^ show_cand c2 ^ ")"
 
-(*
-let compare_truth x y =
-  match x, y with
-  | Lib.True, Lib.True | Lib.False, Lib.False -> true
-  | _, _ -> false *)
 
 let compare_truth x y = x = y
  
-(* 
-let show_coclosed f l =
-  "[" ^ String.concat
-          ","
-          (List.map show_cand_pair  
-          (List.filter (fun (x, y) -> compare_truth (f (Lib.Pair (x, y))) Lib.True)
-                       (cross_prod_orig l))) ^ "]" *)
 
 let show_coclosed f l =
   "[" ^ String.concat
@@ -155,19 +144,6 @@ let rec show_path = function
   | UnitT (x, y) -> show_cand x ^ " --> " ^ show_cand y
   | ConsT (x, _, _, p) -> show_cand x ^ " --> " ^ show_path p
 
-(*
-let rec show_winner g x xs =
-  match xs with
-  | [] -> ""
-  | y :: ys -> if compare x y then show_winner g x ys
-               else
-                 match (g y) with
-                 | ExistT (u, Pair (v, ExistT (f, _))) ->
-                    "   for " ^ show_cand y ^ ": " ^ "path " ^
-                      show_path v ^ " of strenght "  ^ show_z u ^  ", " ^
-                        string_of_int (1 + ocaml_z u) ^ 
-                          "-" ^ "coclosed set: " ^ show_coclosed f (ocamllist Lib.cand_all)
-                       ^ (if ys = [] then " " else "\n")  ^ show_winner g x ys  *)
 
 let rec show_winner g x xs =
   match xs with
@@ -182,12 +158,6 @@ let rec show_winner g x xs =
                           "-" ^ "coclosed set: " ^ show_coclosed f cand_all
                        ^ (if ys = [] then " " else "\n")  ^ show_winner g x ys
 
-(*                         
-let show_loser g x =
-  match g with
-  | ExistT (u, ExistT (c, Pair (p, ExistT (f, _)))) ->
-     "   exists " ^ show_cand c ^ ": " ^ "path " ^ show_path p ^ " of strength "
-     ^ show_z u ^ ", " ^ show_z u ^ "-" ^ "coclosed set: " ^ show_coclosed f (ocamllist Lib.cand_all) *)
 
 
 let show_loser g x =
@@ -196,7 +166,7 @@ let show_loser g x =
      "   exists " ^ show_cand c ^ ": " ^ "path " ^ show_path p ^ " of strength "
      ^ Big.to_string u ^ ", " ^ Big.to_string u ^ "-" ^ "coclosed set: " ^ show_coclosed f cand_all
  
-let show_cand f x =
+let show_cand_fn f x =
   match f x with
   | Inl g -> "winning: " ^ show_cand x ^ "\n" ^ show_winner g x cand_all
   | Inr h -> "losing: " ^ show_cand x ^ "\n" ^ show_loser h x
@@ -208,36 +178,46 @@ let rec add_string = function
 let underline s = s ^ "\n" ^ add_string (String.length s) ^ "\n"
 
 
+let show_dec_proof zkpdec = 
+        "[" ^ String.concat "; " (List.map (fun (x, y) -> Element.to_string (zkpdec x y)) (cross_prod cand_all)) ^ "]"
 
+let show_perm_zkp zkpperm = 
+        "[" ^ String.concat "; " (List.map (fun x -> Element.to_string (zkpperm x)) cand_all) ^ "]"
+
+let show_commitment cpi = Element.to_string cpi
+
+let show_perm_commit_proof zkpcpi = Element.to_string zkpcpi 
 
 let show_count l =
   let rec show_count_aux acc = function 
-  | Ecax (us, encm, decm, zkpdec) -> (underline ("M: " ^ show_enc_marg encm ^ ", Decrypted margin " ^ show_marg decm ^ ", Zero Knowledge Proof of Honest Decryption: ")) :: acc 
+  | Ecax (us, encm, decm, zkpdec) -> (underline ("M: " ^ show_enc_marg encm ^ ", Decrypted margin " ^ show_marg decm ^ ", Zero Knowledge Proof of Honest Decryption: " ^ show_dec_proof zkpdec)) :: acc 
   | Ecvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, nm, inbs, c) ->
      show_count_aux (underline (
        "V: [" ^ show_enc_ballot u ^ (if bool_b us then "]" else ",..]")  ^
          ", I:  " ^ show_list_inv_ballot inbs  ^ ", M: " ^ show_enc_marg m ^ ", Row Permuted Ballot: " ^ show_enc_ballot v ^
          ", Column Permuted Ballot: " ^ show_enc_ballot w ^
-         ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^
-         ", Zero Knowledge Proof of Column Permutation: " ^
-         ", Zero Knowledge Proof of Decryption: ") :: acc) c 
+         ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ show_perm_zkp zkppermuv ^
+         ", Zero Knowledge Proof of Column Permutation: " ^ show_perm_zkp zkppermvw ^
+         ", Zero Knowledge Proof of Decryption: " ^ show_dec_proof zkpdecw ^ ", Permutation commitment: " ^ show_commitment cpi ^ 
+         ", Zero Knowledge Proof of commitment: " ^ show_perm_commit_proof zkpcpi) :: acc) c 
   | Ecinvalid (u, v, w, b, zkppermuv, zkppermvw, zkpdecw, cpi, zkpcpi, us, m, inbs, c)  ->
      show_count_aux (underline (
        "V: [" ^ show_enc_ballot u ^
          (if bool_b us then "]" else ",..]") ^ ", I: " ^ show_list_inv_ballot inbs ^ 
            ", M: " ^ show_enc_marg m ^ ", Row Permuted Ballot: " ^ show_enc_ballot v ^ 
            ", Column Permuted Ballot: " ^ show_enc_ballot w ^
-           ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ 
-           ", Zero Knowledge Proof of Column Permutation: " ^
-           ", Zero Knowledge Proof of Decryption: ") :: acc) c
+           ", Decryption of Permuted Ballot: " ^ show_ballot b ^ ", Zero Knowledge Proof of Row Permutation: " ^ show_perm_zkp zkppermuv ^
+           ", Zero Knowledge Proof of Column Permutation: " ^ show_perm_zkp zkppermvw ^
+           ", Zero Knowledge Proof of Decryption: " ^ show_dec_proof zkpdecw ^ ", Permutation commitment: " ^ show_commitment cpi ^ 
+           ", Zero Knowledge Proof of commitment: " ^ show_perm_commit_proof zkpcpi) :: acc) c
   | Ecdecrypt (inbs, encm, decm, zkpdecm, c) -> 
      show_count_aux (underline (
        "V: [], I: " ^ show_list_inv_ballot inbs ^ ", M: " ^ show_enc_marg encm ^ ", DM: " ^ show_marg decm ^ 
-       ", Zero Knowledge Proof of Decryption: ") :: acc) c 
+       ", Zero Knowledge Proof of Decryption: " ^ show_dec_proof zkpdecm) :: acc) c 
   | Ecfin (m, p, f, c) ->
      show_count_aux (underline (
-       "DM: " ^ show_marg m ^
-       String.concat "\n" (List.map (fun x -> show_cand f x) cand_all) ^ "\n") :: acc) c
+       "DM: " ^ show_marg m ^ "\n" ^
+       String.concat "\n" (List.map (fun x -> show_cand_fn f x) cand_all) ^ "\n") :: acc) c
 in show_count_aux [] l 
 
 (*
