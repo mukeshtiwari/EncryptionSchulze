@@ -120,7 +120,8 @@ In general, every election has purpose to elect candidates based on cast
   tallying is correct (consistent) according to election rules, makes electronic 
   voting schemes very challenging. If we publish 
   the ballots in plain text it certainly offers universal verifiability, but at the same
-  time it opens the possibility of coercion \cite{Benaloh:2009:SSC}, and if we don't publish then it certainly offers the more privacy, but hampers universal 
+  time it opens the possibility of coercion \cite{Benaloh:2009:SSC}, and if we don't
+  publish then it certainly offers the more privacy, but hampers universal 
   verifiablity. \linebreak
       
   \smallskip\noindent\emph{The Schulze Method.} The Schulze Method
@@ -343,12 +344,91 @@ winning conditions.
 
 
 \section{Realisation in a Theorem Prover}
+\texttt{
+  Bullet points of content for reference and later deletion
 \begin{itemize}
   \item Axiomatisation of the cryptographic primitives
   \item correctness proof modulo correct crypto
   \item describe certificates and how to check them
   \item show that ``certificates certify''
-\end{itemize}
+\end{itemize}}
+We have treated the cryptographic primitives as black box, and assumed 
+each primitive holds certain properties during formalization which are modelled
+ as axiom in Coq \cite{Bertot:2004:ITP}. The simplest one among all these primitives 
+are encryption function, which takes group and plaintext, and returns 
+ciphertext, and decryption function, which takes group, privatekey and ciphertext, 
+and returns plaintext, 
+\begin{verbatim}
+  Inductive Group : Type :=
+      group : Prime -> Generator -> Publickey -> Group. 
+
+  Variable encrypt_message :
+      Group -> plaintext -> ciphertext.
+      
+  Variable decrypt_message :
+      Group -> Privatekey -> ciphertext -> plaintext.
+ \end{verbatim}
+
+ and property we assumed is 
+ 
+ \begin{verbatim}
+  Axiom decryption_deterministic : forall (grp : Group) 
+    (privatekey : Privatekey) (pt : plaintext), 
+    decrypt_message grp privatekey (encrypt_message grp pt) = pt.
+ \end{verbatim}
+ 
+ Intuitively, it means decryption is deterministic as suggest by the name of 
+ axiom itself i.e. if we take some plaintext, encrypt it, and decrypt it we should get 
+ the original plaintext. This axiom certainly forces us to decrypt the values 
+ honestly during formalization, but to make sure that the certificate, which 
+ will be discuss in a moment, we produce can be checked 
+ by scrutinizers to audit the election irrespective of how it was 
+ produced, so we construct the evidence for honest decryption which
+ can be verified later independently.
+ 
+ As it is evident from the names itself these primitives constructs honest
+ decryption zero knowledge proof object, checks if a plaintext is indeed 
+ decryption of claimed ciphertext using decryption zero knowledge proof object, 
+ 
+ \begin{verbatim}
+   Variable construct_zero_knowledge_decryption_proof :
+      Group -> Privatekey -> ciphertext -> DecZkp.
+
+   Axiom verify_zero_knowledge_decryption_proof :
+      Group -> plaintext -> ciphertext -> DecZkp -> bool.  
+ \end{verbatim}
+ and property they hold is
+ \begin{verbatim}
+   
+   Axiom verify_true :
+      forall (grp : Group) (pt : plaintext) (ct : ciphertext) 
+        (privatekey : Privatekey)
+        (H : pt = decrypt_message grp privatekey ct),
+        verify_zero_knowledge_decryption_proof
+          grp pt ct
+          (construct_zero_knowledge_decryption_proof grp privatekey ct) 
+          = true.
+ \end{verbatim}
+ 
+ The axiom, \texttt{verify\_true}, itself states that if plaintext, pt, is honest
+ decryption of ciphertext, ct, then primitive
+ \texttt{verify\_zero\_knowledge\_decryption\_proof} checks out for 
+ suitably constructed zero knowledge proof. We have followed the similar line of 
+ arguments for other cryptographic primitives used in formalization, i.e. generation
+  of secret permutation, 
+ the secret permutation is indeed a permutation, and ballots are indeed permuted by the
+ claimed secret permutation, by generating zero knowledge proof 
+ for each operation performed during the counting ballots
+ 
+ The step of computation involves 
+ 
+
+ 
+
+ 
+
+
+
 
 \section{Extraction and Experiments}
 \begin{itemize}
