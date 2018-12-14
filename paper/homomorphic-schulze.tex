@@ -359,14 +359,14 @@ and returns plaintext,
  The axiom, \texttt{verify\_true}, itself states that if plaintext, pt, is honest
  decryption of ciphertext, ct, then primitive
  \texttt{verify\_zero\_knowledge\_decryption\_proof} checks out for 
- suitably constructed zero knowledge proof. 
- We have followed the similar line of 
- arguments for other cryptographic primitives, i.e. we generate zero knowledge proof 
- for each operation performed during the counting ballots including zero knowledge 
- proofs of secret permutation and the same permutation is used to shuffle the ballot.
+ suitably constructed zero knowledge proof. We have followed the similar line of 
+ arguments for other cryptographic primitives used in formalization, i.e. generation
+  of secret permutation, 
+ the secret permutation is indeed a permutation, and ballots are indeed permuted by the
+ claimed secret permutation, by generating zero knowledge proof 
+ for each operation performed during the counting ballots
  
- Once we are equipped with required cryptographic axioms, we connect the counting of 
- encrypted ballot with plain
+ The step of computation involves 
  
 
  
