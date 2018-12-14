@@ -66,7 +66,8 @@ In general, every election has purpose to elect candidates based on cast
   tallying is correct (consistent) according to election rules, makes electronic 
   voting schemes very challenging. If we publish 
   the ballots in plain text it certainly offers universal verifiability, but at the same
-  time it opens the possibility of coercion \cite{Benaloh:2009:SSC}, and if we don't publish then it certainly offers the more privacy, but hampers universal 
+  time it opens the possibility of coercion \cite{Benaloh:2009:SSC}, and if we don't
+  publish then it certainly offers the more privacy, but hampers universal 
   verifiablity. \linebreak
       
   \smallskip\noindent\emph{The Schulze Method.} The Schulze Method
@@ -289,12 +290,22 @@ winning conditions.
 
 
 \section{Realisation in a Theorem Prover}
+\texttt{
+  Bullet points of content for reference and later deletion
 \begin{itemize}
   \item Axiomatisation of the cryptographic primitives
   \item correctness proof modulo correct crypto
   \item describe certificates and how to check them
   \item show that ``certificates certify''
-\end{itemize}
+\end{itemize}}
+Now we describe the details cryptographic primitives, and axioms we assumed 
+during the formalization. We came with these primitives while designing our 
+protocol(computation) to be verifiable, and maintaining privacy, i.e. votes are 
+untraceable, at the same time. The verifiability component is achieved by well known
+cryptographic primitives zero knowledge proof, proofs that yield nothing except 
+their truthness or falseness, and privacy by encryption.  
+
+
 
 \section{Extraction and Experiments}
 \begin{itemize}
