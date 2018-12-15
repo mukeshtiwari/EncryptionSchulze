@@ -298,12 +298,18 @@ winning conditions.
   \item describe certificates and how to check them
   \item show that ``certificates certify''
 \end{itemize}}
-We have treated the cryptographic primitives as black box, and assumed 
-each primitive holds certain properties during formalization which are modelled
- as axiom in Coq \cite{Bertot:2004:ITP}. The simplest one among all these primitives 
-are encryption function, which takes group and plaintext, and returns 
-ciphertext, and decryption function, which takes group, privatekey and ciphertext, 
-and returns plaintext, 
+ Following from previous section we now give detailed view of formalization.
+ We have treated the cryptographic primitives as black box, and assumed 
+each primitive holds certain properties which are modelled
+ as axiom in Coq \cite{Bertot:2004:ITP}. We have total six axioms about 
+ decryption, (secret) permutation, and shuffle, and we 
+ invite the reader to examine the validity of these axioms, but for sake of 
+ completeness and detail we sketch out one axiom about encryption scheme.
+ 
+ The very first one among all these primitives 
+are encryption function and decryption function with the property as suggested 
+by name of axiom itself is that decryption is deterministic. 
+
 \begin{verbatim}
   Inductive Group : Type :=
       group : Prime -> Generator -> Publickey -> Group. 
@@ -313,62 +319,173 @@ and returns plaintext,
       
   Variable decrypt_message :
       Group -> Privatekey -> ciphertext -> plaintext.
- \end{verbatim}
-
- and property we assumed is 
  
- \begin{verbatim}
   Axiom decryption_deterministic : forall (grp : Group) 
     (privatekey : Privatekey) (pt : plaintext), 
     decrypt_message grp privatekey (encrypt_message grp pt) = pt.
  \end{verbatim}
  
- Intuitively, it means decryption is deterministic as suggest by the name of 
- axiom itself i.e. if we take some plaintext, encrypt it, and decrypt it we should get 
- the original plaintext. This axiom certainly forces us to decrypt the values 
+ Intuitively, it means that if we take some plaintext, encrypt it, and decrypt it 
+ we should get the original plaintext. This axiom certainly forces us to decrypt
+  the values 
  honestly during formalization, but to make sure that the certificate, which 
- will be discuss in a moment, we produce can be checked 
- by scrutinizers to audit the election irrespective of how it was 
- produced, so we construct the evidence for honest decryption which
- can be verified later independently.
+ will be discuss in a moment, can be checked 
+ by scrutinizers to audit the election irrespective of how it was constructed, 
+ we also produce the evidence in form of zero knowledge proof for honest decryption which
+ can be verified later independently. 
  
- As it is evident from the names itself these primitives constructs honest
- decryption zero knowledge proof object, checks if a plaintext is indeed 
+ Once we have encryption, and decryption primitives we need primitives to build 
+ honest decryption zero knowledge proof to decouple the verification of election 
+ outcome from code inspection used to produce results.
+ As it is evident from the names itself, these primitives are about constructing honest
+ decryption zero knowledge proof object, checking if a plaintext is indeed 
  decryption of claimed ciphertext using decryption zero knowledge proof object, 
+ with property that what it means to be when honest decryption proof 
+ checks out i.e. return true.
  
  \begin{verbatim}
    Variable construct_zero_knowledge_decryption_proof :
       Group -> Privatekey -> ciphertext -> DecZkp.
 
    Axiom verify_zero_knowledge_decryption_proof :
-      Group -> plaintext -> ciphertext -> DecZkp -> bool.  
- \end{verbatim}
- and property they hold is
- \begin{verbatim}
+      Group -> plaintext -> ciphertext -> DecZkp -> bool. 
    
    Axiom verify_true :
       forall (grp : Group) (pt : plaintext) (ct : ciphertext) 
-        (privatekey : Privatekey)
-        (H : pt = decrypt_message grp privatekey ct),
-        verify_zero_knowledge_decryption_proof
-          grp pt ct
-          (construct_zero_knowledge_decryption_proof grp privatekey ct) 
-          = true.
+      (privatekey : Privatekey)
+      (H : pt = decrypt_message grp privatekey ct),
+      verify_zero_knowledge_decryption_proof grp pt ct
+      (construct_zero_knowledge_decryption_proof grp privatekey ct) 
+      = true.
  \end{verbatim}
  
- The axiom, \texttt{verify\_true}, itself states that if plaintext, pt, is honest
- decryption of ciphertext, ct, then primitive
- \texttt{verify\_zero\_knowledge\_decryption\_proof} checks out for 
+ The axiom, \texttt{verify\_true}, itself states that if plaintext, \textit{pt}, is honest
+ decryption of ciphertext, \textit{ct}, then primitive
+ \texttt{verify\_zero\_knowledge\_decryption\_proof} returns true for 
  suitably constructed zero knowledge proof. We have followed the similar line of 
- arguments for other cryptographic primitives used in formalization, i.e. generation
+ arguments for other cryptographic primitives used in formalization including generation
   of secret permutation, 
  the secret permutation is indeed a permutation, and ballots are indeed permuted by the
- claimed secret permutation, by generating zero knowledge proof 
- for each operation performed during the counting ballots
- 
- The step of computation involves 
- 
+ claimed secret permutation by generating zero knowledge proof 
+ for each operation performed during the counting ballots.
 
+ Once we have axiomatized cryptographic primitive we use them to construct 
+ inhabitant, i.e. outcome of the election, of dependent inductive data type 
+ \textbf{ECount} which is index over group, used for cryptographic primitives, 
+ list of cast ballots, and another inductive data type 
+ \textbf{EState} used to represent different state during counting.
+ 
+ The inductive data type \textbf{EState} whose constructors represent
+  different states of counting, and the interpretation of it is,  
+  \begin{itemize}
+  \item list of uncounted ballots, and invalid ballots seen so far 
+  \item computed homomorphic margin so far
+  \end{itemize}
+  or decrypted margin function, or a boolean function used to determine the winner.
+  
+\begin{verbatim}
+Inductive EState : Type :=
+    | epartial : (list eballot * list eballot) ->
+                 (cand -> cand -> ciphertext) -> EState
+    | edecrypt : (cand -> cand -> plaintext) -> EState
+    | ewinners : (cand -> bool) -> EState.
+\end{verbatim}
+
+
+As we stated earlier that inhabitant of inductive data \textbf{ECount} represents
+the outcome of election, and explain in more detail. 
+\begin{itemize}
+\item The first constructor, \textbf{ecax}, marks the beginning the counting process by 
+	  taking list of uncounted ballots, \textbf{us},
+      encrypted margin function, \textbf{encm}, decrypted margin function, \textbf{decm}, 
+      and zero knowledge proof, \textbf{zkpdec}, with proof that uncounted 
+      ballots, \textbf{us}, are same as 
+      cast ballots, \textbf{bs}, every entry in decrypted margin is 0, and 
+      \textbf{decm} is indeed the 
+      honest decryption of \textbf{encm} as honest decryption proof checker returns true.
+ \item The constructor, \textbf{cvalid}, takes ballot \textbf{u} from pile, ballot 
+ 		\textbf{v} which is row permutation of \textbf{u }by secret permutation, 
+ 		\textbf{w} which is column permutation of \textbf{v} by same secret permutation, 
+ 		\textbf{b} which is decryption of \text{w}, zero knowledge proof, 
+ 		\textbf{zkppermuv}, of v is indeed row permutation of u, 
+ 		zero knowledge proof, \textbf{zkppermvw}, of w is column permutation of 
+ 		v, zero knowledge proof, \textbf{zkpdecw}, of b is honest decryption w,
+ 		commitment, \textbf{cpi}, to secret permutation, and zero knowledge proof, 
+ 		\textbf{zkpcpi}, that we indeed committed to secret permutation 
+ 		with list of uncounted ballot, \textbf{us}, current margin, \textbf{m}, 
+ 		updated margin, \textbf{nm}, after adding ballot u homomorphically to 
+ 		current margin, \textbf{m}, and list of invalid ballots, \textbf{inbs}, 
+ 		seen so far with the usual proofs about validity data embedded in constructor. 
+ \item The constructor, \textbf{cinvalid}, is very similar to \textbf{cvalid} except 
+       rather than updating the running margin function, \textbf{m}, we move the ballot 
+       to list of invalid ballot, \textbf{inbs}.
+ \item The constructor, \textbf{ecdecrypt}, marks the finish of counting all the 
+       ballot as it can be seen by state, 
+       \textbf{ ECount grp bs (epartial ([], inbs) encm)}, with list of 
+       invalid ballots, \textbf{inbs}, final encrypted margin, \textbf{encm}, 
+       decrypted margin, \textbf{decm}, zero knowledge proof of honest 
+       decryption, \textbf{zkp} with usual proofs about the consistency of data 
+       in constructor. 
+ \item The final constructor, \textbf{ecfin}, takes decrypted margin, \textbf{dm}, 
+       boolean function, \textbf{w}, and type level function which takes candidate 
+       and produces 
+   
+\end{itemize}
+
+\begin{verbatim}
+Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
+ | ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
+        (decm : cand -> cand -> plaintext)
+        (zkpdec : cand -> cand -> DecZkp) :
+        us = bs ->
+        (forall c d : cand, decm c d = 0) -> 
+        (forall c d, verify_zero_knowledge_decryption_proof 
+                  grp (decm c d) (encm c d) (zkpdec c d) = true) ->
+        ECount grp bs (epartial (us, []) encm)
+ | ecvalid (u : eballot) (v : eballot) (w : eballot)
+           (b : pballot) (zkppermuv : cand -> ShuffleZkp)
+           (zkppermvw : cand -> ShuffleZkp) 
+           (zkpdecw : cand -> cand -> DecZkp)
+           (cpi : Commitment) (zkpcpi : PermZkp)
+           (us : list eballot) (m nm : cand -> cand -> ciphertext)
+           (inbs : list eballot) :
+   ECount grp bs (epartial (u :: us, inbs) m) ->
+   matrix_ballot_valid b ->
+   (verify_permutation_commitment grp (length cand_all) cpi zkpcpi = true) ->
+   (forall c, verify_row_permutation_ballot grp u v cpi zkppermuv c = true) ->
+   (forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true) ->
+   (forall c d, verify_zero_knowledge_decryption_proof 
+                  grp (b c d) (w c d) (zkpdecw c d) = true) ->
+   (forall c d, nm c d = homomorphic_addition grp (u c d) (m c d)) -> 
+   ECount grp bs (epartial (us, inbs) nm)
+ | ecinvalid (u : eballot) (v : eballot) (w : eballot)
+             (b : pballot) (zkppermuv : cand -> ShuffleZkp)
+             (zkppermvw : cand -> ShuffleZkp) 
+             (zkpdecw : cand -> cand -> DecZkp)
+             (cpi : Commitment) (zkpcpi : PermZkp)
+             (us : list eballot) (m : cand -> cand -> ciphertext)
+             (inbs : list eballot) :
+   ECount grp bs (epartial (u :: us, inbs) m) ->
+   ~matrix_ballot_valid b ->
+   (verify_permutation_commitment grp (length cand_all) cpi zkpcpi = true) ->
+   (forall c, verify_row_permutation_ballot grp u v cpi zkppermuv c = true) ->
+   (forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true) ->
+   (forall c d, verify_zero_knowledge_decryption_proof 
+                  grp (b c d) (w c d) (zkpdecw c d) = true) ->
+   ECount grp bs (epartial (us, (u :: inbs)) m)
+ | ecdecrypt inbs (encm : cand -> cand -> ciphertext)
+             (decm : cand -> cand -> plaintext)
+             (zkp : cand -> cand -> DecZkp) :
+   ECount grp bs (epartial ([], inbs) encm) ->
+   (forall c d, verify_zero_knowledge_decryption_proof
+                  grp (decm c d) (encm c d) (zkp c d) = true) ->
+   ECount grp bs (edecrypt decm)
+ | ecfin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
+        ECount grp bs (edecrypt dm) ->
+        (forall c, w c = true <-> (exists x, d c = inl x)) ->
+        (forall c, w c = false <-> (exists x, d c = inr x)) ->
+        ECount grp bs (ewinners w). 
+\end{verbatim}
  
 
  
