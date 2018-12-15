@@ -424,7 +424,7 @@ by name of axiom itself is that decryption is deterministic.
   of secret permutation, 
  the secret permutation is indeed a permutation, and ballots are indeed permuted by the
  claimed secret permutation by generating zero knowledge proof 
- for each operation performed during the counting ballots.Once we have axiomatized
+ for each operation performed during the counting ballots. Once we have axiomatized
   cryptographic primitives, we plug them into our 
  formalization to construct verifiable counting system. 
  
@@ -433,7 +433,8 @@ by name of axiom itself is that decryption is deterministic.
  \begin{itemize}
  \item starting state where all the ballots are uncounted, 
        no invalid ballot, and margin function is zero.
- \item intermediate steps where we inspect a ballot, and depending on its validity
+ \item intermediate steps where we inspect a ballot from list of uncounted ballots, 
+ 		and depending on its validity
        we either update the margin (if ballot is valid), or move to pile to 
        invalid ballots.
   \item final (accepting) state where no more uncounted ballots left, and use 
@@ -450,16 +451,16 @@ by name of axiom itself is that decryption is deterministic.
            edge  node  [above, sloped] {invalid ballot} (ecinvalid)
     (ecvalid) edge [bend left=10] node  [above, sloped] {invalid ballot} (ecinvalid)
     			edge  node [above, sloped,swap] {no more ballots left} (ecdecrypt) 
-          edge [loop above] node {valid ballot} ()
+            edge [loop above] node {valid ballot} ()
     (ecinvalid) edge [bend left=10] node [above, sloped] {valid ballot} (ecvalid) 
-    		edge  node [above, sloped,swap] {no more ballots left} (ecdecrypt) 
-          edge [loop below] node {invalid ballot} ();
+    		   edge  node [above, sloped,swap] {no more ballots left} (ecdecrypt) 
+           edge [loop below] node {invalid ballot} ();
 \end{tikzpicture}
 
 
 
-We use Coq's dependent inductive data type facility to capture 
-this notion of computation. To  be precise, the outcome
+We use Coq's dependent inductive data type facility to capture the notion of 
+  finite state machine. To  be precise, the outcome
   of a election
  is inhabitant of inductive data type used to express the 
   different states of counting (finite state machine) using various constructors, 
