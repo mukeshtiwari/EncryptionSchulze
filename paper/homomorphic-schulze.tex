@@ -496,7 +496,7 @@ We formalize the correct counting of homomorphic Schulze method by dependent ind
 data type, \textbf{ECount}, which is parameterised by group, used for cryptographic 
 primitive, list of cast ballots, and \textbf{EStates}. It is very crucial to 
 notice that adding  \textbf{EState} as parameter to \textbf{ECount} forces the
- computation constructing the term of type \textbf{ECount} follow the each step of protocol
+ computation constructing the term of type \textbf{ECount} to follow the each step of protocol
   correctly. The computation expressed above follows 
   the same spirit as appending two dependent type 
   vector indexed over natural numbers of length n, and m would always 
@@ -614,6 +614,8 @@ that decides winners, together with evidences of the correctness of this determi
 Lemma pschulze_winners (grp : Group) (bs : list eballot) :
         existsT (f : cand -> bool), ECount grp bs (ewinners f).
 \end{verbatim}
+
+
 
 
 
