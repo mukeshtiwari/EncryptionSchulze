@@ -388,9 +388,8 @@ by name of axiom itself is that decryption is deterministic.
  will be discuss in a moment, can be checked 
  by scrutinizers to audit the election irrespective of how it was constructed, 
  we also produce the evidence in form of zero knowledge proof for honest decryption which
- can be verified later independently. 
- 
- Once we have encryption, and decryption primitives we need primitives to build 
+ can be verified later independently. In order to attain verification 
+ we need primitives to build 
  honest decryption zero knowledge proof to decouple the verification of election 
  outcome from code inspection used to produce results.
  As it is evident from the names itself, these primitives are about constructing honest
@@ -418,7 +417,9 @@ by name of axiom itself is that decryption is deterministic.
  The axiom, \texttt{verify\_true}, itself states that if plaintext, \textit{pt}, is honest
  decryption of ciphertext, \textit{ct}, then primitive
  \texttt{verify\_zero\_knowledge\_decryption\_proof} returns true for 
- suitably constructed zero knowledge proof. We have followed the similar line of 
+ suitably constructed zero knowledge proof.
+ 
+ We have followed the similar line of 
  arguments for other cryptographic primitives used in formalization including generation
   of secret permutation, 
  the secret permutation is indeed a permutation, and ballots are indeed permuted by the
