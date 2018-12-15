@@ -54,10 +54,64 @@ of our approach by means of case studies.
   \item general need for crypt in vote counting
   \item gernal need for verifiablility in vote counting:
   certificates!
-  
-  
 \end{itemize}
 
+One of the key challenges faced by both paper based and electronic
+elections is that results must substantiated with
+verifiable evidence of their correctness while retaining the secrecy
+of the individual ballot \cite{Bernhard:2017:PES}.  Technically, the
+notion of ``verifiable evidence'' is captured by the term 
+\emph{end-to-end (E2E) verifiability}, that is
+\begin{itemize}
+  \item every voter can verify that their ballot was cast as
+  intended
+  \item every voter can verify that their ballot was collected as
+  cast
+  \item everyone can verify final result on the basis of the
+  collected ballots.
+\end{itemize}
+While end-to-end verifiability addresses the basic assumption that
+no entity (software, hardware and participants) are inherently
+trustworthy, ballot secrecy addresses the coercion problem:
+\begin{itemize}
+  \item no voter should be able to reveal their ballot to any other
+  party
+\end{itemize}
+so that a possible coercer has no way of verifying whether or not a
+voter in fact followed their instructions. 
+
+\begin{center}
+\texttt{[Thomas: is there a standard reference for E2E
+verifiability?]}
+\end{center}
+
+The above desiderata can be realised using encrypted ballots, where
+encrypted ballots (that the voters themselves cannot decrypt) are
+published on a bulletin board, and the votes are then processed, and
+the correctness of the final tally is substantiated, using
+homomorphic encryption \cite{Hirt:2000:ERF} and verifiable shuffling
+\cite{Bayer:2012:EZK}. (Separate techniques exist to prevent ballot
+box stuffing and to guarantee cast-as-intended.)
+
+\begin{center}
+\texttt{[Thomas: do we have / need references for ballot box
+stuffing or cast-as-intended?]}
+\end{center}
+
+This paper addresses the problem of verifiable homomorphic tallying
+for a preferential voting scheme, the Schulze voting scheme. We show
+how the Schulze Method can be implemented in a theorem prover to
+guarantee both provably correct and verifiable counting on the basis
+of encrypted ballots, relative to an axiomatisation of the
+cryptographic primitives. We then obtain, via program extraction, a
+provably correct implementation of the vote counting, that we turn
+into executable code by providing implementations of the primitives
+based on a standard cryptographic library. We conclude by presenting
+experimental results, and discuss trust the trust base, security and
+privacy as well as the applicability of our work to real-world
+scenarios. 
+
+\subsection*{Leftover Text?}
 In general, every election has purpose to elect candidates based on cast
   ballots while maintaining the integrity of election i.e. tallied correctly, 
   maintained individual ballot privacy, and coercions free. Many of these properties 
@@ -553,6 +607,7 @@ Lemma pschulze_winners (grp : Group) (bs : list eballot) :
 
 \section{Extraction and Experiments}
 \begin{itemize}
+  \item extension of Unicrypt with homomorphic addition
   \item coupling between library and extracted code
   \item need for light weight wrappers
   \item experimental results: how long, how much memory, certicicate
@@ -561,12 +616,14 @@ Lemma pschulze_winners (grp : Group) (bs : list eballot) :
 
 \section{Analysis}
 \begin{itemize}
-  \item trust base: library, wrapper, bindings
+  \item trust base: library, wrapper, bindings, extraction into
+  unverified BigInts
   \item security: probabilistic aspects ignored, attacker model
   \item applicability to real world scenarios
 \end{itemize}
 
-%\bibliography{all2,delta2}
+\bibliographystyle{plain}
+\bibliography{all2,delta2}
 
 \appendix
 \section*{Notes and Leftovers Start Here}
@@ -774,8 +831,8 @@ to establish a homomorphic property: the decryption of the result
 obtained from encrypted ballots is the same as the result obtained from
 the decrypted ballots.  We leave this to further work.
 
-\bibliographystyle{myplain}
-\bibliography{all2,delta2}
+%\bibliographystyle{myplain}
+%\bibliography{all2,delta2}
 
 
 \end{document}

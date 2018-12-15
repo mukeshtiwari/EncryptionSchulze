@@ -1,0 +1,41 @@
+\begin{thebibliography}{1}
+
+\bibitem{Bayer:2012:EZK}
+Stephanie Bayer and Jens Groth.
+\newblock Efficient zero-knowledge argument for correctness of a shuffle.
+\newblock In David Pointcheval and Thomas Johansson, editors, {\em Proc.
+  {EUROCRYPT} 2012}, volume 7237 of {\em Lecture Notes in Computer Science},
+  pages 263--280. Springer, 2012.
+
+\bibitem{Benaloh:2009:SSC}
+Josh Benaloh, Tal Moran, Lee Naish, Kim Ramchen, and Vanessa Teague.
+\newblock Shuffle-sum: coercion-resistant verifiable tallying for {STV} voting.
+\newblock {\em {IEEE} Trans. Information Forensics and Security},
+  4(4):685--698, 2009.
+
+\bibitem{Pattinson:2017:SVE}
+Dirk Pattinson and Mukesh Tiwari.
+\newblock Schulze voting as evidence carrying computation.
+\newblock In Mauricio Ayala{-}Rinc{\'{o}}n and C{\'{e}}sar~A. Mu{\~{n}}oz,
+  editors, {\em Proc. {ITP} 2017}, volume 10499 of {\em Lecture Notes in
+  Computer Science}, pages 410--426. Springer, 2017.
+
+\bibitem{Rivest:2010:OSW}
+Ronald~L. Rivest and Emily Shen.
+\newblock An optimal single-winner preferential voting system based on game
+  theory.
+\newblock In Vincent Conitzer and Jörg Rothe, editors, {\em Proc. COMSOC
+  2010}. Duesseldorf University Press, 2010.
+
+\bibitem{Schulze:2011:NMC}
+Markus Schulze.
+\newblock A new monotonic, clone-independent, reversal symmetric, and
+  {C}ondorcet-consistent single-winner election method.
+\newblock {\em Social Choice and Welfare}, 36(2):267--303, 2011.
+
+\bibitem{Yi:2014:HEA}
+Xun Yi, Russell Paulet, and Elisa Bertino.
+\newblock {\em Homomorphic Encryption and Applications}.
+\newblock Briefs in Computer Science. Springer, 2014.
+
+\end{thebibliography}
