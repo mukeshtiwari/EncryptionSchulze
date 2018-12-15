@@ -354,17 +354,17 @@ winning conditions.
   \item describe certificates and how to check them
   \item show that ``certificates certify''
 \end{itemize}}
- Following from previous section we now give detailed view of formalization.
- We have treated the cryptographic primitives as black box, and assumed 
+ Following from previous section, we now give elaborated view of formalization.
+ The cryptographic primitives are treated as black box, and assumed 
 each primitive holds certain properties which are modelled
  as axiom in Coq \cite{Bertot:2004:ITP}. We have total six axioms about 
  decryption, (secret) permutation, and shuffle, and we 
  invite the reader to examine the validity of these axioms, but for sake of 
- completeness and detail we sketch out one axiom about encryption scheme.
+ completeness and detail we sketch out the details of encryption scheme.
  
  The very first one among all these primitives 
-are encryption function and decryption function with the property as suggested 
-by name of axiom itself is that decryption is deterministic. 
+are encryption function and decryption function with the trait, as suggested 
+by name of axiom itself, that decryption is deterministic. 
 
 \begin{verbatim}
   Inductive Group : Type :=
@@ -388,7 +388,7 @@ by name of axiom itself is that decryption is deterministic.
  will be discuss in a moment, can be checked 
  by scrutinizers to audit the election irrespective of how it was constructed, 
  we also produce the evidence in form of zero knowledge proof for honest decryption which
- can be verified later independently. In order to attain verification 
+ can be verified later independently. In order to attain verification, 
  we need primitives to build 
  honest decryption zero knowledge proof to decouple the verification of election 
  outcome from code inspection used to produce results.
@@ -428,7 +428,7 @@ by name of axiom itself is that decryption is deterministic.
   cryptographic primitives, we plug them into our 
  formalization to construct verifiable counting system. 
  
- At very high level, we can think of counting process as finite state machine or 
+ At very high level, we can think of counting ballots as finite state machine or 
  automaton which has following states 
  \begin{itemize}
  \item starting state where all the ballots are uncounted, 
@@ -494,8 +494,19 @@ Inductive EState : Type :=
 
 We formalize the correct counting of homomorphic Schulze method by dependent inductive 
 data type, \textbf{ECount}, which is parameterised by group, used for cryptographic 
-primitive, list of cast ballots, and EStates. In order to show that protocol (counting)
- executed correctly we need to show that it always ends up accepting state i.e. 
+primitive, list of cast ballots, and \textbf{EStates}. It is very crucial to 
+notice that adding  \textbf{EState} as parameter to \textbf{ECount} forces the
+ computation constructing the term of type \textbf{ECount} follow the each step of protocol
+  correctly. The computation expressed above follows 
+  the same spirit as appending two dependent type 
+  vector indexed over natural numbers of length n, and m would always 
+  produce a vector of length  (n + m). Since Coq's expressive type system allows 
+  us to represent this fact at type level only correct implementation of 
+  append would type check.
+
+ 
+ In order to show that protocol (counting)
+ executed correctly, we need to show that it always ends up accepting state i.e. 
  produces the term (inhabitant) of type \textbf{ECount grp bs (ewinners w)}.
 
 
