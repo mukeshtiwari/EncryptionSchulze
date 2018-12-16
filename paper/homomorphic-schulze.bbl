@@ -1,4 +1,4 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{Bayer:2012:EZK}
 Stephanie Bayer and Jens Groth.
@@ -7,11 +7,65 @@ Stephanie Bayer and Jens Groth.
   {EUROCRYPT} 2012}, volume 7237 of {\em Lecture Notes in Computer Science},
   pages 263--280. Springer, 2012.
 
+\bibitem{Ben-Or:1988:CRYPTO}
+Michael Ben{-}Or, Oded Goldreich, Shafi Goldwasser, Johan H{\aa}stad, Joe
+  Kilian, Silvio Micali, and Phillip Rogaway.
+\newblock Everything provable is provable in zero-knowledge.
+\newblock In {\em {CRYPTO}}, volume 403 of {\em Lecture Notes in Computer
+  Science}, pages 37--56. Springer, 1988.
+
 \bibitem{Benaloh:2009:SSC}
 Josh Benaloh, Tal Moran, Lee Naish, Kim Ramchen, and Vanessa Teague.
 \newblock Shuffle-sum: coercion-resistant verifiable tallying for {STV} voting.
 \newblock {\em {IEEE} Trans. Information Forensics and Security},
   4(4):685--698, 2009.
+
+\bibitem{Bernhard:2017:PES}
+Matthew Bernhard, Josh Benaloh, J.~Alex Halderman, Ronald~L. Rivest, Peter
+  Y.~A. Ryan, Philip~B. Stark, Vanessa Teague, Poorvi~L. Vora, and Dan~S.
+  Wallach.
+\newblock Public evidence from secret ballots.
+\newblock In Robert Krimmer, Melanie Volkamer, Nadja~Braun Binder, Norbert
+  Kersting, Olivier Pereira, and Carsten Sch{\"{u}}rmann, editors, {\em Proc.
+  E-Vote-ID 2017}, volume 10615 of {\em Lecture Notes in Computer Science},
+  pages 84--109. Springer, 2017.
+
+\bibitem{Bertot:2004:ITP}
+Yves Bertot, Pierre Cast{\'e}ran, G{\'e}rard Huet, and Christine
+  Paulin-Mohring.
+\newblock {\em Interactive theorem proving and program development : Coq'Art :
+  the calculus of inductive constructions}.
+\newblock Texts in theoretical computer science. Springer, 2004.
+
+\bibitem{Goldreich:1991:ACM}
+Oded Goldreich, Silvio Micali, and Avi Wigderson.
+\newblock Proofs that yield nothing but their validity for all languages in
+  {NP} have zero-knowledge proof systems.
+\newblock {\em J. {ACM}}, 38(3):691--729, 1991.
+
+\bibitem{Goldwasser:1985:STOC}
+Shafi Goldwasser, Silvio Micali, and Charles Rackoff.
+\newblock The knowledge complexity of interactive proof-systems (extended
+  abstract).
+\newblock In {\em {STOC}}, pages 291--304. {ACM}, 1985.
+
+\bibitem{Hirt:2000:ERF}
+Martin Hirt and Kazue Sako.
+\newblock Efficient receipt-free voting based on homomorphic encryption.
+\newblock In Bart Preneel, editor, {\em Proc. {EUROCRYPT} 2000}, volume 1807 of
+  {\em Lecture Notes in Computer Science}, pages 539--556. Springer, 2000.
+
+\bibitem{Kusters:2010:CCS}
+Ralf K{\"{u}}sters, Tomasz Truderung, and Andreas Vogt.
+\newblock Accountability: definition and relationship to verifiability.
+\newblock In {\em {ACM} Conference on Computer and Communications Security},
+  pages 526--535. {ACM}, 2010.
+
+\bibitem{Kusters:2012:SP}
+Ralf K{\"{u}}sters, Tomasz Truderung, and Andreas Vogt.
+\newblock Clash attacks on the verifiability of e-voting systems.
+\newblock In {\em {IEEE} Symposium on Security and Privacy}, pages 395--409.
+  {IEEE} Computer Society, 2012.
 
 \bibitem{Pattinson:2017:SVE}
 Dirk Pattinson and Mukesh Tiwari.
@@ -19,6 +73,12 @@ Dirk Pattinson and Mukesh Tiwari.
 \newblock In Mauricio Ayala{-}Rinc{\'{o}}n and C{\'{e}}sar~A. Mu{\~{n}}oz,
   editors, {\em Proc. {ITP} 2017}, volume 10499 of {\em Lecture Notes in
   Computer Science}, pages 410--426. Springer, 2017.
+
+\bibitem{Rivest:2008:PTRS}
+Ronald~L Rivest.
+\newblock On the notion of ‘software independence’in voting systems.
+\newblock {\em Philosophical Transactions of the Royal Society A: Mathematical,
+  Physical and Engineering Sciences}, 366(1881):3759--3767, 2008.
 
 \bibitem{Rivest:2010:OSW}
 Ronald~L. Rivest and Emily Shen.

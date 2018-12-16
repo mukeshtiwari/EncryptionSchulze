@@ -26,18 +26,18 @@ Scheme}
 
 \author{Thomas Haines \inst{1} \and
       Dirk Pattinson\inst{2} \and Mukesh Tiwari \inst{2}}
-\institute{Polyas, Denmark \and
+\institute{Polyas GmbH, Germany \and
           Research School of Computer Science, ANU, Canberra}
 \maketitle
 
 \begin{abstract}
-The encryption of ballots is crucial to maintain integrity and 
-anonymity of electronic voting schemes. It enables, amongst other 
+The encryption of ballots is crucial to maintaining integrity and 
+anonymity in electronic voting schemes. It enables, amongst other 
 things, each voter to verify that their encrypted ballot has been 
 recorded as cast, by checking their ballot against a bulletin board. 
 
 We present a verifiable homomorphic tallying scheme for the Schulze 
-method that allows to verify the correctness of the count on the 
+method that allows verification of the correctness of the count on the 
 basis of encrypted ballots that only reveals the final tally. We 
 achieve verifiability by using zero knowledge proofs for ballot 
 validity and honest decryption of the final tally. Or formalisation 
@@ -50,6 +50,18 @@ of our approach by means of case studies.
 
 
 \section{Introduction}
+
+Secure elections are a balancing act between integrity and privacy;  
+achieving either is trivial but the combination is notoriously hard.
+Cryptography is enormously helpful in resolving this tension.
+Of particular use are Zero Knowledge Proofs (ZKP).  ZKP was 
+first studied by Goldwasser, Micali, and Rackoff~\cite{Goldwasser:1985:STOC}.
+Informally, they are a kind of probabilistic and interactive proof which provide no additional information
+then that statement is true with overwhelming probability.  
+Later results~\cite{Goldreich:1991:ACM}\cite{Ben-Or:1988:CRYPTO} showed that 
+all problems for which solutions can be efficiently verified have zero knowledge
+proofs.
+
 \begin{itemize}
   \item general need for crypt in vote counting
   \item gernal need for verifiablility in vote counting:
@@ -72,17 +84,21 @@ notion of ``verifiable evidence'' is captured by the term
 \end{itemize}
 While end-to-end verifiability addresses the basic assumption that
 no entity (software, hardware and participants) are inherently
-trustworthy, ballot secrecy addresses the coercion problem:
-\begin{itemize}
-  \item no voter should be able to reveal their ballot to any other
-  party
-\end{itemize}
-so that a possible coercer has no way of verifying whether or not a
-voter in fact followed their instructions. 
+trustworthy, ballot secrecy addresses the privacy problem.
+Unfortunately, it appears that coercion resistance is not achievable  
+in the remote setting without relying on overly optimistic---to say the least---assumptions.
+A weaker property called receipt-freeness captures the idea that an honest 
+voter---while able to verify that their ballot was counted---is required to keep 
+no information that a possible coercer could use to verifying how that voter had voted.
 
+End to end verifiability and the related notation of software independence~\cite{Rivest:2008:PTRS}
+ have been claimed properties for many voting schemes.  Kusters et al~\cite{Kusters:2010:CCS} gave
+ a cryptographic formulation whose value is highlighted by the attacks it revealed in established voting 
+ schemes~\cite{Kusters:2012:SP}.
 \begin{center}
 \texttt{[Thomas: is there a standard reference for E2E
 verifiability?]}
+Hopefully the above paragraph helps
 \end{center}
 
 The above desiderata can be realised using encrypted ballots, where
@@ -96,6 +112,7 @@ box stuffing and to guarantee cast-as-intended.)
 \begin{center}
 \texttt{[Thomas: do we have / need references for ballot box
 stuffing or cast-as-intended?]}
+I don't think so
 \end{center}
 
 This paper addresses the problem of verifiable homomorphic tallying
