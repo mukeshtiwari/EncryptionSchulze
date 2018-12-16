@@ -585,8 +585,6 @@ Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
 \end{verbatim}
  
 
- 
- 
 \begin{itemize}
 \item The first constructor, \textbf{ecax}, marks the beginning the counting process by 
 	  taking list of uncounted ballots, \textbf{us},
@@ -641,7 +639,8 @@ Coq extraction mechanism\cite{Letouzey:2003:NEC} allows us to extract its proofs
 programs retaining all the terms which lives in Type universe, and erases every term 
 from Prop universe. After extracting Coq proofs into OCaml\cite{Leroy:2013:ORM} program, and plugging the 
 cryptographic primitives into Unicrypt library via a thin wrapper written in 
-OCaml using the library which calls Java function from OCaml, and executing it on 
+OCaml using the library which calls Java function from OCaml (more details in next
+section), and executing it on 
 set of ballots produces the following certificate (as promised earlier), but 
 the numbers appearing are very large and snipped because of space constraint.
 
@@ -706,7 +705,7 @@ losing: C
 
 We have 3 candidates A, B, and C. In the beginning of computation, we publish 
 the information embedded in constructor \textbf{ecax} i.e.  
-zero encrypted margin, M, its decryption to show that all the 
+encrypted zero margin, M, its decryption to show that all the 
 entries are 0, and zero knowledge proof of honest decryption. 
 In next line, we display the 
 first ballot from uncounted pile, V, that we are about to count, 
@@ -721,9 +720,35 @@ margin function homomorphically, \textbf{cvalid},
 or move it to pile of invalid ballots, \textbf{cinvalid}. We continue 
 until every ballot is counted. Once counting is finished then we decrypt the fully 
 constructed margin function with zero knowledge, \textbf{ecdecrypt}. 
-In final step, \textbf{ecfin}, we 
+In final step, we show the evidence provided by 
+constructor \textbf{ecfin}, which included decrypted margin, winners(loser) with
+evidence about winning(losing).
 
 
+Not only we provide certificate to verify the computation, but we provide 
+proof of correctness against fully verified implementation of 
+Schulze method \cite{Pattinson:2017:SVE} assuming 
+that if there one to one correspondence between plaintext ballots and encrypted ballots,
+i.e. if plaintext ballot is valid then its encryption is also valid and if 
+encrypted ballot is valid then it's decryption is also valid, 
+then computing winners via plaintext ballot is same as encrypted ballot and vice-versa. 
+\begin{verbatim}
+  Lemma final_correctness :
+    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
+    (ebs : list eballot) (w : cand -> bool)
+    (H : pbs = map (fun x => 
+         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+    (H2 : mapping_ballot_pballot bs pbs), 
+    Count bs (winners w) -> ECount grp ebs (ewinners w).
+      
+  Lemma final_correctness_rev :
+    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
+    (ebs : list eballot) (w : cand -> bool)
+    (H : pbs = map (fun x => 
+         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+    (H2 : mapping_ballot_pballot bs pbs),
+    ECount grp ebs (ewinners w) -> Count bs (winners w).
+\end{verbatim}
 
 
 
