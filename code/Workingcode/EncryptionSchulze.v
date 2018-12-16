@@ -1345,14 +1345,37 @@ Section Encryption.
         (forall c, w c = false <-> (exists x, d c = inr x)) ->
         ECount grp bs (ewinners w).  
     
-        
-   
-    
-    Lemma ecount_all_ballot :
+
+     Lemma ecount_all_ballot :
       forall (grp : Group) (bs : list eballot), existsT encm, ECount grp bs (epartial (bs, []) encm).
     Proof.
       intros.
-      remember (encrypt_message grp 0) as encm. exists (fun c d => encm).
+      remember (fun c d : cand => encrypt_message grp 0) as encm. exists encm.
+      pose proof (ecax grp bs bs encm
+                       (fun c d => 0)
+                       (fun c d => construct_zero_knowledge_decryption_proof
+                                  grp privatekey (encm c d))
+                       eq_refl (fun c d => eq_refl)).
+      assert (forall c d : cand,
+                 verify_zero_knowledge_decryption_proof
+                   grp ((fun _ _ : cand => 0) c d)
+                   (encm c d)
+                   ((fun _ _ : cand =>
+                       construct_zero_knowledge_decryption_proof grp privatekey (encm c d)) c d) =
+                 true).
+      intros. apply verify_true.
+      symmetry. rewrite Heqencm. apply decryption_deterministic.
+      pose proof (X H). auto.
+    Qed.
+   
+    (* This is determines version *)
+    (*
+    Lemma ecount_all_ballot :
+      forall (grp : Group) (bs : list eballot), existsT encm, ECount grp bs (epartial (bs, []) encm).
+    Proof.
+      intros. 
+      remember (encrypt_message grp 0) as encm. 
+      exists (fun c d => encm).
       pose proof (ecax grp bs bs (fun c d => encm)
                        (fun c d => 0)
                        (fun c d => construct_zero_knowledge_decryption_proof
@@ -1368,7 +1391,7 @@ Section Encryption.
       intros. apply verify_true.
       symmetry. rewrite Heqencm. apply decryption_deterministic.
       pose proof (X H). auto.
-    Qed.
+    Qed. *)
 
 
     (* A helper function which convertes list to function. It helpful in using list as a 

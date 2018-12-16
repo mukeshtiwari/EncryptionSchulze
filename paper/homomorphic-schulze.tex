@@ -405,13 +405,13 @@ by name of axiom itself, that decryption is deterministic.
  will be discuss in a moment, can be checked 
  by scrutinizers to audit the election irrespective of how it was constructed, 
  we also produce the evidence in form of zero knowledge proof for honest decryption which
- can be verified later independently. In order to attain verification, 
+ can be verified later independently. In order to attain verifiability, 
  we need primitives to build 
  honest decryption zero knowledge proof to decouple the verification of election 
- outcome from code inspection used to produce results.
+ outcome from code inspection used to produce result.
  As it is evident from the names itself, these primitives are about constructing honest
  decryption zero knowledge proof object, checking if a plaintext is indeed 
- decryption of claimed ciphertext using decryption zero knowledge proof object, 
+ honest decryption of claimed ciphertext using decryption zero knowledge proof object, 
  with property that what it means to be when honest decryption proof 
  checks out i.e. return true.
  
@@ -431,7 +431,8 @@ by name of axiom itself, that decryption is deterministic.
       = true.
  \end{verbatim}
  
- The axiom, \texttt{verify\_true}, itself states that if plaintext, \textit{pt}, is honest
+ The axiom, \texttt{verify\_true}, itself states that if plaintext, \textit{pt}, 
+ is honest
  decryption of ciphertext, \textit{ct}, then primitive
  \texttt{verify\_zero\_knowledge\_decryption\_proof} returns true for 
  suitably constructed zero knowledge proof.
@@ -476,7 +477,7 @@ by name of axiom itself, that decryption is deterministic.
 
 
 
-We use Coq's dependent inductive data type facility to capture the notion of 
+ We use Coq's dependent inductive data type facility to capture the notion of 
   finite state machine. To  be precise, the outcome
   of a election
  is inhabitant of inductive data type used to express the 
@@ -626,11 +627,104 @@ Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
 \end{itemize}
 
 We formally state that for every list of ballots, we can find a boolean function 
-that decides winners, together with evidences of the correctness of this determination.
+that decides winners, but what more important is that the term 
+of type \textbf{ECount grp bs (ewinners f)} captures each step of 
+execution which can be produced as evidence, known as certificate, 
+to scrutineers for inspection.
+
 \begin{verbatim}
 Lemma pschulze_winners (grp : Group) (bs : list eballot) :
         existsT (f : cand -> bool), ECount grp bs (ewinners f).
 \end{verbatim}
+
+Coq extraction mechanism\cite{Letouzey:2003:NEC} allows us to extract its proofs into
+programs retaining all the terms which lives in Type universe, and erases every term 
+from Prop universe. After extracting Coq proofs into OCaml\cite{Leroy:2013:ORM} program, and plugging the 
+cryptographic primitives into Unicrypt library via a thin wrapper written in 
+OCaml using the library which calls Java function from OCaml, and executing it on 
+set of ballots produces the following certificate (as promised earlier), but 
+the numbers appearing are very large and snipped because of space constraint.
+
+
+
+\begin{verbatim}
+M: AA(13.., 10..) AB(90.., 14..) AC(11.., 23..) BA(16.., 13..) BB(79.., 46..)
+BC(12.., 14..) CA(50.., 53..) CB(70.., 68..) CC(23.., 82..), 
+Decrypted margin [AA: 0 AB: 0 AC: 0 BA: 0 BB: 0 BC: 0 CA: 0 CB: 0 CC: 0], 
+Zero Knowledge Proof of Honest Decryption: [..]
+---------------------------------------------------------------------------
+V: [AA(42.., 15..) AB(63.., 32..) AC(70, 44..) BA(47.., 34..) BB(16.., 28..)
+BC(39.., 16..) CA(19.., 13..) CB(57.., 12..) CC(19.., 89..),..], I:  [], 
+M: AA(12.., 11..) AB(13.., 66..) AC(16.., 14.) BA(48.., 31..) BB(15.., 52..)
+BC(15.., 68..) CA(39.., 69..) CB(12.., 78..) CC(10.., 40..),
+Row Permuted Ballot: AA(53.., 16..) AB(23.., 44..) AC(72.., 47..)
+BA(10.., 19..) BB(74.., 16..) BC(20.., 60..) CA(44.., 10..) CB(12.., 16..)
+CC(59.., 98..),
+Column Permuted Ballot: AA(81.., 41..) AB(17.., 14..) AC(10.., 14..) 
+BA(37.., 12..) BB(14.., 66..) BC(10.., 13..) CA(12.., 13..) 
+CB(14.., 16..) CC(12.., 10..),
+Decryption of Permuted Ballot: AA0 AB-1 AC1 BA1 BB0 BC1 CA-1 CB-1 CC0,
+Zero Knowledge Proof of Row Permutation: [Tuple[...]], 
+Zero Knowledge Proof of Column Permutation: [Tuple[..]], 
+Zero Knowledge Proof of Decryption: [Triple[..]], 
+Permutation commitment: Triple[..]
+Zero Knowledge Proof of commitment: Tuple[..]
+------------------------------------------------------------------------------------------
+.
+.
+.
+------------------------------------------------------------------------------------------
+V: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) BA(13.., 31..) BB(27.., 82..)
+BC(31.., 50..) CA(16.., 11..) CB(74.., 15..) CC(26.., 36..)], I: [], M: AA(86.., 38..)
+AB(21.., 14..) AC(16.., 25..) BA(16.., 22..) BB(18.., 15..) BC(11.., 63..)
+CA(15.., 34..) CB(76.., 18..) CC(11.., 10..), 
+Row Permuted Ballot: .., Column Permuted Ballot: .., 
+Decryption of Permuted Ballot: AA0 AB-10 AC1 BA10 BB0 BC1 CA-1 CB-1 CC0,
+Zero Knowledge Proof of Row Permutation: [..],
+Zero Knowledge Proof of Column Permutation: [..], 
+Zero Knowledge Proof of Decryption: [..], 
+Permutation commitment: Triple[..], 
+Zero Knowledge Proof of commitment: Tuple[..]
+------------------------------------------------------------------------------------
+V: [], I: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) BA(13.., 31..) BB(27.., 82..)
+BC(31.., 50..) CA(16.., 11..) CB(74.., 15..) CC(26.., 36..)], M: .., 
+DM: [AA: 0 AB: 4 AC: 4 BA: -4 BB: 0 BC: 4 CA: -4 CB: -4 CC: 0],
+Zero Knowledge Proof of Decryption: [..]
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+DM: [AA: 0 AB: 4 AC: 4 BA: -4 BB: 0 BC: 4 CA: -4 CB: -4 CC: 0]
+winning: A
+   for B: path A --> B of strenght 4, 5-coclosed set: [(B,A),(C,A),(C,B)]
+   for C: path A --> C of strenght 4, 5-coclosed set: [(B,A),(C,A),(C,B)] 
+losing: B
+   exists A: path A --> B of strength 4, 4-coclosed set: [(A,A),(B,A),(B,B),(C,A),
+   (C,B),(C,C)]
+losing: C
+   exists A: path A --> C of strength 4, 4-coclosed set: [(A,A),(B,A),(B,B),
+   (C,A),(C,B),(C,C)]
+
+\end{verbatim}
+
+We have 3 candidates A, B, and C. In the beginning of computation, we publish 
+the information embedded in constructor \textbf{ecax} i.e.  
+zero encrypted margin, M, its decryption to show that all the 
+entries are 0, and zero knowledge proof of honest decryption. 
+In next line, we display the 
+first ballot from uncounted pile, V, that we are about to count, 
+pile of invalid ballots so far, I, 
+running encrypted margin, M, row permutation, i.e. permuting each row by secret
+ permutation, of ballot that we are counting, 
+column permutation, i.e. permuting each column by same secret permutation, 
+ of ballot obtained from previous step after row permutation,
+decryption of final permuted ballot with zero knowledge proof of each operation. 
+Depending on the validity of finally permuted ballot, either we update the 
+margin function homomorphically, \textbf{cvalid}, 
+or move it to pile of invalid ballots, \textbf{cinvalid}. We continue 
+until every ballot is counted. Once counting is finished then we decrypt the fully 
+constructed margin function with zero knowledge, \textbf{ecdecrypt}. 
+In final step, \textbf{ecfin}, we 
+
+
+
 
 
 
