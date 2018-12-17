@@ -51,23 +51,8 @@ of our approach by means of case studies.
 
 \section{Introduction}
 
-Secure elections are a balancing act between integrity and privacy;  
-achieving either is trivial but the combination is notoriously hard.
-Cryptography is enormously helpful in resolving this tension.
-Of particular use are Zero Knowledge Proofs (ZKP).  ZKP was 
-first studied by Goldwasser, Micali, and Rackoff~\cite{Goldwasser:1985:STOC}.
-Informally, they are a kind of probabilistic and interactive proof which provide no additional information
-then that statement is true with overwhelming probability.  
-Later results~\cite{Goldreich:1991:ACM}\cite{Ben-Or:1988:CRYPTO} showed that 
-all problems for which solutions can be efficiently verified have zero knowledge
-proofs.
-
-\begin{itemize}
-  \item general need for crypt in vote counting
-  \item gernal need for verifiablility in vote counting:
-  certificates!
-\end{itemize}
-
+Secure elections are a balancing act between integrity and privacy:
+achieving either is trivial but their combination is notoriously hard.
 One of the key challenges faced by both paper based and electronic
 elections is that results must substantiated with
 verifiable evidence of their correctness while retaining the secrecy
@@ -85,7 +70,7 @@ notion of ``verifiable evidence'' is captured by the term
 While end-to-end verifiability addresses the basic assumption that
 no entity (software, hardware and participants) are inherently
 trustworthy, ballot secrecy addresses the privacy problem.
-Unfortunately, it appears that coercion resistance is not achievable  
+Unfortunately, it appears as if coercion resistance is not achievable  
 in the remote setting without relying on overly optimistic---to say the least---assumptions.
 A weaker property called receipt-freeness captures the idea that an honest 
 voter---while able to verify that their ballot was counted---is required to keep 
@@ -95,25 +80,25 @@ End to end verifiability and the related notation of software independence~\cite
  have been claimed properties for many voting schemes.  Kusters et al~\cite{Kusters:2010:CCS} gave
  a cryptographic formulation whose value is highlighted by the attacks it revealed in established voting 
  schemes~\cite{Kusters:2012:SP}.
-\begin{center}
-\texttt{[Thomas: is there a standard reference for E2E
-verifiability?]}
-Hopefully the above paragraph helps
-\end{center}
 
-The above desiderata can be realised using encrypted ballots, where
+The combination of privacy and integr, can be realised using cryptographic techniques, where
 encrypted ballots (that the voters themselves cannot decrypt) are
 published on a bulletin board, and the votes are then processed, and
 the correctness of the final tally is substantiated, using
 homomorphic encryption \cite{Hirt:2000:ERF} and verifiable shuffling
 \cite{Bayer:2012:EZK}. (Separate techniques exist to prevent ballot
 box stuffing and to guarantee cast-as-intended.)
+Integrity can then be guaranteed by means of Zero Knowledge Proofs
+(ZKP),
+first studied by Goldwasser, Micali, and Rackoff~\cite{Goldwasser:1985:STOC}.
+Informally, a ZKP is a probabilistic and interactive proof where one
+entity provides eveidence about knowledge of a secret without
+providing no information other than the truth of the statement, with
+overwhelming probability. 
+Later results~\cite{Goldreich:1991:ACM}\cite{Ben-Or:1988:CRYPTO} showed that 
+all problems for which solutions can be efficiently verified have zero knowledge
+proofs.
 
-\begin{center}
-\texttt{[Thomas: do we have / need references for ballot box
-stuffing or cast-as-intended?]}
-I don't think so
-\end{center}
 
 This paper addresses the problem of verifiable homomorphic tallying
 for a preferential voting scheme, the Schulze voting scheme. We show
@@ -766,12 +751,64 @@ then computing winners via plaintext ballot is same as encrypted ballot and vice
 \end{itemize}
 
 \section{Analysis}
-\begin{itemize}
-  \item trust base: library, wrapper, bindings, extraction into
-  unverified BigInts
-  \item security: probabilistic aspects ignored, attacker model
-  \item applicability to real world scenarios
-\end{itemize}
+
+\noindent\emph{Summary.} The main contribution of our formalisation is that of independently
+verifiable \emph{evidence} for a set of candidates to be the winners
+of an election counted according to the Schulze method. Our main
+claim is that that our notion of evidence is both safeguarding the
+privacy of the individual ballot (as the count is based on encrypted
+ballots) and is verifiable at the same time (by means of zero
+knowledge proofs). To do this, we have axiomatised a set of
+cryptographic primitives to deal with encryption, decryption,
+correctness of shuffles and correctness of decryption. From formal
+and constructive proof of the fact that such evidence can always be
+obtained, we have then extracted executable code that is provably
+correct by construction and produces election winners together with
+evidence once implementations for the cryptographic primitives are
+supplied.
+
+In a second step, we have supplied an implementation of these
+primitives, largely based on the Unicrypt Library. Our expertiments
+have demonstrated that this approach is feasible, but quite clearly
+much work is still needed to improve efficiency. 
+
+\smallskip\noindent\emph{Assumptions for Provable Correctness.}
+While we claim that the end product embodies a high level of
+reliability, our approach necessarily leaves some gaps between the
+executable and the formal proofs. First and foremost, this is of
+course the implementation of the cryptographic primitives in an
+external (and unverified) library. We have minimised this gap by
+basing our implementation on a purpose-specific existing library
+(Unicrypt) to which we relegate most of the functionality. Another
+gap is the extraction mechanism of the Coq theorem prover which does
+not come with formal correctness guarantees that reach down to the
+machine code level such as for example CakeML~\cite{Kumar:2014:CVI}.
+
+\smallskip\noindent\emph{Modelling Assumptions.} In our modelling of
+the cryptographic primitives, in particular the zero knowledge
+proofs, we have assumed that zero knowledge proofs can be verified,
+whereas in reality zero-knowledge proofs just confirm facts with
+very high probability which we have deliberately  ignored. As a
+consequence our correctness assertions only hold to the level
+of probability that is guaranteed by zero knowledge proofs.
+
+\smallskip\noindent\emph{Scalability.} We have analysed the
+feasibility of the extracted code by counting an increasing number
+of ballots. While this demonstrates a proof of concept, our results
+show that the cryptographic layer adds significant overhead compared
+to plaintext tallying \cite{Pattinson:2017:SVE}.  Our present
+hypothesis is that this overhead is created by the various layers of
+bindings between the executable (extracted into OCaml) and the
+Unicrypt library (implemented in Java) as each appears to be very
+efficient individually. 
+
+\smallskip\noindent\emph{Future Work.} Our axiomatisation of the
+needed cryptographic primitives lays the foundation of creating a
+verified library. For scalability, a more detailed analysis (and
+profiling) of the software artefact are necessary. Orthogonal to
+what we have presented here, it would also be of interest to develop
+a provably correct verifier for the notion of certificate presented
+here. 
 
 \bibliographystyle{plain}
 \bibliography{all2,delta2}
