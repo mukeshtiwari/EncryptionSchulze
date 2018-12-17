@@ -371,137 +371,49 @@ winning conditions.
   \item describe certificates and how to check them
   \item show that ``certificates certify''
 \end{itemize}}
- Following from previous section, we now give elaborated view of formalization.
- The cryptographic primitives are treated as black box, and assumed 
-each primitive holds certain properties which are modelled
- as axiom in Coq \cite{Bertot:2004:ITP}. We have total six axioms about 
- decryption, (secret) permutation, and shuffle, and we 
- invite the reader to examine the validity of these axioms, but for sake of 
- completeness and detail we sketch out the details of encryption scheme.
- 
- The very first one among all these primitives 
-are encryption function and decryption function with the trait, as suggested 
-by name of axiom itself, that decryption is deterministic. 
 
+Now we give elaborated view of formalization carried out inside theorem prover 
+Coq \cite{Bertot:2004:ITP}. We realize plaintext ballot, and ciphertext ballot, 
+the primitive
+building block of our formalization, as function, with definition of validity, and
+proof that we can decide for each ballot if it's valid or not.
 \begin{verbatim}
-  Inductive Group : Type :=
-      group : Prime -> Generator -> Publickey -> Group. 
+ Definition plaintext := Z.
+ Definition pballot := cand -> cand -> plaintext.
+ 
+ Definition ciphertext := (Z * Z)%type.
+ Definition eballot := cand -> cand -> ciphertext.
+ 
+ Definition matrix_ballot_valid (p : pballot) :=
+      (forall c d : cand, In (p c d) [-1; 0; 1]) /\
+      (exists f : A -> nat,
+          forall c d : A,
+          (p c d = 1 <-> (f c < f d)%nat) /\
+          (p c d = 0 <-> f c = f d) /\ 
+          (p c d = -1 <-> (f c > f d)%nat))
+          
+ Lemma matrix_ballot_valid_dec : 
+        forall p : pballot, {matrix_ballot_valid p} +
+                            {~matrix_ballot_valid p}.
+\end{verbatim}
 
-  Variable encrypt_message :
-      Group -> plaintext -> ciphertext.
-      
-  Variable decrypt_message :
-      Group -> Privatekey -> ciphertext -> plaintext.
- 
-  Axiom decryption_deterministic : forall (grp : Group) 
-    (privatekey : Privatekey) (pt : plaintext), 
-    decrypt_message grp privatekey (encrypt_message grp pt) = pt.
- \end{verbatim}
- 
- Intuitively, it means that if we take some plaintext, encrypt it, and decrypt it 
- we should get the original plaintext. This axiom certainly forces us to decrypt
-  the values 
- honestly during formalization, but to make sure that the certificate, which 
- will be discuss in a moment, can be checked 
- by scrutinizers to audit the election irrespective of how it was constructed, 
- we also produce the evidence in form of zero knowledge proof for honest decryption which
- can be verified later independently. In order to attain verifiability, 
- we need primitives to build 
- honest decryption zero knowledge proof to decouple the verification of election 
- outcome from code inspection used to produce result.
- As it is evident from the names itself, these primitives are about constructing honest
- decryption zero knowledge proof object, checking if a plaintext is indeed 
- honest decryption of claimed ciphertext using decryption zero knowledge proof object, 
- with property that what it means to be when honest decryption proof 
- checks out i.e. return true.
- 
- \begin{verbatim}
-   Variable construct_zero_knowledge_decryption_proof :
-      Group -> Privatekey -> ciphertext -> DecZkp.
-
-   Axiom verify_zero_knowledge_decryption_proof :
-      Group -> plaintext -> ciphertext -> DecZkp -> bool. 
-   
-   Axiom verify_true :
-      forall (grp : Group) (pt : plaintext) (ct : ciphertext) 
-      (privatekey : Privatekey)
-      (H : pt = decrypt_message grp privatekey ct),
-      verify_zero_knowledge_decryption_proof grp pt ct
-      (construct_zero_knowledge_decryption_proof grp privatekey ct) 
-      = true.
- \end{verbatim}
- 
- The axiom, \texttt{verify\_true}, itself states that if plaintext, \textit{pt}, 
- is honest
- decryption of ciphertext, \textit{ct}, then primitive
- \texttt{verify\_zero\_knowledge\_decryption\_proof} returns true for 
- suitably constructed zero knowledge proof.
- 
- We have followed the similar line of 
- arguments for other cryptographic primitives used in formalization including generation
-  of secret permutation, 
- the secret permutation is indeed a permutation, and ballots are indeed permuted by the
- claimed secret permutation by generating zero knowledge proof 
- for each operation performed during the counting ballots. Once we have axiomatized
-  cryptographic primitives, we plug them into our 
- formalization to construct verifiable counting system. 
- 
- At very high level, we can think of counting ballots as finite state machine or 
- automaton which has following states 
- \begin{itemize}
- \item starting state where all the ballots are uncounted, 
-       no invalid ballot, and margin function is zero.
- \item intermediate steps where we inspect a ballot from list of uncounted ballots, 
- 		and depending on its validity
-       we either update the margin (if ballot is valid), or move to pile to 
-       invalid ballots.
-  \item final (accepting) state where no more uncounted ballots left, and use 
-  		the computed margin to produce result  
- \end{itemize}
- 
- \begin{tikzpicture}[shorten >=2pt,node distance=5cm,on grid,auto] 
-   \node[state,initial] (ecax)   {$start$}; 
-   \node[state] (ecvalid) [above right=of ecax] {$valid$}; 
-   \node[state] (ecinvalid) [below right=of ecax] {$invalid$}; 
-   \node[state, accepting](ecdecrypt) [below right=of ecvalid] {$finished$};
-    \path[->] 
-    (ecax) edge  node [midway, above, sloped] {valid ballot} (ecvalid)
-           edge  node  [above, sloped] {invalid ballot} (ecinvalid)
-    (ecvalid) edge [bend left=10] node  [above, sloped] {invalid ballot} (ecinvalid)
-    			edge  node [above, sloped,swap] {no more ballots left} (ecdecrypt) 
-            edge [loop above] node {valid ballot} ()
-    (ecinvalid) edge [bend left=10] node [above, sloped] {valid ballot} (ecvalid) 
-    		   edge  node [above, sloped,swap] {no more ballots left} (ecdecrypt) 
-           edge [loop below] node {invalid ballot} ();
-\end{tikzpicture}
+As we stated in introductory section that the formalization is carried out by 
+axiomatising the cryptographic primitives. These cryptographic primitives are modelled 
+as axiom. These axioms are related to  
 
 
 
- We use Coq's dependent inductive data type facility to capture the notion of 
-  finite state machine. To  be precise, the outcome
-  of a election
- is inhabitant of inductive data type used to express the 
-  different states of counting (finite state machine) using various constructors, 
-  i.e. each constructor signifies some states of counting. Because of Coq's
-  expressive (dependent) type system any arbitrary term can appear at type level, 
-  we can  parameterised the counting (finite state machine) type by suitable 
-  terms to  make sure that computation for constructing terms of type counting (finite 
-  state machine) executes correctly.
- 
-  
- 
- In order to capture the states of ballots and margin function during counting process, 
- we introduce inductive data type \textbf{EState}, and the interpretation of it is,  
-  \begin{itemize}
-  \item list of uncounted ballots which must be dealt with, 
-  	and invalid ballots seen so far in counting process
-  \item computed homomorphic margin so far
-  \end{itemize}
-  or decrypted margin function after all the ballots are counted, 
-  or a boolean function used to determine the winner.
-  
-  
-  
+
+
+
+
+
+We capture the correct execution 
+of homomorphic Schulze method using Coq's dependent 
+type facility. We achieve this in two phase. In first phase, we capture the 
+state of ballots, i.e. uncounted ballots, list of invalid ballots, and running 
+ margin, as inductive data type, \textbf{EState}.  
+
 \begin{verbatim}
 Inductive EState : Type :=
     | epartial : (list eballot * list eballot) ->
@@ -510,27 +422,21 @@ Inductive EState : Type :=
     | ewinners : (cand -> bool) -> EState.
 \end{verbatim}
 
-We formalize the correct counting of homomorphic Schulze method by dependent inductive 
-data type, \textbf{ECount}, which is parameterised by group, used for cryptographic 
-primitive, list of cast ballots, and \textbf{EStates}. It is very crucial to 
-notice that adding  \textbf{EState} as parameter to \textbf{ECount} forces the
- computation constructing the term of type \textbf{ECount} to follow the each step of protocol
-  correctly. The computation expressed above follows 
-  the same spirit as appending two dependent type 
-  vector indexed over natural numbers of length n, and m would always 
-  produce a vector of length  (n + m). Since Coq's expressive type system allows 
-  us to represent this fact at type level only correct implementation of 
-  append would type check.
+Intuitively, we can construct element of type EState using three constructors 
+epartial, edecrypt, and ewinners. The interpretation is 
+\begin{itemize}
+ \item epartial takes a pair, list of uncounted ballots and invalid ballots seen 
+       so far, and computed homomorphic margin so far
+ \item edecrypt takes final decrypted margin after all the ballots are counted
+ \item ewinners take a boolean function which returns true(false) for winners(losers)
+\end{itemize}
 
- 
- In order to show that protocol (counting)
- executed correctly, we need to show that it always ends up accepting state i.e. 
- produces the term (inhabitant) of type \textbf{ECount grp bs (ewinners w)}.
-
-
-
+The second phase, 
+	represented as dependent inductive data type 
+\textbf{ECount} parametrised over group, used for cryptographic purpose, \textbf{bs},
+list of cast ballots, and EState, captures the execution of Schulze algorithm. 
 \begin{verbatim}
-Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
+Inductive ECount (group : Group) (bs : list eballot) : EState -> Type :=
  | ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
         (decm : cand -> cand -> plaintext)
         (zkpdec : cand -> cand -> DecZkp) :
@@ -583,46 +489,54 @@ Inductive ECount (grp : Group) (bs : list eballot) : EState -> Type :=
         (forall c, w c = false <-> (exists x, d c = inr x)) ->
         ECount grp bs (ewinners w). 
 \end{verbatim}
- 
+
+
+
+
 
 \begin{itemize}
-\item The first constructor, \textbf{ecax}, marks the beginning the counting process by 
-	  taking list of uncounted ballots, \textbf{us},
-      encrypted margin function, \textbf{encm}, decrypted margin function, \textbf{decm}, 
-      and zero knowledge proof, \textbf{zkpdec}, with proof that uncounted 
-      ballots, \textbf{us}, are same as 
-      cast ballots, \textbf{bs}, every entry in decrypted margin is 0, and 
-      \textbf{decm} is indeed the 
-      honest decryption of \textbf{encm} as honest decryption proof checker returns true.
- \item The constructor, \textbf{cvalid}, takes ballot \textbf{u} from uncounted 
- 		ballots, ballot 
- 		\textbf{v} which is row permutation of \textbf{u }by secret permutation, 
+\item The first constructor, \textbf{ecax}, marks the beginning of 
+	the counting process by 
+	taking list of uncounted ballots, \textbf{us},
+    encrypted margin function, \textbf{encm}, decrypted margin function, \textbf{decm}, 
+    and zero knowledge proof, \textbf{zkpdec}, with the constraints about states 
+    of data. The constraint, \textbf{us = bs}, states that uncounted ballots are same as 
+    cast ballots, every entry in decrypted margin  is 0, and \textbf{decm} is indeed 
+    honest decryption of \textbf{encm} as honest zero knowledge decryption proof
+     verification checker returns true.
+    
+\item The constructor, \textbf{ecvalid}, takes ballot \textbf{u} from uncounted ballots,
+		 ballot 
+ 		\textbf{v} which is row permutation of \textbf{u} by secret permutation, 
  		\textbf{w} which is column permutation of \textbf{v} by same secret permutation, 
- 		\textbf{b} which is decryption of \text{w}, zero knowledge proof, 
- 		\textbf{zkppermuv}, of v is indeed row permutation of u, 
+ 		\textbf{b} which is decryption of \textbf{w}, zero knowledge proof, 
+ 		  \textbf{zkppermuv}, of v is row permutation of u, 
  		zero knowledge proof, \textbf{zkppermvw}, of w is column permutation of 
  		v, zero knowledge proof, \textbf{zkpdecw}, of b is honest decryption w,
  		commitment, \textbf{cpi}, to secret permutation, and zero knowledge proof, 
- 		\textbf{zkpcpi}, that we indeed committed to secret permutation 
- 		with list of uncounted ballot, \textbf{us}, current margin, \textbf{m}, 
- 		updated margin, \textbf{nm}, after adding ballot u homomorphically to 
+ 		\textbf{zkpcpi}, that we indeed committed to secret permutation, 
+ 		list of uncounted ballot, \textbf{us}, current margin, \textbf{m}, 
+ 		updated margin, \textbf{nm}, after adding ballot \textbf{u} homomorphically to 
  		current margin, \textbf{m}, and list of invalid ballots, \textbf{inbs}, 
- 		seen so far with the usual proofs about validity data embedded in constructor. 
- \item The constructor, \textbf{cinvalid}, is very similar to \textbf{cvalid} except 
+ 		seen so far with assertions about validity of data embedded in constructor. 
+ \item The constructor, \textbf{ecinvalid}, is very similar to \textbf{ecvalid} except 
        rather than updating the running margin function, \textbf{m}, we move the ballot 
        to list of invalid ballot, \textbf{inbs}.
  \item The constructor, \textbf{ecdecrypt}, marks the finish of counting all the 
-       ballot as it can be seen by state, 
-       \textbf{ ECount grp bs (epartial ([], inbs) encm)}, with list of 
+       ballots as it can be seen by state, 
+       \textbf{ECount grp bs (epartial ([], inbs) encm)}, with list of 
        invalid ballots, \textbf{inbs}, final encrypted margin, \textbf{encm}, 
        decrypted margin, \textbf{decm}, zero knowledge proof of honest 
-       decryption, \textbf{zkp} with usual proofs about the consistency of data 
-       in constructor. 
+       decryption, \textbf{zkp} with assertion that decrypted margin, decm, is
+       honest decryption of encrypted margin, encm. 
  \item The final constructor, \textbf{ecfin}, takes decrypted margin, \textbf{dm}, 
-       boolean function, \textbf{w}, and d that delivers type level evidence of 
+       boolean function, \textbf{w}, and \textbf{d} that delivers type level evidence of 
        winning and losing for each candidate.
-   
 \end{itemize}
+
+
+
+
 
 We formally state that for every list of ballots, we can find a boolean function 
 that decides winners, but what more important is that the term 
@@ -634,6 +548,17 @@ to scrutineers for inspection.
 Lemma pschulze_winners (grp : Group) (bs : list eballot) :
         existsT (f : cand -> bool), ECount grp bs (ewinners f).
 \end{verbatim}
+
+
+
+\section{Extraction and Experiments}
+\texttt{ \begin{itemize}
+  \item extension of Unicrypt with homomorphic addition
+  \item coupling between library and extracted code
+  \item need for light weight wrappers
+  \item experimental results: how long, how much memory, certicicate
+  size
+\end{itemize}}
 
 Coq extraction mechanism\cite{Letouzey:2003:NEC} allows us to extract its proofs into
 programs retaining all the terms which lives in Type universe, and erases every term 
