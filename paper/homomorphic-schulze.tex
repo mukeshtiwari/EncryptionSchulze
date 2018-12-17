@@ -81,7 +81,7 @@ End to end verifiability and the related notation of software independence~\cite
  a cryptographic formulation whose value is highlighted by the attacks it revealed in established voting 
  schemes~\cite{Kusters:2012:SP}.
 
-The combination of privacy and integr, can be realised using cryptographic techniques, where
+The combination of privacy and integrity can be realised using cryptographic techniques, where
 encrypted ballots (that the voters themselves cannot decrypt) are
 published on a bulletin board, and the votes are then processed, and
 the correctness of the final tally is substantiated, using
@@ -192,7 +192,15 @@ In general, every election has purpose to elect candidates based on cast
   part of the certificate as this will remain unchanged in the work
   we are reporting here.
     
-  \smallskip\emph{Related Work.} 
+\noindent\smallskip\emph{Related Work.} The paper that is closest to
+our work is an algorithm for homomorphic counting for Single
+Transferable Vote \cite{Benaloh:2009:SSC}. While single transferable
+vote is arguably more complex that the Schulze Method, we have
+demonstrated the viability of our approach by implementing it in a
+theorem prover, and have extracted, and evaluated, an executable
+based on the formal proof development. The idea of formalising
+evidence for winning elections has been put forward (for plaintext
+ballots) in \cite{Pattinson:2015:VCM}. 
 
 \section{Verifiable Homomorphic Tallying}
 \texttt{
