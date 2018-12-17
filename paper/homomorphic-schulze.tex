@@ -358,33 +358,105 @@ winning conditions.
 \end{itemize}}
 
 Now we give elaborated view of formalization carried out inside theorem prover 
-Coq \cite{Bertot:2004:ITP}. We realize plaintext ballot, and ciphertext ballot, 
-the primitive
-building block of our formalization, as function, with definition of validity, and
-proof that we can decide for each ballot if it's valid or not.
+Coq \cite{Bertot:2004:ITP}. The realization can be  categorised in two parts,
+the axiomatic cryptographic primitives and the implementation of 
+verifiable homomorphic Schulze method using the cryptographic primitives.  
+
+
+The cryptographic primitives are modelled as axioms in Coq and represent cryptographic 
+entity such as prime number, generator, public key, private key,  and 
+ functions for performing  encryption, decryption, 
+ generating permutation, generating commitment of permutation, 
+ shuffling a ballot using some permutation, and construction and verification 
+ of zero knowledge proof. These primitives can broadly be divided into three categories.
+\begin{itemize}
+ \item Encrypting a plaintext using public key, returning ciphertext; decrypting a  
+       ciphertext using private key, returning plaintext;  
+       constructing a zero knowledge proof that a plaintext, $m$, is honest
+       decryption of some ciphertext, ($c_{1}$, $c_{2}$), returning a zero knowledge
+       proof object, $zkp$, and verification of 
+       claim that some plaintext, $m$, is honest decryption of cipertext 
+       ($c_{1}$, $c_{2}$) using zero knowledge proof object, $zkp$.
+ \item Generating a permutation, $\pi$; generating commitment of given permutation 
+ 	   using Pedersen's commitment scheme, $\pi_{c}$;
+ 	   generating zero knowledge proof, $\pi_{zkp}$, of some permutation $\pi$ 
+ 	   and its  commitment $\pi_{c}$, and verification of claim that given 
+ 	   permutation commitment,  $\pi_{c}$, is indeed a commitment of some 
+ 	   permutation using zero knowledge proof, $\pi_{zkp}$, without revealing 
+ 	   the permutation itself.      
+ \item Shuffling a ballot, $b$, using permutation, $\pi$, whose commitment is $\pi_{c}$,
+ 	   returning shuffled ballot, 
+       $b_{\pi}$; constructing zero knowledge proof, $sh_{zkp}$, that 
+       ballot, $b_{\pi}$, is shuffle of ballot, $b$, by permutation, $\pi$, and
+       verifying the claim ballot, $b_{\pi}$, is shuffle of ballot, $b$, by some 
+       permutation whose commitment is $\pi_{c}$ using zero knowledge proof,  $sh_{\pi}$.
+\end{itemize}
+
+
+Because of space limitation, we give Coq representation of 
+few cryptographic primitives mentioned above, but every axiom can be inspected in our
+implementation file (Axioms.v). One slight deviation from
+ above claim is that encryption and decryption function takes an 
+ element of type Group, but it's minor and just there for technical convenience.
 \begin{verbatim}
- Definition plaintext := Z.
- Definition pballot := cand -> cand -> plaintext.
+      Definition plaintext := Z.
+      Definition pballot := cand -> cand -> plaintext.
+      Definition ciphertext := (Z * Z)%type.
+      Definition eballot := cand -> cand -> ciphertext.
  
- Definition ciphertext := (Z * Z)%type.
- Definition eballot := cand -> cand -> ciphertext.
- 
- Definition matrix_ballot_valid (p : pballot) :=
-      (forall c d : cand, In (p c d) [-1; 0; 1]) /\
-      (exists f : A -> nat,
-          forall c d : A,
-          (p c d = 1 <-> (f c < f d)%nat) /\
-          (p c d = 0 <-> f c = f d) /\ 
-          (p c d = -1 <-> (f c > f d)%nat))
-          
- Lemma matrix_ballot_valid_dec : 
-        forall p : pballot, {matrix_ballot_valid p} +
-                            {~matrix_ballot_valid p}.
+      Variable Prime : Type. 
+      Variable Generator : Type.
+      Variable Pubkey : Type.
+      Variable Prikey : Type.
+      Variable DecZkp : Type.  
+      Variable prime : Prime.
+      Variable gen : Generator.
+      Variable privatekey : Prikey.
+      Variable publickey : Pubkey.
+     
+      Inductive Group : Type :=
+        group : Prime -> Generator -> Pubkey -> Group.
+    
+      (* This function encrypts the message *)
+      Variable encrypt_message :
+        Group ->  plaintext -> ciphertext.
+
+      (* This function decrypts the message *)
+      Variable decrypt_message :
+        Group -> Prikey -> ciphertext -> plaintext.
+        
+      (* constructs zero knowledge *)
+      Variable construct_zero_knowledge_decryption_proof :
+        Group -> Prikey -> ciphertext -> DecZkp.
+     
+      (* verify zero knowledge proof *)
+      Axiom verify_zero_knowledge_decryption_proof :
+        Group -> plaintext -> ciphertext -> DecZkp -> bool.
+      
+      Definition Permutation := existsT (pi : cand -> cand), (Bijective pi).
+      Variable Commitment : Type. 
+      Variable PermZkp : Type. 
+      Variable S : Type. 
+      
+      (* This function generates permutaion *)
+      Variable generatePermutation :
+        Group -> nat -> list cand -> Permutation. 
+      
+      (* This function generates Pedersen's commitment of given permutation *)   
+      Variable generatePermutationCommitment :
+       Group -> nat -> list cand -> Permutation -> S -> Commitment.
+       
+      (* Zero knowledge proof of permutation *) 
+      Variable zkpPermutationCommitment :
+        Group -> nat -> list cand -> Permutation -> Commitment -> S -> 
+        PermZkp.
+      
+      (* verification of zero knowledge proof *)  
+      Axiom verify_permutation_commitment :
+        Group -> nat -> Commitment -> PermZkp -> bool.
+
 \end{verbatim}
 
-As we stated in introductory section that the formalization is carried out by 
-axiomatising the cryptographic primitives. These cryptographic primitives are modelled 
-as axiom. These axioms are related to  
 
 
 
