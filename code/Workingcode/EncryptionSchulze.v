@@ -907,11 +907,13 @@ Section Encryption.
   
   Section ECount.
 
+    Require Import Cryptoaxioms.
     
     (*Relation between Public and Private key. Although it won't change the proof
       because we are not generating the keys in our code, and assuming it, but it's 
       still nice to have the relation *)
- 
+
+    
     (* Plain text *)
     Definition plaintext := Z.
     
@@ -937,7 +939,6 @@ Section Encryption.
     Variable gen : Generator.
     Variable privatekey : Prikey.
     Variable publickey : Pubkey.
-     
     Inductive Group : Type :=
       group : Prime -> Generator -> Pubkey -> Group.
     
@@ -1268,7 +1269,7 @@ Section Encryption.
       pose proof (n H). auto.
     Defined.
 
-   Check Commitment.
+   
    (* Returns true if v is row permutation of u by pi *)
     Definition verify_row_permutation_ballot grp
                (u : eballot) (v : eballot)
@@ -1367,31 +1368,7 @@ Section Encryption.
       symmetry. rewrite Heqencm. apply decryption_deterministic.
       pose proof (X H). auto.
     Qed.
-   
-    (* This is determines version *)
-    (*
-    Lemma ecount_all_ballot :
-      forall (grp : Group) (bs : list eballot), existsT encm, ECount grp bs (epartial (bs, []) encm).
-    Proof.
-      intros. 
-      remember (encrypt_message grp 0) as encm. 
-      exists (fun c d => encm).
-      pose proof (ecax grp bs bs (fun c d => encm)
-                       (fun c d => 0)
-                       (fun c d => construct_zero_knowledge_decryption_proof
-                                  grp privatekey encm)
-                       eq_refl (fun c d => eq_refl)).
-      assert (forall c d : cand,
-                 verify_zero_knowledge_decryption_proof
-                   grp ((fun _ _ : cand => 0) c d)
-                   ((fun _ _ : cand => encm) c d)
-                   ((fun _ _ : cand =>
-                       construct_zero_knowledge_decryption_proof grp privatekey encm) c d) =
-                 true).
-      intros. apply verify_true.
-      symmetry. rewrite Heqencm. apply decryption_deterministic.
-      pose proof (X H). auto.
-    Qed. *)
+  
 
 
     (* A helper function which convertes list to function. It helpful in using list as a 
@@ -2986,7 +2963,6 @@ Section Encryption.
       pose proof (uniqueness_proof_enc grp ebs _ _ H2 X1).
       rewrite H3. auto. 
     Qed.
-
     
   End ECount.
 
