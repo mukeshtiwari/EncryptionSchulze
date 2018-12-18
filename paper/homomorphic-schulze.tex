@@ -365,113 +365,25 @@ winning conditions.
   \item show that ``certificates certify''
 \end{itemize}}
 
-Now we give elaborated view of formalization carried out inside theorem prover 
-Coq \cite{Bertot:2004:ITP}. The realization can be  categorised in two parts,
-the axiomatic cryptographic primitives and the implementation of 
-verifiable homomorphic Schulze method using the cryptographic primitives.  
 
-
-The cryptographic primitives are modelled as axioms in Coq and represent cryptographic 
-entity such as prime number, generator, public key, private key, and 
- functions for performing  encryption, decryption, homomorphic addition,
- generating permutation, generating commitment of permutation, 
- shuffling a ballot using some permutation, and construction and verification 
- of zero knowledge proof. These primitives can broadly be divided into three categories.
-\begin{itemize}
- \item Encrypting a plaintext using public key, and returning ciphertext; decrypting a  
-       ciphertext using private key, and returning plaintext;  
-       constructing a zero knowledge proof object $zkpdec$ that a plaintext $m$ is honest
-       decryption of some ciphertext ($c_{1}$, $c_{2}$); verification of 
-       claim that some plaintext $m$ is honest decryption of cipertext 
-       ($c_{1}$, $c_{2}$) using zero knowledge proof object $zkpdec$.
- \item Generating a (secret) permutation $\pi$; 
- 	   generating commitment of given permutation $\pi$
- 	   using Pedersen's commitment scheme $cpi$;
- 	   generating zero knowledge proof $zkpcpi$ of some permutation $\pi$ and 
- 	   its commitment $cpi$; verification of claim that given 
- 	   permutation commitment  $cpi$ is indeed a commitment of some 
- 	   permutation $\pi$ using zero knowledge proof $zkpcpi$
- \item Shuffling a ballot $b$ using permutation $\pi$ whose commitment is $cpi$,
- 	   and returning shuffled ballot  $b_{\pi}$; 
- 	   constructing zero knowledge proof $permzkp$ that 
-       ballot $b_{\pi}$ is shuffle of ballot $b$ by permutation $\pi$;
-       verifying the claim that ballot $b_{\pi}$ is shuffle of ballot $b$ by some 
-       permutation whose commitment is $cpi$ using zero knowledge proof $permzkp$.
-\end{itemize}
-
-
-Because of space limitation, we give Coq representation of 
-few cryptographic primitives mentioned above, but every axiom can be inspected in our
-implementation file (Cryptoaxioms.v). One slight deviation from
- above claim is that encryption and decryption function takes an 
- element of type Group, but it's minor and just there for technical convenience.
-\begin{verbatim}
-      Definition plaintext := Z.
-      Definition pballot := cand -> cand -> plaintext.
-      Definition ciphertext := (Z * Z)%type.
-      Definition eballot := cand -> cand -> ciphertext.
- 
-      Variable Prime : Type. 
-      Variable Generator : Type.
-      Variable Pubkey : Type.
-      Variable Prikey : Type.
-      Variable DecZkp : Type.  
-      Variable prime : Prime.
-      Variable gen : Generator.
-      Variable privatekey : Prikey.
-      Variable publickey : Pubkey.
-     
-      Inductive Group : Type :=
-        group : Prime -> Generator -> Pubkey -> Group.
-    
-      (* This function encrypts the message *)
-      Variable encrypt_message :
-        Group ->  plaintext -> ciphertext.
-
-      (* This function decrypts the message *)
-      Variable decrypt_message :
-        Group -> Prikey -> ciphertext -> plaintext.
-        
-      (* constructs zero knowledge *)
-      Variable construct_zero_knowledge_decryption_proof :
-        Group -> Prikey -> ciphertext -> DecZkp.
-     
-      (* verify zero knowledge proof *)
-      Axiom verify_zero_knowledge_decryption_proof :
-        Group -> plaintext -> ciphertext -> DecZkp -> bool.
-      
-      Definition Permutation := existsT (pi : cand -> cand), (Bijective pi).
-      Variable Commitment : Type. 
-      Variable PermZkp : Type. 
-      Variable S : Type. 
-      
-      (* This function generates permutaion *)
-      Variable generatePermutation :
-        Group -> nat -> list cand -> Permutation. 
-      
-      (* This function generates Pedersen's commitment of given permutation *)   
-      Variable generatePermutationCommitment :
-       Group -> nat -> list cand -> Permutation -> S -> Commitment.
-       
-      (* Zero knowledge proof of permutation *) 
-      Variable zkpPermutationCommitment :
-        Group -> nat -> list cand -> Permutation -> Commitment -> S -> 
-        PermZkp.
-      
-      (* verification of zero knowledge proof *)  
-      Axiom verify_permutation_commitment :
-        Group -> nat -> Commitment -> PermZkp -> bool.
-
-\end{verbatim}
+Now we explain the cryptographic primitives in realization of 
+verifiable homomorphic tally. These primitives are treated as 
+abstract entity inside theorem prover Coq, and it includes 
+private key, public key, and functions for encryption, decryption,
+generating permutation, generating commitment \cite{Pederson}, shuffling 
+a list of ciphertext by a given permutation, generating zero 
+knowledge proof, and verification of zero knowledge proof.  
 
 
 
-
-
-Now we capture the formalization of homomorphic Schulze method using Coq's dependent 
-type facility. We achieve this in two phase. In first phase, we capture the 
-state of ballots, i.e. uncounted ballots, list of invalid ballots, and running 
- margin, as inductive data type, \textbf{EState}.  
+We describe homomorphic Schulze counting as dependent inductive data type,
+\textbf{ECount}. ECount is parametrised by, group, used 
+for cryptographic purpose, list of cast ballots, and depends on another 
+inductive data type \textbf{EState}. 
+The purpose of EState to capture the intermediate states 
+of counting i.e. constructing homomorphic margin function, or 
+decryption of fully constructed homomorphic margin function, or 
+determination of final result. 
 
 \begin{verbatim}
 Inductive EState : Type :=
@@ -490,9 +402,60 @@ epartial, edecrypt, and ewinners. The interpretation is
  \item ewinners take a boolean function which returns true(false) for winners(losers)
 \end{itemize}
 
-The second phase, represented as dependent inductive data type 
-\textbf{ECount} parametrised over group, used for cryptographic purpose, \textbf{bs},
-list of cast ballots, and EState, captures the execution of Schulze algorithm. 
+The interpretation of ECount is that inhabitant of this type is correct 
+execution of homomorphic counting method. Intuitively, the counting 
+start with first constructor, \textbf{ecax}, with list of all 
+uncounted ballots us, encrypted zero margin encm, decrypted zero margin 
+decm, and zero knowledge proof zkpdec of that decm is indeed honest decryption
+of encm with assertions that ensures that all the uncounted ballots are 
+equal to list of cast ballot, every entry in decm is zero and 
+zero knowledge proof of honest decryption verifies. 
+
+(* I can explain these primitives that what does encryption and decryption 
+do, what does generate permutation do,  but how to connect them with 
+   counting explained below ?. *)
+
+In next step, depending on validity of ballot we are counting (refer to 
+previous section about we decide the validity of ballot), we either update the 
+margin function homomorphically, \textbf{ecvalid}, or move it to the 
+list of invalid ballots, \textbf{ecinvalid}. Basically deciding 
+the validity of ballot involves shuffle by permutation, which
+we don't want to reveal to achieve ballot secrecy, and decryption, so 
+we need to produce compelling evidence 
+to make sure that the operation performed in each step of deciding validity 
+is verifiable. 
+
+To hide the permutation we use the well known protocol Pedersen's 
+commitment \cite{Pederson}. Pedersen commitment scheme has 
+the following properties. 
+\begin{itemize}
+\item Hiding: A dishonest party can't discover honest party's value
+\item Binding: A dishonest party cannot open his commitment in more  
+	 	than one way
+\item Non-correlation:  A dishonest party cannot commit to a value that is in 
+	some significant way correlated to the honest party's value.
+\end{itemize}
+
+We hide the permutation, \textbf{pi}, by generating the 
+commitment, \textbf{cpi}, and publishing it, and generate zero knowledge proof
+, \textbf{zkpcpi}, using permutation pi and its commitment cpi 
+which can be used later to prove in zero knowledge 
+that ballot v is permutation of  ballot u by (secret) permutation pi 
+without revealing pi. In 
+order to show that b is honest decryption of ballot w we construct 
+honest decryption zero knowledge proof \textbf{zkpdec}.
+
+The constructor, \textbf{ecdecrypt}, marks the finish to counting with 
+fully constructed encrypted margin \textbf{encm}, 
+decrypted margin \textbf{decm} with honest decryption zero knowledge proof, 
+\textbf{zkp}.
+
+The final constructor, \textbf{ecfin}, takes fully decrypted margin 
+\textbf{dm}, boolean function \textbf{w} that determines election winner, 
+and \textbf{d} that delivers type level evidence of winning or losing 
+consistent with w.
+
+
 \begin{verbatim}
 Inductive ECount (group : Group) (bs : list eballot) : EState -> Type :=
  | ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
@@ -541,92 +504,49 @@ Inductive ECount (group : Group) (bs : list eballot) : EState -> Type :=
    (forall c d, verify_zero_knowledge_decryption_proof
                   grp (decm c d) (encm c d) (zkp c d) = true) ->
    ECount grp bs (edecrypt decm)
- | ecfin dm w (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
+ | ecfin dm (w : cand -> bool) 
+        (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
         ECount grp bs (edecrypt dm) ->
         (forall c, w c = true <-> (exists x, d c = inl x)) ->
         (forall c, w c = false <-> (exists x, d c = inr x)) ->
         ECount grp bs (ewinners w). 
 \end{verbatim}
 
-Now we explain how we embed the data generated by cryptographic primitives in 
-constructors of inductive date type \textbf{ECount} during counting of 
-ballots to achieve verification. 
-\begin{itemize}
- \item The first constructor, \textbf{ecax}, marks the beginning of election 
-       by taking list of uncounted ballot \textbf{us}, encrypted margin function 
-       \textbf{encm} constructed by cryptographic primitive \textbf{encrypt\_message}
-       by encrypting zero matrix, 
-       decrypted margin function \textbf{decm} constructed by decrypting 
-       encrypted margin function encm using cryptographic primitive 
-       \textbf{decrypt\_message}, and zero knowledge proof \textbf{zkpdec} that decm is 
-       honest decryption of encm and is constructed by 
-       cryptographic primitive 
-       \textbf{construct\_zero\_knowledge\_decryption\_proof} \linebreak with
-       assertions about validity of data. 
-       The constraint, \textbf{us = bs}, states 
-       that uncounted ballots are same as 
-       cast ballots, every entry in decm is 0, 
-       and \textbf{decm} is indeed 
-       honest decryption of \textbf{encm} as the honest zero knowledge decryption proof
-       verifier function 
-       \textbf{verify\_zero\_knowledge\_decryption\_proof} returns true. 
-\item The constructor, \textbf{ecvalid}, assumes that ballot we are going to count 
-		is valid, takes (Pedersen's) commitment \textbf{cpi} of 
-	  (secret) permutation $\pi$ and is generated by cryptographic primitive 
-	  \textbf{generatePermutationCommitment},  zero knowledge proof \textbf{zkpcpi} 
-	  that permutation commitment cpi is indeed commitment of (secret) 
-	  permutation $\pi$, ballot u which we are going to count from uncounted pile,
-	   ballot v obtained by shuffling each row 
-	  u by (secret) permutation $\pi$ using cryptographic primitive function 
-	  \textbf{shuffle} (since shuffle introduces re-encryption, so there is no way 
-	  to infer permutation $\pi$ from shuffled ballot v), ballot w is obtained 
-	  by permuting each column of ballot v by same permution $\pi$ using the 
-	  function \textbf{shuffle}, 
-	  ballot b is obtained by decrypting ballot w using function 
-	  \textbf{decrypt\_message}, zero knowledge proof \textbf{zkppermuv} that 
-	  v is row permutation u by (secret) permutation $\pi$ and it is constructed 
-	  via \textbf{shuffle\_zkp}, zero knowledge proof \textbf{zkppermvw} that 
-	  w is column permutation of v by same (secret) permutation $\pi$ and it is 
-	  also construct by \textbf{shuffle\_zkp}, zero knowledge proof 
-	  \textbf{zkpdecw} that b is honest decryption of w and is constructed using 
-	  \textbf{construct\_zero\_knowledge\_decryption\_proof}, list of remaining 
-	  uncounted ballot \textbf{us}, old margin \textbf{m}, and homomorphically 
-	  updated new margin \textbf{nm} 
-	  after counting the ballot u  with usual assertion on data to insure
-	  the validity of data.
-	  
-\item The constructor, \textbf{ecinvalid}, is very similar to to constructor 
- 	 \textbf{ecvalid} except it assumes that the ballot \textbf{u} we are going 
- 	 to count is not valid, 
- 	 so we keep the margin, \textbf{m}, unchanged and move the invalid ballot \textbf{u}
- 	 into pile of invalid ballots with usual assertions about consistency of data 
- 	 embedded in constructor.
- 	 
-\item The constructor \textbf{ecdecrypt} is marks the finish of 
-	  counting ballots, and by this time we have fully constructed the 
-	  margin function. This constructor takes list of final invalid ballots 
-	  \textbf{inbs}, fully constructed homomorphic margin function \textbf{encm};
-	  decrypted margin function \textbf{decm}, and zero knowledge proof \textbf{zkp}
-	  of the fact that decrypted margin function decm is honest decryption of 
-	  encrypted margin function encm with assertion about validity of data. 
-	  
-\item The final constructor \textbf{ecfin} takes decrypted margin \textbf{dm}, 
-		boolean function \textbf{w} which return true (false) for winners(losers), 
-		and \textbf{d} is function that delivers type level evidence of 
-		winning or losing with assertion about its consistency with w.
-	    
-\end{itemize}
 
-
-We formally state that for every list of ballots, we can find a boolean function 
-that decides winners \cite{Pattinson:2017:SVE}, but what more important is that the term 
-of type \textbf{ECount grp bs (ewinners f)} captures each step of 
-execution which can be produced as evidence, known as certificate, 
-to scrutineers for inspection.
+We formally states that for every list of ballots, we can find a boolean 
+function that decides winners \cite{Pattinson:2017:SVE}, but what more
+important is that the term of type \textbf{ECount grp bs (ewinners f)}
+captures each step of execution which can be produced as evidence, 
+known as certificate, to scrutineers for inspection.
 
 \begin{verbatim}
-Lemma pschulze_winners (grp : Group) (bs : list eballot) :
-        existsT (f : cand -> bool), ECount grp bs (ewinners f).
+ Lemma pschulze_winners (grp : Group) (bs : list eballot) :
+     existsT (f : cand -> bool), ECount grp bs (ewinners f).
+\end{verbatim}
+
+
+
+Not only we provide the tally sheet (discussed in details in next section) 
+to verify the computation, but we provide 
+proof of correctness against fully verified implementation of 
+Schulze method \cite{Pattinson:2017:SVE} assuming 
+that if there one to one correspondence between plaintext ballots and encrypted ballots. 
+\begin{verbatim}
+  Lemma final_correctness :
+    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
+    (ebs : list eballot) (w : cand -> bool)
+    (H : pbs = map (fun x => 
+         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+    (H2 : mapping_ballot_pballot bs pbs), 
+    Count bs (winners w) -> ECount grp ebs (ewinners w).
+      
+  Lemma final_correctness_rev :
+    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
+    (ebs : list eballot) (w : cand -> bool)
+    (H : pbs = map (fun x => 
+         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+    (H2 : mapping_ballot_pballot bs pbs),
+    ECount grp ebs (ewinners w) -> Count bs (winners w).
 \end{verbatim}
 
 
@@ -646,12 +566,15 @@ programs retaining all the terms which lives in Type universe, and erases every 
 from Prop universe. We extract our formalized Coq proofs into 
 OCaml\cite{Leroy:2013:ORM} program, and instantiate the axiomatic 
 cryptographic primitives 
-with corresponding primitives in Unicrypt library. Since the library is 
+with corresponding primitives in Unicrypt library. Since the Unicrypt library is 
 written in Java, and it has not all the functionality inbuilt that we are using, 
 e.g. homomorphic addition and honest zero knowledge decryption proof, 
 we have written a OCaml wrapper at the top of Unicrypt with the help
 Java-OCaml library with extended functionality of homomorphic addition and
  construction of honest decryption zero knowledge proof.  
+ 
+ 
+ 
  
  Once we have connected 
  cryptographic primitives to Unicrypt library, we ran it on set of
@@ -659,7 +582,10 @@ Java-OCaml library with extended functionality of homomorphic addition and
  In the beginning of computation, we publish 
 the information embedded in constructor \textbf{ecax} i.e.  
 encrypted zero margin , M, its decryption to show that all the 
-entries are 0, and zero knowledge proof of honest decryption. In the next line 
+entries are 0, and zero knowledge proof of honest decryption. 
+
+
+In the next line 
 we show the first ballot from counted pile V that we are going to count u, 
 piles of invalid ballot so far I, current encrypted margin function M, 
 row permuted ballot, v, which is row permutation of ballot, u, we are counting right 
@@ -740,31 +666,6 @@ losing: C
 \end{verbatim}
 
 
-
-Not only we provide the tally sheet to verify the computation, but we provide 
-proof of correctness against fully verified implementation of 
-Schulze method \cite{Pattinson:2017:SVE} assuming 
-that if there one to one correspondence between plaintext ballots and encrypted ballots,
-i.e. if plaintext ballot is valid then its encryption is also valid and if 
-encrypted ballot is valid then it's decryption is also valid, 
-then computing winners via plaintext ballot is same as encrypted ballot and vice-versa. 
-\begin{verbatim}
-  Lemma final_correctness :
-    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
-    (ebs : list eballot) (w : cand -> bool)
-    (H : pbs = map (fun x => 
-         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
-    (H2 : mapping_ballot_pballot bs pbs), 
-    Count bs (winners w) -> ECount grp ebs (ewinners w).
-      
-  Lemma final_correctness_rev :
-    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
-    (ebs : list eballot) (w : cand -> bool)
-    (H : pbs = map (fun x => 
-         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
-    (H2 : mapping_ballot_pballot bs pbs),
-    ECount grp ebs (ewinners w) -> Count bs (winners w).
-\end{verbatim}
 
 
 
