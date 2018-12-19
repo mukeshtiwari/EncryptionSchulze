@@ -545,11 +545,14 @@ Not only we provide the tally sheet (discussed in details in next section)
 to verify the computation, but we provide 
 proof of correctness against fully verified implementation of 
 Schulze method \cite{Pattinson:2017:SVE}. 
-The basic intuition behind the 
-proofs is very simple. It basically hinges on the fact that 
-if a ballot (represented as function cand to natural number)  
+The basic intuition behind the proofs is very simple. 
+
+(* This one is bit difficult to find *)
+It basically hinges on the fact that 
+if a ballot (represented as function $C \rightarrow N$)  
 contributes to margin function then its 
-encryption would also contribute to homomorphic margin, and vice-versa.   
+encryption would also contribute to homomorphic margin, and vice-versa. 
+  
 
 \begin{verbatim}
   Lemma final_correctness :
