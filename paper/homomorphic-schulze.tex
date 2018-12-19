@@ -375,6 +375,9 @@ a list of ciphertext by a given permutation, generating zero
 knowledge proof, and verification of zero knowledge proof.  
 
 
+(* I can explain these primitives that what does encryption and decryption 
+do, what does generate permutation do,  but how to connect them with 
+   counting explained below ?. *) 
 
 We describe homomorphic Schulze counting as dependent inductive data type,
 \textbf{ECount}. ECount is parametrised by, group, used 
@@ -411,9 +414,6 @@ of encm with assertions that ensures that all the uncounted ballots are
 equal to list of cast ballot, every entry in decm is zero and 
 zero knowledge proof of honest decryption verifies. 
 
-(* I can explain these primitives that what does encryption and decryption 
-do, what does generate permutation do,  but how to connect them with 
-   counting explained below ?. *)
 
 In next step, depending on validity of ballot we are counting (refer to 
 previous section about we decide the validity of ballot), we either update the 
@@ -429,21 +429,29 @@ To hide the permutation we use the well known protocol Pedersen's
 commitment \cite{Pederson}. Pedersen commitment scheme has 
 the following properties. 
 \begin{itemize}
-\item Hiding: A dishonest party can't discover honest party's value
+\item Hiding: A dishonest party can't discover honest party's value 
 \item Binding: A dishonest party cannot open his commitment in more  
-	 	than one way
-\item Non-correlation:  A dishonest party cannot commit to a value that is in 
-	some significant way correlated to the honest party's value.
+	 	than one way i.e. he should not be able open to a value 
+	 	different from the one he committed to 
 \end{itemize}
 
-We hide the permutation, \textbf{pi}, by generating the 
-commitment, \textbf{cpi}, and publishing it, and generate zero knowledge proof
-, \textbf{zkpcpi}, using permutation pi and its commitment cpi 
-which can be used later to prove in zero knowledge 
-that ballot v is permutation of  ballot u by (secret) permutation pi 
-without revealing pi. In 
-order to show that b is honest decryption of ballot w we construct 
-honest decryption zero knowledge proof \textbf{zkpdec}.
+
+We hide the permutation, \textbf{pi}, by committing it and publishing 
+the commitment \textbf{cpi}, but rather than opening the permutation pi 
+to show that it's the permutation that we committed to in later phase of 
+protocol, we generate zero knowledge proof,
+ \textbf{zkpcpi}, using permutation pi and its commitment cpi. This 
+ zero knowledge proof can be  used to prove that cpi is indeed a commitment 
+ of some permutation without revealing (opening) it. 
+ 
+Now that we have permutation pi, we use it permute each row of 
+ballot \textbf{u} producing \textbf{v} with zero knowledge evidence 
+\textbf{zkppermuv}, and permuting each column 
+of v to produce ballot \textbf{w} with zero knowledge evidence 
+\textbf{zkppermvw}. We decrypt ballot w to produce ballot \textbf{b} 
+which in turn used to decide the validity of original ballot u, and 
+this step is again accompanied by zero knowledge evidence \textbf{zkpdecw}.
+
 
 The constructor, \textbf{ecdecrypt}, marks the finish to counting with 
 fully constructed encrypted margin \textbf{encm}, 
@@ -452,7 +460,7 @@ decrypted margin \textbf{decm} with honest decryption zero knowledge proof,
 
 The final constructor, \textbf{ecfin}, takes fully decrypted margin 
 \textbf{dm}, boolean function \textbf{w} that determines election winner, 
-and \textbf{d} that delivers type level evidence of winning or losing 
+and \textbf{d}, that delivers type level evidence of winning or losing, 
 consistent with w.
 
 
@@ -513,11 +521,18 @@ Inductive ECount (group : Group) (bs : list eballot) : EState -> Type :=
 \end{verbatim}
 
 
+
+We formally states that for every list of ballots, we can find a boolean 
+function that decides winners \cite{Pattinson:2017:SVE}, 
+
+
 We formally states that for every list of ballots, we can find a boolean 
 function that decides winners \cite{Pattinson:2017:SVE}, but what more
-important is that the term of type \textbf{ECount grp bs (ewinners f)}
-captures each step of execution which can be produced as evidence, 
-known as certificate, to scrutineers for inspection.
+important is that the term of type \textbf{ECount grp bs (ewinners f)}, 
+that witnesses the correct execution of count, can be produced as evidence, 
+known as certificate, to scrutineers to audit the election. 
+
+
 
 \begin{verbatim}
  Lemma pschulze_winners (grp : Group) (bs : list eballot) :
@@ -529,8 +544,13 @@ known as certificate, to scrutineers for inspection.
 Not only we provide the tally sheet (discussed in details in next section) 
 to verify the computation, but we provide 
 proof of correctness against fully verified implementation of 
-Schulze method \cite{Pattinson:2017:SVE} assuming 
-that if there one to one correspondence between plaintext ballots and encrypted ballots. 
+Schulze method \cite{Pattinson:2017:SVE}. 
+The basic intuition behind the 
+proofs is very simple. It basically hinges on the fact that 
+if a ballot (represented as function cand to natural number)  
+contributes to margin function then its 
+encryption would also contribute to homomorphic margin, and vice-versa.   
+
 \begin{verbatim}
   Lemma final_correctness :
     forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
@@ -583,28 +603,6 @@ Java-OCaml library with extended functionality of homomorphic addition and
 the information embedded in constructor \textbf{ecax} i.e.  
 encrypted zero margin , M, its decryption to show that all the 
 entries are 0, and zero knowledge proof of honest decryption. 
-
-
-In the next line 
-we show the first ballot from counted pile V that we are going to count u, 
-piles of invalid ballot so far I, current encrypted margin function M, 
-row permuted ballot, v, which is row permutation of ballot, u, we are counting right 
-now by 
-(secret) permutation, column permutation, w, which is column permutation of 
-ballot, v, obtained in previous step by same (secret) permutation, 
-decryption of final permuted ballot b, zero know knowledge proof of 
-row permutation, zkppermuv, zero knowledge proof of column permutation zkppermvw,
- zero knowledge proof of honest decryption zkpdecw, commitment of secret permutation 
- cpi, zero knowledge proof of cpi is indeed commit of (secret) permutation. 
-Depending on the validity of finally permuted ballot, either we update the 
-margin function homomorphically, \textbf{ecvalid}, 
-or move it to pile of invalid ballots, \textbf{ecinvalid}. We continue 
-until every ballot is counted. Once counting is finished then we decrypt the fully 
-constructed margin function with zero knowledge, \textbf{ecdecrypt}. 
-In final step, we show the evidence provided by 
-constructor \textbf{ecfin}, which included decrypted margin, winners(loser) with
-evidence about winning(losing). The numbers appearing below are very large, and 
-snipped for brevity.
 
 
 
@@ -667,6 +665,14 @@ losing: C
 
 
 
+One can think 
+of it as regardless of how certificate was produced if the scrutineer, 
+auditing the election outcome, can verify 
+\begin{itemize}
+ \item The correctness of steps computing homomorphic margin 
+ \item The decryption of fully constructed margin
+ \item For winners 
+\end{itemize} 
 
 
 
