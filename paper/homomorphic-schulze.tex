@@ -40,7 +40,7 @@ We present a verifiable homomorphic tallying scheme for the Schulze
 method that allows verification of the correctness of the count on the 
 basis of encrypted ballots that only reveals the final tally. We 
 achieve verifiability by using zero knowledge proofs for ballot 
-validity and honest decryption of the final tally. Or formalisation 
+validity and honest decryption of the final tally. Our formalisation 
 takes places inside the Coq theorem prover and is based on an 
 axiomatisation of cryptogtaphic primitives, and our main result is 
 the correctness of homomorphic tallying. We then instantiate 
@@ -92,7 +92,7 @@ Integrity can then be guaranteed by means of Zero Knowledge Proofs
 (ZKP),
 first studied by Goldwasser, Micali, and Rackoff~\cite{Goldwasser:1985:STOC}.
 Informally, a ZKP is a probabilistic and interactive proof where one
-entity provides eveidence about knowledge of a secret without
+entity provides evidence about knowledge of a secret without
 providing no information other than the truth of the statement, with
 overwhelming probability. 
 Later results~\cite{Goldreich:1991:ACM}\cite{Ben-Or:1988:CRYPTO} showed that 
@@ -278,7 +278,7 @@ we simply mean a function $b: C \times C \to \Z$,
 where $C$ is the (finite) set of candidates. A 
 plaintext ballot $b(x, y)$ 
 is \emph{valid} if it is induced by a ranking function, i.e.
-there exists a function $r: C \to \Nat$ such that $b(x, y) = 1$ if
+there exists a function $f: C \to \Nat$ such that $b(x, y) = 1$ if
 $f(x) < f(y)$, $b(x, y) = 0$ if $f(x) = f(y)$ and $b(x, y) = -1$ if
 $f(x) > f(y)$. A \emph{ciphertext (matrix) ballot} is a function
 $\encb: C \times C \to \CT$ (where $\CT$ is a chosen set of
@@ -372,7 +372,9 @@ abstract entity inside theorem prover Coq, and it includes
 private key, public key, and functions for encryption, decryption,
 generating permutation, generating commitment \cite{Pederson}, shuffling 
 a list of ciphertext by a given permutation, generating zero 
-knowledge proof, and verification of zero knowledge proof.  
+knowledge proof, and verification of zero knowledge proof. Since these 
+entities are abstract entity inside Coq, we have assumed axioms about 
+them, hence axiomatisation of cryptographic primitives.
 
 
 (* I can explain these primitives that what does encryption and decryption 
@@ -380,7 +382,8 @@ do, what does generate permutation do,  but how to connect them with
    counting explained below ?. *) 
 
 We describe homomorphic Schulze counting as dependent inductive data type,
-\textbf{ECount}. ECount is parametrised by, group, used 
+\textbf{ECount}. ECount is parametrised by, group, a triplet which includes 
+generator, prime, and public key and used 
 for cryptographic purpose, list of cast ballots, and depends on another 
 inductive data type \textbf{EState}. 
 The purpose of EState to capture the intermediate states 
@@ -444,7 +447,7 @@ protocol, we generate zero knowledge proof,
  zero knowledge proof can be  used to prove that cpi is indeed a commitment 
  of some permutation without revealing (opening) it. 
  
-Now that we have permutation pi, we use it permute each row of 
+Now that we have permutation pi, we use it permute(shuffle) each row of 
 ballot \textbf{u} producing \textbf{v} with zero knowledge evidence 
 \textbf{zkppermuv}, and permuting each column 
 of v to produce ballot \textbf{w} with zero knowledge evidence 
@@ -522,8 +525,6 @@ Inductive ECount (group : Group) (bs : list eballot) : EState -> Type :=
 
 
 
-We formally states that for every list of ballots, we can find a boolean 
-function that decides winners \cite{Pattinson:2017:SVE}, 
 
 
 We formally states that for every list of ballots, we can find a boolean 
@@ -535,7 +536,7 @@ known as certificate, to scrutineers to audit the election.
 
 
 \begin{verbatim}
- Lemma pschulze_winners (grp : Group) (bs : list eballot) :
+  Lemma pschulze_winners (grp : Group) (bs : list eballot) :
      existsT (f : cand -> bool), ECount grp bs (ewinners f).
 \end{verbatim}
 
@@ -584,20 +585,27 @@ encryption would also contribute to homomorphic margin, and vice-versa.
 \end{itemize}}
 
 
-We use Coq extraction mechanism\cite{Letouzey:2003:NEC}  to extract its proofs into
-programs retaining all the terms which lives in Type universe, and erases every term 
-from Prop universe. We extract our formalized Coq proofs into 
-OCaml\cite{Leroy:2013:ORM} program, and instantiate the axiomatic 
-cryptographic primitives 
-with corresponding primitives in Unicrypt library. Since the Unicrypt library is 
-written in Java, and it has not all the functionality inbuilt that we are using, 
-e.g. homomorphic addition and honest zero knowledge decryption proof, 
-we have written a OCaml wrapper at the top of Unicrypt with the help
-Java-OCaml library with extended functionality of homomorphic addition and
- construction of honest decryption zero knowledge proof.  
+We use Coq extraction mechanism\cite{Letouzey:2003:NEC}  to extract its proofs into programs retaining all the terms which lives in Type universe, 
+and erases every term  from Prop universe. 
+We use this mechanism to extract our formalized Coq proofs into
+ OCaml\cite{Leroy:2013:ORM} program, and instantiate the axiomatic cryptographic 
+ primitives with corresponding primitives in Unicrypt library (* reference 
+ for unicrypt ? *). For cryptographic purpose, we had choice to use 
+ Unicrypt, and Verificatum, because both libraries
+ are open source and exhaustively tested; however, we found Verificatum is 
+ difficult to use, so we settled with Unicrypt. Since Unicrypt is written 
+ in Java and our extracted code is in OCaml, we can not call Unicrypt functions 
+ directly from OCaml. Besides, it does not have 
+ all the primitives, homomorphic addition, construction of honest 
+ decryption zero knowledge proof and its verification, 
+ we need, so we have written wrapper, using Java-Ocaml library 
+ (* github link for library? Robert Constable Has given links 
+ of github in his paper about bar induction, the good, the bad and the 
+ ugly *), 
+ with functionality missing 
+ in Unicrypt, and it works as middle man between OCaml  and Java.
  
- 
- 
+
  
  Once we have connected 
  cryptographic primitives to Unicrypt library, we ran it on set of
