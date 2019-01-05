@@ -727,9 +727,12 @@ auditor has no information about how it was produced. This adds extra layer
 of confidence in election, because the tally can be audited by pool
 of scrutineers to certify the outcome of election.
 
-The graph has been produced for three candidates for randomly generated ballots
-on   an  Intel  i7  2.6  GHz  Linux  desktop  computer
-with  8GB  of  ram.
+We have run our experiment on an  Intel  i7  2.6  GHz  Linux  desktop  computer
+with  8GB  of  RAM for three candidates and randomly generated ballots. The 
+highest amount of ballot we counted was 10,000 (not included in graph), and 
+it ran for 25 hours. Clearly, it is not very efficient, and the reason we 
+suspect is a lot of communication between OCaml runtime system 
+and Java run time system.
 \begin{center}
 \includegraphics[scale=0.50]{PlotVer3.png}
 
