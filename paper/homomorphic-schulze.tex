@@ -18,7 +18,6 @@
 \newcommand{\dec}{\mathsf{dec}}
 \newcommand{\enc}{\mathsf{enc}}
 
-
 \begin{document}
 
 \title{Verifiable Homomorphic Tallying for the Schulze Vote Counting
@@ -723,10 +722,14 @@ think of auditing the election involves verifying these three steps
  \item For winners 
 \end{itemize} 
 
-It is also important to note that auditing of tally is totally decoupled process 
-from producing it, and this adds extra layer of confidence in election, because
-the tally can be audited by any number of scrutineers. 
+Even though, we produce the tally by formally verified code, election 
+auditor has no information about how it was produced. This adds extra layer
+of confidence in election, because the tally can be audited by pool
+of scrutineers to certify the outcome of election.
 
+The graph has been produced for three candidates for randomly generated ballots
+on   an  Intel  i7  2.6  GHz  Linux  desktop  computer
+with  8GB  of  ram.
 
 
 \section{Analysis}
