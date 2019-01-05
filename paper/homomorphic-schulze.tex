@@ -1,8 +1,9 @@
-\documentclass{llncs}
+\documentclass{IEEEtran}
 \usepackage{amsmath,amsfonts,wrapfig,graphicx,caption,url}
 \usepackage{subcaption}
 \usepackage[all]{xy}
 \usepackage{tikz}
+\usepackage{listings}
 \usetikzlibrary{automata,positioning}
 \captionsetup{compatibility=false}
 \pagestyle{plain}
@@ -20,13 +21,16 @@
 
 \begin{document}
 
+
+
 \title{Verifiable Homomorphic Tallying for the Schulze Vote Counting
 Scheme}
 
-\author{Thomas Haines \inst{1} \and
-      Dirk Pattinson\inst{2} \and Mukesh Tiwari \inst{2}}
-\institute{Polyas GmbH, Germany \and
-          Research School of Computer Science, ANU, Canberra}
+%%
+%\author{Thomas Haines \inst{1} \and
+%      Dirk Pattinson\inst{2} \and Mukesh Tiwari \inst{2}}
+%\institute{Polyas GmbH, Germany \and
+%         Research School of Computer Science, ANU, Canberra}
 \maketitle
 
 \begin{abstract}
@@ -191,6 +195,7 @@ In general, every election has purpose to elect candidates based on cast
   part of the certificate as this will remain unchanged in the work
   we are reporting here.
     
+   
 \noindent\smallskip\emph{Related Work.} The paper that is closest to
 our work is an algorithm for homomorphic counting for Single
 Transferable Vote \cite{Benaloh:2009:SSC}. While single transferable
@@ -390,13 +395,22 @@ of counting i.e. constructing homomorphic margin function, or
 decryption of fully constructed homomorphic margin function, or 
 determination of final result. 
 
-\begin{verbatim}
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\small]
 Inductive EState : Type :=
-    | epartial : (list eballot * list eballot) ->
-                 (cand -> cand -> ciphertext) -> EState
-    | edecrypt : (cand -> cand -> plaintext) -> EState
-    | ewinners : (cand -> bool) -> EState.
-\end{verbatim}
+ | epartial : (list eballot * list eballot) ->
+    (cand -> cand -> ciphertext) -> EState
+ | edecrypt : (cand -> cand -> plaintext) -> 
+    EState
+ | ewinners : (cand -> bool) -> EState.
+\end{lstlisting}
+
+%\begin{verbatim}
+%Inductive EState : Type :=
+%    | epartial : (list eballot * list eballot) ->
+%                 (cand -> cand -> ciphertext) -> EState
+%    | edecrypt : (cand -> cand -> plaintext) -> EState
+%    | ewinners : (cand -> bool) -> EState.
+%\end{verbatim}
 
 Intuitively, we can construct element of type EState using three constructors 
 epartial, edecrypt, and ewinners. The interpretation is 
@@ -463,65 +477,87 @@ decrypted margin \textbf{decm} with honest decryption zero knowledge proof,
 The final constructor, \textbf{ecfin}, takes fully decrypted margin 
 \textbf{dm}, boolean function \textbf{w} that determines election winner, 
 and \textbf{d}, that delivers type level evidence of winning or losing, 
-consistent with w.
+consistent with w. \linebreak
 
 
-\begin{verbatim}
-Inductive ECount (group : Group) (bs : list eballot) : EState -> Type :=
- | ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
-        (decm : cand -> cand -> plaintext)
-        (zkpdec : cand -> cand -> DecZkp) :
-        us = bs ->
-        (forall c d : cand, decm c d = 0) -> 
-        (forall c d, verify_zero_knowledge_decryption_proof 
-                  grp (decm c d) (encm c d) (zkpdec c d) = true) ->
-        ECount grp bs (epartial (us, []) encm)
- | ecvalid (cpi : Commitment) (zkpcpi : PermZkp)
-           (u : eballot) (v : eballot) (w : eballot)
-           (b : pballot) (zkppermuv : cand -> ShuffleZkp)
-           (zkppermvw : cand -> ShuffleZkp) 
-           (zkpdecw : cand -> cand -> DecZkp)
-           (us : list eballot) (m nm : cand -> cand -> ciphertext)
-           (inbs : list eballot) :
+
+
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+Inductive ECount (group : Group) 
+ (bs : list eballot) : EState -> Type :=
+ | ecax 
+   (us : list eballot) 
+   (encm : cand -> cand -> ciphertext)
+   (decm : cand -> cand -> plaintext)
+   (zkpdec : cand -> cand -> DecZkp) :
+   us = bs -> 
+   (forall c d : cand, decm c d = 0) -> 
+   (forall c d, 
+    verify_zero_knowledge_decryption_proof 
+    grp (decm c d) (encm c d) (zkpdec c d) 
+    = true) -> 
+    ECount grp bs (epartial (us, []) encm)
+ | ecvalid 
+   (cpi : Commitment) (zkpcpi : PermZkp)
+   (u v w : eballot) (b : pballot)
+   (zkppermuv : cand -> ShuffleZkp)
+   (zkppermvw : cand -> ShuffleZkp) 
+   (zkpdecw : cand -> cand -> DecZkp)
+   (us inbs : list eballot)
+   (m nm : cand -> cand -> ciphertext) :
    ECount grp bs (epartial (u :: us, inbs) m) ->
    matrix_ballot_valid b ->
-   (verify_permutation_commitment grp (length cand_all) cpi zkpcpi = true) ->
-   (forall c, verify_row_permutation_ballot grp u v cpi zkppermuv c = true) ->
-   (forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true) ->
-   (forall c d, verify_zero_knowledge_decryption_proof 
-                  grp (b c d) (w c d) (zkpdecw c d) = true) ->
-   (forall c d, nm c d = homomorphic_addition grp (u c d) (m c d)) -> 
+   (verify_permutation_commitment grp 
+    (length cand_all) cpi zkpcpi = true)->
+   (forall c, verify_row_permutation_ballot
+     grp u v cpi zkppermuv c = true) ->
+   (forall c, verify_col_permutation_ballot
+     grp v w cpi zkppermvw c = true) ->
+   (forall c d, 
+    verify_zero_knowledge_decryption_proof 
+     grp (b c d) (w c d) (zkpdecw c d) = true) ->
+   (forall c d, nm c d = 
+    homomorphic_addition grp (u c d) (m c d)) -> 
    ECount grp bs (epartial (us, inbs) nm)
- | ecinvalid (cpi : Commitment) (zkpcpi : PermZkp)
-             (u : eballot) (v : eballot) (w : eballot)
-             (b : pballot) (zkppermuv : cand -> ShuffleZkp)
-             (zkppermvw : cand -> ShuffleZkp) 
-             (zkpdecw : cand -> cand -> DecZkp)
-             (us : list eballot) (m : cand -> cand -> ciphertext)
-             (inbs : list eballot) :
+ | ecinvalid 
+   (cpi : Commitment) (zkpcpi : PermZkp)
+   (u v w : eballot) (b : pballot) 
+   (zkppermuv : cand -> ShuffleZkp)
+   (zkppermvw : cand -> ShuffleZkp) 
+   (zkpdecw : cand -> cand -> DecZkp)
+   (us inbs : list eballot)
+   (m : cand -> cand -> ciphertext) :
    ECount grp bs (epartial (u :: us, inbs) m) ->
    ~matrix_ballot_valid b ->
-   (verify_permutation_commitment grp (length cand_all) cpi zkpcpi = true) ->
-   (forall c, verify_row_permutation_ballot grp u v cpi zkppermuv c = true) ->
-   (forall c, verify_col_permutation_ballot grp v w cpi zkppermvw c = true) ->
-   (forall c d, verify_zero_knowledge_decryption_proof 
-                  grp (b c d) (w c d) (zkpdecw c d) = true) ->
+   (verify_permutation_commitment grp 
+    (length cand_all) cpi zkpcpi = true) ->
+   (forall c, verify_row_permutation_ballot
+     grp u v cpi zkppermuv c = true) ->
+   (forall c, verify_col_permutation_ballot
+     grp v w cpi zkppermvw c = true) ->
+   (forall c d, 
+    verify_zero_knowledge_decryption_proof 
+     grp (b c d) (w c d) (zkpdecw c d) = true) ->
    ECount grp bs (epartial (us, (u :: inbs)) m)
- | ecdecrypt inbs (encm : cand -> cand -> ciphertext)
-             (decm : cand -> cand -> plaintext)
-             (zkp : cand -> cand -> DecZkp) :
+ | ecdecrypt 
+   (inbs : list eballot) 
+   (encm : cand -> cand -> ciphertext)
+   (decm : cand -> cand -> plaintext)
+   (zkp : cand -> cand -> DecZkp) :
    ECount grp bs (epartial ([], inbs) encm) ->
-   (forall c d, verify_zero_knowledge_decryption_proof
-                  grp (decm c d) (encm c d) (zkp c d) = true) ->
+   (forall c d, 
+    verify_zero_knowledge_decryption_proof
+     grp (decm c d) (encm c d) (zkp c d) = true) ->
    ECount grp bs (edecrypt decm)
- | ecfin dm (w : cand -> bool) 
-        (d : (forall c, (wins_type dm c) + (loses_type dm c))) :
-        ECount grp bs (edecrypt dm) ->
-        (forall c, w c = true <-> (exists x, d c = inl x)) ->
-        (forall c, w c = false <-> (exists x, d c = inr x)) ->
-        ECount grp bs (ewinners w). 
-\end{verbatim}
-
+ | ecfin 
+   dm (w : cand -> bool) 
+   (d : (forall c, (wins_type dm c) + 
+                   (loses_type dm c))) :
+   ECount grp bs (edecrypt dm) ->
+   (forall c, w c = true <-> exists x, d c = inl x)->
+   (forall c, w c = false<-> exists x, d c = inr x)->
+   ECount grp bs (ewinners w).
+\end{lstlisting}
 
 
 
