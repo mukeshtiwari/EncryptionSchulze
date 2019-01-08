@@ -40,8 +40,8 @@ things, each voter to verify that their encrypted ballot has been
 recorded as cast, by checking their ballot against a bulletin board. 
 
 We present a verifiable homomorphic tallying scheme for the Schulze 
-method that allows verification of the correctness of the count on the 
-basis of encrypted ballots that only reveals the final tally. We 
+method that allows verification of the correctness of the count---on the 
+basis of encrypted ballots---that only reveals the final tally. We 
 achieve verifiability by using zero knowledge proofs for ballot 
 validity and honest decryption of the final tally. Our formalisation 
 takes places inside the Coq theorem prover and is based on an 
@@ -81,7 +81,7 @@ no information that a possible coercer could use to verifying how that voter had
 
 End to end verifiability and the related notation of software independence~\cite{Rivest:2008:PTRS}
  have been claimed properties for many voting schemes.  Kusters et al~\cite{Kusters:2010:CCS} gave
- a cryptographic formulation whose value is highlighted by the attacks it revealed in established voting 
+ a cryptographic formulation whose value is highlighted by the attacks it revealed against established voting 
  schemes~\cite{Kusters:2012:SP}.
 
 The combination of privacy and integrity can be realised using cryptographic techniques, where
@@ -95,8 +95,8 @@ Integrity can then be guaranteed by means of Zero Knowledge Proofs
 (ZKP),
 first studied by Goldwasser, Micali, and Rackoff~\cite{Goldwasser:1985:STOC}.
 Informally, a ZKP is a probabilistic and interactive proof where one
-entity provides evidence about knowledge of a secret without
-providing no information other than the truth of the statement, with
+entity interacts with another such that the interaction provides
+no information other than that the statement being proved is true with
 overwhelming probability. 
 Later results~\cite{Goldreich:1991:ACM}\cite{Ben-Or:1988:CRYPTO} showed that 
 all problems for which solutions can be efficiently verified have zero knowledge
