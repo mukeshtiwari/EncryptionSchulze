@@ -412,7 +412,7 @@ Inductive EState : Type :=
     | ewinners : (cand -> bool) -> EState.
 \end{verbatim}
 
-Intuitively, we can construct element of type EState using three constructors 
+Intuitively, we can construct element of type $EState$ using three constructors 
 $epartial$, $edecrypt$, and $ewinners$. The interpretation is 
 \begin{itemize}
  \item $epartial$ takes a pair, list of uncounted ballots and invalid ballots seen 
@@ -564,6 +564,7 @@ consistent with w. \linebreak
 
 
 
+(* TODO : This code require some formatting *)
 
 %\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 \begin{verbatim}
@@ -571,14 +572,11 @@ Inductive ECount (group : Group)
  (bs : list eballot) : EState -> Type :=
  | ecax (us : list eballot) 
    (encm : cand -> cand -> ciphertext)
-   (decm : cand -> cand -> plaintext)
-   (zkpdec : cand -> cand -> DecZkp) :
-   us = bs -> 
+   (decm : cand -> cand -> plaintext) 
+   (zkpdec : cand -> cand -> DecZkp) : us = bs -> 
    (forall c d : cand, decm c d = 0) -> 
-   (forall c d, 
-    verify_zero_knowledge_decryption_proof 
-    grp (decm c d) (encm c d) (zkpdec c d) 
-    = true) -> 
+   (forall c d, verify_zero_knowledge_decryption_proof 
+    grp (decm c d) (encm c d) (zkpdec c d) = true) -> 
     ECount grp bs (epartial (us, []) encm)
  | ecvalid (cpi : Commitment) (zkpcpi : PermZkp)
    (u v w : eballot) (b : pballot)
@@ -649,7 +647,8 @@ We formally states that for every list of ballots, we can find a boolean
 function that decides winners \cite{Pattinson:2017:SVE}, but what more
 important is that the term of type \textbf{ECount grp bs (ewinners f)}, 
 that witnesses the correct execution of count, can be produced as evidence, 
-known as certificate, to scrutineers to audit the election. 
+known as certificate, or tally sheet (discussed in details in next section), 
+to scrutineers to audit the election. 
 
 
 
@@ -661,7 +660,7 @@ Lemma pschulze_winners (grp : Group)
 
 
 
-Not only we provide the tally sheet (discussed in details in next section) 
+Not only we provide the tally sheet  
 to verify the computation, but we provide 
 proof of correctness against fully verified implementation of 
 Schulze method \cite{Pattinson:2017:SVE}. 
@@ -729,7 +728,7 @@ We use this mechanism to extract our formalized Coq proofs into
  cryptographic primitives in extracted OCaml code 
  to Unicrypt library via wrapper, we ran it on set of
  small set of ballots with 3 candidate A, B, and C participating in election
- which produces the scrutiny sheet given below. In other words, 
+ which produces the tally sheet given below. In other words, 
  it is trace of computation which can be used as a checkable record to verify
  the outcome of election.
  
