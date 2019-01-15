@@ -1,47 +1,47 @@
-This is BibTeX, Version 0.99d (TeX Live 2017)
-Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+This is BibTeX, Version 0.99d (TeX Live 2013/Debian)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
 The top-level auxiliary file: homomorphic-schulze.aux
 The style file: plain.bst
 Database file #1: all2.bib
 Database file #2: delta2.bib
-You've used 15 entries,
+You've used 20 entries,
             2118 wiz_defined-function locations,
-            642 strings with 7792 characters,
-and the built_in function-call counts, 6787 in all, are:
-= -- 676
-> -- 341
-< -- 13
-+ -- 131
-- -- 113
-* -- 501
-:= -- 1066
-add.period$ -- 56
-call.type$ -- 15
-change.case$ -- 93
+            684 strings with 8652 characters,
+and the built_in function-call counts, 9292 in all, are:
+= -- 937
+> -- 436
+< -- 20
++ -- 168
+- -- 142
+* -- 663
+:= -- 1425
+add.period$ -- 74
+call.type$ -- 20
+change.case$ -- 120
 chr.to.int$ -- 0
-cite$ -- 15
-duplicate$ -- 267
-empty$ -- 516
-format.name$ -- 113
-if$ -- 1475
+cite$ -- 20
+duplicate$ -- 379
+empty$ -- 723
+format.name$ -- 142
+if$ -- 2051
 int.to.chr$ -- 0
-int.to.str$ -- 15
-missing$ -- 17
-newline$ -- 78
-num.names$ -- 40
-pop$ -- 105
+int.to.str$ -- 20
+missing$ -- 20
+newline$ -- 102
+num.names$ -- 58
+pop$ -- 140
 preamble$ -- 1
-purify$ -- 80
+purify$ -- 101
 quote$ -- 0
-skip$ -- 198
+skip$ -- 298
 stack$ -- 0
-substring$ -- 427
-swap$ -- 102
-text.length$ -- 13
+substring$ -- 615
+swap$ -- 159
+text.length$ -- 20
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 56
+type$ -- 78
 warning$ -- 0
-while$ -- 67
-width$ -- 17
-write$ -- 180
+while$ -- 96
+width$ -- 22
+write$ -- 242
