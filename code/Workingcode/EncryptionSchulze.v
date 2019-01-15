@@ -709,9 +709,10 @@ Section Encryption.
 
   End Evote.
 
+
   
   Section  Count.
-
+    
     Definition ballot := cand -> nat.
 
     Inductive State: Type :=
@@ -906,8 +907,9 @@ Section Encryption.
 
   
   Section ECount.
-
+ 
     Require Import Cryptoaxioms.
+
     
     (*Relation between Public and Private key. Although it won't change the proof
       because we are not generating the keys in our code, and assuming it, but it's 
@@ -1131,7 +1133,6 @@ Section Encryption.
       forall c, decrypt_message grp privatekey (g c) =
            decrypt_message grp privatekey (compose f (projT1 pi) c).
 
-
     
   
     (* Decidability of pair of cand *)
@@ -1160,6 +1161,8 @@ Section Encryption.
       simpl. intro. inversion H.
     Qed.
 
+
+   
     
     
     (* A ballot is in matrix with all the entries are
@@ -2996,6 +2999,7 @@ End Candidate.
  
 Definition eschulze_winners_pf :=
   pschulze_winners cand cand_all cand_finite cand_eq_dec cand_not_empty.
+
 
 
 

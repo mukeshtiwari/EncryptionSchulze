@@ -8,8 +8,7 @@ Notation "'existsT' x .. y , p" :=
     (at level 200, x binder, right associativity,
      format "'[' 'existsT' '/ ' x .. y , '/ ' p ']'") : type_scope.
 
-Section Cryptoaxioms.
-
+Module Crypto.
 
   Variable cand : Type.
   Variable cand_all : list cand.
@@ -236,4 +235,5 @@ Section Cryptoaxioms.
     forall c, decrypt_message grp privatekey (g c) =
          decrypt_message grp privatekey (compose f (projT1 pi) c).
   
-End Cryptoaxioms.
+
+End Crypto.

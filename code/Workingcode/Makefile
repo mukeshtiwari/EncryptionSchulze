@@ -21,7 +21,7 @@ ballot_gen : parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.m
 
 
 bench : ballot_gen Main
-		@for i in 50 100 1000 10000; do \
+		@for i in 50 100 200 300 400 500 600 700 800 900 1000 2000 3000 4000 10000; do \
 		   echo -n "Counting $$i ballots ..\n  "; \
 		    /usr/bin/time -f "%E" bash -c "./ballot.out $$i | LD_LIBRARY_PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/amd64/server ./a.out > /dev/null" ; \
 		  done
