@@ -1,9 +1,11 @@
-\documentclass{IEEEtran}
+\documentclass{llncs}
 \usepackage{amsmath,amsfonts,wrapfig,graphicx,caption,url}
 \usepackage{subcaption}
 \usepackage[all]{xy}
 \usepackage{tikz}
 \usepackage{listings}
+\usepackage{mathpartir}
+\usepackage{mdframed}
 \usetikzlibrary{automata,positioning}
 \captionsetup{compatibility=false}
 \pagestyle{plain}
@@ -385,63 +387,133 @@ them, hence axiomatisation of cryptographic primitives.
 do, what does generate permutation do,  but how to connect them with 
    counting explained below ?. *) 
 
-We describe homomorphic Schulze counting as dependent inductive data type,
-\textbf{ECount}. ECount is parametrised by, group, a triplet which includes 
-generator, prime, and public key and used 
-for cryptographic purpose, list of cast ballots, and depends on another 
-inductive data type \textbf{EState}. 
-The purpose of EState to capture the intermediate states 
+We describe homomorphic Schulze counting as the dependent inductive data 
+type, $ECount$, which is parametrised by $group$, a triplet which includes
+ $Generator$, $Prime$, and $Public key$, list of cast ballots $bs$, and depends on another inductive data type $EState$. 
+The purpose of $EState$ to capture the intermediate states 
 of counting i.e. constructing homomorphic margin function, or 
 decryption of fully constructed homomorphic margin function, or 
 determination of final result. 
 
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\small]
-Inductive EState : Type :=
- | epartial : (list eballot * list eballot) ->
-    (cand -> cand -> ciphertext) -> EState
- | edecrypt : (cand -> cand -> plaintext) -> 
-    EState
- | ewinners : (cand -> bool) -> EState.
-\end{lstlisting}
-
-%\begin{verbatim}
+%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 %Inductive EState : Type :=
-%    | epartial : (list eballot * list eballot) ->
-%                 (cand -> cand -> ciphertext) -> EState
-%    | edecrypt : (cand -> cand -> plaintext) -> EState
-%    | ewinners : (cand -> bool) -> EState.
-%\end{verbatim}
+% | epartial : (list eballot * list eballot) ->
+%    (cand -> cand -> ciphertext) -> EState
+% | edecrypt : (cand -> cand -> plaintext) -> 
+%    EState
+% | ewinners : (cand -> bool) -> EState.
+%\end{lstlisting}
+
+\begin{verbatim}
+Inductive EState : Type :=
+    | epartial : (list eballot * list eballot) ->
+                 (cand -> cand -> ciphertext) -> EState
+    | edecrypt : (cand -> cand -> plaintext) -> EState
+    | ewinners : (cand -> bool) -> EState.
+\end{verbatim}
 
 Intuitively, we can construct element of type EState using three constructors 
-epartial, edecrypt, and ewinners. The interpretation is 
+$epartial$, $edecrypt$, and $ewinners$. The interpretation is 
 \begin{itemize}
- \item epartial takes a pair, list of uncounted ballots and invalid ballots seen 
+ \item $epartial$ takes a pair, list of uncounted ballots and invalid ballots seen 
        so far, and computed homomorphic margin so far
- \item edecrypt takes final decrypted margin after all the ballots are counted
- \item ewinners take a boolean function which returns true(false) for winners(losers)
+ \item $edecrypt$ takes final decrypted margin after all the ballots are counted
+ \item $ewinners$ take a boolean function which returns true(false) for winners(losers)
 \end{itemize}
 
-The interpretation of ECount is that inhabitant of this type is correct 
+The interpretation of $ECount$ is that inhabitant of this type is correct 
 execution of homomorphic counting method. Intuitively, the counting 
-start with first constructor, \textbf{ecax}, with list of all 
-uncounted ballots us, encrypted zero margin encm, decrypted zero margin 
-decm, and zero knowledge proof zkpdec of that decm is indeed honest decryption
-of encm with assertions that ensures that all the uncounted ballots are 
-equal to list of cast ballot, every entry in decm is zero and 
-zero knowledge proof of honest decryption verifies. 
+start with the first constructor, $ecax$, with list of all 
+uncounted ballots $us$, encrypted zero margin $encm$, decrypted zero margin 
+$decm$, and zero knowledge proof $zkpdec$ of that $decm$ is indeed honest 
+decryption of $encm$ with assertions that ensure that all the 
+uncounted ballots 
+are equal to list of cast ballot, every entry in $decm$ is zero and 
+zero knowledge proof of honest decryption verifies. This constructor 
+bootstraps the vote counting process, and at very high level (with omitted 
+assertions)
 
+\begin{mdframed}[]
+Ecax
+\begin{mathpar} 
+\inferrule* { } {$(grp, bs)$ \vdash  $ECount grp bs (epartial (us, []) encm)$}
+\end{mathpar}
+\end{mdframed}
+%Coq representation
+%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+%ecax (us : list eballot) 
+% (encm : cand -> cand -> ciphertext)
+% (decm : cand -> cand -> plaintext)
+% (zkpdec : cand -> cand -> DecZkp) :
+% us = bs -> 
+% (forall c d : cand, decm c d = 0) -> 
+% (forall c d, 
+%   verify_zero_knowledge_decryption_proof 
+%   grp (decm c d) (encm c d) (zkpdec c d) 
+%   = true) -> 
+% ECount grp bs (epartial (us, []) encm)
+%\end{lstlisting}
 
-In next step, depending on validity of ballot we are counting (refer to 
-previous section about we decide the validity of ballot), we either update the 
-margin function homomorphically, \textbf{ecvalid}, or move it to the 
-list of invalid ballots, \textbf{ecinvalid}. Basically deciding 
-the validity of ballot involves shuffle by permutation, which
+In next step, we take a ballot, $u$, from pile of uncounted ballots, 
+$(u :: us)$, and depending 
+on its validity, 
+we either update the margin function homomorphically, constructor $ecvalid$, or move it to the list of invalid ballots, constructor $ecinvalid$.
+
+\begin{mdframed}[]
+Ecvalid: u is valid so update the margin nm = m $\bigoplus$ u
+\begin{mathpar} 
+\inferrule*
+{$(grp, bs)$ \vdash $ECount grp bs (epartial (u :: us, inbs) m)$} 
+{$(grp, bs)$ \vdash $ECount grp bs (epartial (us, inbs) nm)$}
+\end{mathpar}
+\end{mdframed}
+
+%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+%ecvalid (cpi : Commitment) (zkpcpi : PermZkp)
+% (u v w : eballot) (b : pballot)
+% (zkppermuv : cand -> ShuffleZkp)
+% (zkppermvw : cand -> ShuffleZkp) 
+% (zkpdecw : cand -> cand -> DecZkp)
+% (us inbs : list eballot)
+% (m nm : cand -> cand -> ciphertext) :
+% ECount grp bs (epartial (u :: us, inbs) m) ->
+% matrix_ballot_valid b ->
+% (verify_permutation_commitment grp 
+%  (length cand_all) cpi zkpcpi = true)->
+% (forall c, verify_row_permutation_ballot
+%   grp u v cpi zkppermuv c = true) ->
+% (forall c, verify_col_permutation_ballot
+%   grp v w cpi zkppermvw c = true) ->
+% (forall c d, 
+%  verify_zero_knowledge_decryption_proof 
+%   grp (b c d) (w c d) (zkpdecw c d) = true) ->
+% (forall c d, nm c d = 
+%  homomorphic_addition grp (u c d) (m c d)) -> 
+% ECount grp bs (epartial (us, inbs) nm)
+%\end{lstlisting}
+
+\begin{mdframed}[]
+Ecinvalid: u is not valid so move it list of invalid pile (u :: inbs)
+\begin{mathpar} 
+\inferrule*
+   {$(grp, bs)$ \vdash $ECount grp bs (epartial (u :: us, inbs) m)$} 
+   {$(grp, bs)$ \vdash $ECount grp bs (epartial (us, u :: inbs) m)$}
+\end{mathpar}
+\end{mdframed}
+
+%Basically deciding the validity involves shuffling each row of ballot 
+%under consideration by some (secret permutation and shuffling each colum 
+%of ballot obtained from previous step by same (secret) permutation.
+
+Basically deciding 
+the validity of ballot involves shuffling its rows and columns 
+by some permutation, which
 we don't want to reveal to achieve ballot secrecy, and decryption, so 
 we need to produce compelling evidence 
 to make sure that the operation performed in each step of deciding validity 
 is verifiable. 
 
-To hide the permutation we use the well known protocol Pedersen's 
+To hide the permutation, we use the well known protocol Pedersen's 
 commitment \cite{Pederson}. Pedersen commitment scheme has 
 the following properties. 
 \begin{itemize}
@@ -452,21 +524,32 @@ the following properties.
 \end{itemize}
 
 
-We hide the permutation, \textbf{pi}, by committing it and publishing 
-the commitment \textbf{cpi}, but rather than opening the permutation pi 
-to show that it's the permutation that we committed to in later phase of 
-protocol, we generate zero knowledge proof,
- \textbf{zkpcpi}, using permutation pi and its commitment cpi. This 
- zero knowledge proof can be  used to prove that cpi is indeed a commitment 
- of some permutation without revealing (opening) it. 
+We can hide any given permutation, $\pi$, by committing it using 
+Pedersen's commitment scheme and publishing 
+the commitment, $c_{\pi}$, but for binding step rather than 
+opening the permutation $\pi$ 
+to show that it's the permutation that we committed to, 
+we generate zero knowledge proof,
+ $zkp_{\pi}$, using permutation $\pi$ and its commitment $c_{\pi}$. This 
+ zero knowledge proof can be  used to prove that $c_{\pi}$ is indeed
+  a commitment 
+ of some permutation, and this 
+ permutation is used in (commitment consistent)shuffling 
+ without revealing(opening) it \cite{Wikstrom:2009:CPS}.
  
-Now that we have permutation pi, we use it permute(shuffle) each row of 
-ballot \textbf{u} producing \textbf{v} with zero knowledge evidence 
-\textbf{zkppermuv}, and permuting each column 
-of v to produce ballot \textbf{w} with zero knowledge evidence 
-\textbf{zkppermvw}. We decrypt ballot w to produce ballot \textbf{b} 
+   
+   
+   
+Now that we have a way to hide permutation pi, 
+we use it to permute(shuffle) each row of 
+ballot, u, producing ballot, v, with zero knowledge proof, zkppermuv which 
+can be used to verify that each row of ballot v is indeed the row permutation 
+of ballot u, and permuting each column 
+of v to produce ballot, w, with zero knowledge evidence 
+zkppermvw. We decrypt ballot w to produce ballot, b, 
 which in turn used to decide the validity of original ballot u, and 
-this step is again accompanied by zero knowledge evidence \textbf{zkpdecw}.
+this step is again accompanied by zero knowledge evidence zkpdecw.
+
 
 
 The constructor, \textbf{ecdecrypt}, marks the finish to counting with 
@@ -482,11 +565,11 @@ consistent with w. \linebreak
 
 
 
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+\begin{verbatim}
 Inductive ECount (group : Group) 
  (bs : list eballot) : EState -> Type :=
- | ecax 
-   (us : list eballot) 
+ | ecax (us : list eballot) 
    (encm : cand -> cand -> ciphertext)
    (decm : cand -> cand -> plaintext)
    (zkpdec : cand -> cand -> DecZkp) :
@@ -497,8 +580,7 @@ Inductive ECount (group : Group)
     grp (decm c d) (encm c d) (zkpdec c d) 
     = true) -> 
     ECount grp bs (epartial (us, []) encm)
- | ecvalid 
-   (cpi : Commitment) (zkpcpi : PermZkp)
+ | ecvalid (cpi : Commitment) (zkpcpi : PermZkp)
    (u v w : eballot) (b : pballot)
    (zkppermuv : cand -> ShuffleZkp)
    (zkppermvw : cand -> ShuffleZkp) 
@@ -519,8 +601,7 @@ Inductive ECount (group : Group)
    (forall c d, nm c d = 
     homomorphic_addition grp (u c d) (m c d)) -> 
    ECount grp bs (epartial (us, inbs) nm)
- | ecinvalid 
-   (cpi : Commitment) (zkpcpi : PermZkp)
+ | ecinvalid (cpi : Commitment) (zkpcpi : PermZkp)
    (u v w : eballot) (b : pballot) 
    (zkppermuv : cand -> ShuffleZkp)
    (zkppermvw : cand -> ShuffleZkp) 
@@ -557,7 +638,9 @@ Inductive ECount (group : Group)
    (forall c, w c = true <-> exists x, d c = inl x)->
    (forall c, w c = false<-> exists x, d c = inr x)->
    ECount grp bs (ewinners w).
-\end{lstlisting}
+\end{verbatim}	
+%\end{lstlisting}
+
 
 
 
@@ -570,10 +653,11 @@ known as certificate, to scrutineers to audit the election.
 
 
 
-\begin{verbatim}
-  Lemma pschulze_winners (grp : Group) (bs : list eballot) :
-     existsT (f : cand -> bool), ECount grp bs (ewinners f).
-\end{verbatim}
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+Lemma pschulze_winners (grp : Group) 
+ (bs : list eballot) : existsT (f : cand -> bool), 
+ ECount grp bs (ewinners f).
+\end{lstlisting}
 
 
 
@@ -658,8 +742,7 @@ We use this mechanism to extract our formalized Coq proofs into
  
 
 
-
-\begin{verbatim}
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 M: AA(13.., 10..) AB(90.., 14..) AC(11.., 23..) BA(16.., 13..) BB(79.., 46..)
 BC(12.., 14..) CA(50.., 53..) CB(70.., 68..) CC(23.., 82..), 
 D: [AA: 0 AB: 0 AC: 0 BA: 0 BB: 0 BC: 0 CA: 0 CB: 0 CC: 0], 
@@ -714,7 +797,7 @@ losing: C
    exists A: path A --> C of strength 4, 4-coclosed set: [(A,A),(B,A),(B,B),
    (C,A),(C,B),(C,C)]
 
-\end{verbatim}
+\end{lstlisting}
 
 
 Now, we will wear the hat of scrutinizer to audit the election based on 
@@ -761,7 +844,8 @@ think of auditing the election involves verifying these three steps
 Even though, we produce the tally by formally verified code, election 
 auditor has no information about how it was produced. This adds extra layer
 of confidence in election, because the tally can be audited by pool
-of scrutineers to certify the outcome of election.
+of scrutineers to certify the outcome of election regardless of how the tally 
+was produced.
 
 We have run our experiment on an  Intel  i7  2.6  GHz  Linux  desktop  computer
 with  8GB  of  RAM for three candidates and randomly generated ballots. The 
