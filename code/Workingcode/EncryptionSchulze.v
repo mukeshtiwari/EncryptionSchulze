@@ -240,7 +240,7 @@ Section Encryption.
       apply cand_not_nil.  apply dec_cand. apply IHn. assumption.
     Defined.
 
-
+    
     (* as type level paths induce prop-level paths, the same as above also holds for prop-level
        paths *)
     Lemma iterated_marg_path : forall (n : nat) (s : Z) (c d : cand),
@@ -920,7 +920,11 @@ Section Encryption.
     Definition plaintext := Z.
     
     (* Cipher text is pair (c1, c2). Elgamal encryption *)
-    Definition ciphertext := (Z * Z)%type.
+    (* Let's comment it and see if it breaks *)
+    (*
+    Definition ciphertext := (Z * Z)%type. *)
+
+    Variable ciphertext : Type. 
 
     (* ballot is plain text value *)
     Definition pballot := cand -> cand -> plaintext.
@@ -1171,6 +1175,8 @@ Section Encryption.
       (forall c d : cand, In (p c d) [-1; 0; 1]) /\
       valid cand p. 
 
+
+
    
     Lemma partition_integer : forall (b : Z),
         ({b = -1} + {b = 0} + {b = 1}) + {b <> -1 /\ b <> 0 /\ b <> 1}.
@@ -1209,8 +1215,8 @@ Section Encryption.
         exists c, d. destruct Hin. split. cbn.  right. auto.
         auto.
     Qed.
-   
 
+   
     Lemma  finiteness : forall  (b : cand -> cand -> Z)
                            (l : list (cand * cand))  (H : forall c d, In (c, d) l),
         (forall c d, {b c d = -1} + {b c d = 0} + {b c d = 1}) +
@@ -1223,6 +1229,7 @@ Section Encryption.
       exists c, d. destruct Hin. assumption.
     Qed.   
 
+    
     Lemma dec_pballot :
       forall (p : pballot), 
         {forall c d : cand, In (p c d) [-1; 0; 1]} +
