@@ -372,20 +372,116 @@ winning conditions.
 \end{itemize}}
 
 
-Now we explain the cryptographic primitives in realization of 
-verifiable homomorphic tally. These primitives are treated as 
-abstract entity inside theorem prover Coq, and it includes 
-private key, public key, and functions for encryption, decryption,
-generating permutation, generating commitment \cite{Pederson}, shuffling 
-a list of ciphertext by a given permutation, generating zero 
-knowledge proof, and verification of zero knowledge proof. Since these 
-entities are abstract entity inside Coq, we have assumed axioms about 
-them, hence axiomatisation of cryptographic primitives.
+(* Remember the question. Why abstract because our purpose is to 
+   audit the election, and not verify crypto primitives ? *)
+The purpose of this formalization is not to verify cryptographic primitives, 
+but use them as a tool to construct evidence, which can be used 
+to audit and verify the outcome, during different phase 
+of election, so we have treated them as abstract entity and assumed 
+axioms about them inside theorem prover Coq. This abstraction allows us to
+instantiate these entities with any crypto-system which is homomorphically 
+additive and follows the assumed axioms. 
+(* Why did you come up with only these primitives, why not some thing else ?*)
+We came up with these primitives solely based on need to preserve the privacy
+of ballots, and at the same time generating enough evidence related to 
+different operation involved in election to make sure it's audit-able.
 
 
-(* I can explain these primitives that what does encryption and decryption 
-do, what does generate permutation do,  but how to connect them with 
-   counting explained below ?. *) 
+These primitives are plaintext, ciphertext, public key, private key, 
+encryption function, which turns a plaintext to ciphertext using 
+public key, and decryption function, which turns a ciphertext into 
+plaintext using private key, as we expect from any cryptographic system; 
+however, these primitives are not sufficient for our purpose because there is 
+not enough evidence to substantiate the statement that  
+claimed decrypted value is indeed the 
+honest decryption of claimed ciphertext. We overcome this situation 
+by adding function which constructs zero knowledge proof of honest 
+decryption (Reference Needed. Talk to Thomas), and verification 
+function to verify the claim of honest decryption using zero 
+knowledge proof constructed by previous function. 
+
+
+
+
+
+Below is a code snippet about representation
+of data structure, functions and axiom involve in encryption and decryption.
+
+
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+Definition plaintext := Z.
+Variable ciphertext : Type. 
+
+Variable Pubkey : Type.
+Variable Prikey : Type.
+Variable DecZkp : Type.
+
+Variable privatekey : Prikey.
+Variable publickey : Pubkey.
+
+Variable encrypt_message :
+ Pubkey -> plaintext -> ciphertext.
+
+Variable decrypt_message :
+ Prikey -> Prikey -> ciphertext -> plaintext.
+
+Axiom decryption_deterministic :
+ forall (publickey : Pubkey) 
+ (privatekey : Prikey) 
+ (pt : plaintext), decrypt_message 
+ privatekey (encrypt_message publickey pt) = pt.
+ 
+Variable construct_zero_knowledge_decryption_proof :
+ Prikey -> ciphertext -> DecZkp.
+
+Variable verify_zero_knowledge_decryption_proof :
+ plaintext -> ciphertext -> DecZkp -> bool.
+
+Axiom verify_true :
+ forall (pt : plaintext) (ct : ciphertext) 
+ (privatekey : Prikey)
+ (H1 : pt = decrypt_message privatekey ct)
+ (H2 : zkp = 
+ construct_zero_knowledge_decryption_proof privatekey ct),
+ verify_zero_knowledge_decryption_proof pt ct zkp = true.
+\end{lstlisting}
+
+( Why ? What are the axioms and why do we need them  *)
+We also have two axioms,  \textit{decryption\_deterministic} and 
+\textit{verify\_true}, about the primitives used for encryption and 
+decryption. First axiom states that decryption is deterministic, i.e.
+for any given plaintext, encryption followed by decryption yields same 
+plaintext. Second axiom stipulates the fact that for any given plaintext 
+$pt$ and ciphertext $ct$ if $pt$ is decryption of $ct$, and $zkp$ is 
+honest decryption zero knowledge proof then verification function 
+returns true or checks out. The reason for having these axioms is that this 
+formalization is proved correct with 
+respect to a fully verified implementation \cite{Pattinson:2017:SVE}; 
+however, cryptographic primitives used in formalization  
+are abstract, so we need axioms 
+to reason about their behaviour in proof 
+of correctness. As a side note, we would like to point out that
+ this formalization hinges on 8 axioms assumed about cryptographic 
+ primitives, and we expect any correctly implement cryptographic library 
+ would follow it.
+
+(* Contrary to our claim that crypto primitives are abstract, then 
+why we represented plaintext as Coq integer ? *)
+A astute reader would have noticed that plaintext is represented as 
+concrete data type (Coq Integer) rather than abstract, and 
+the reason for using concrete type for plaintext is evidencing the
+validity of ballot which requires inspecting the values of 
+decrypted shuffled ballot.
+(* Hopefully I have explained everything about encryption and 
+   decryption, and moving on to other primitives *)
+
+(* Why ? These primitives are necessary ? *)
+Now that we have developed machinery for encryption and decryption, 
+we focus on other important aspects, deciding the validity of 
+ballot and homomorphic counting of tally. 
+
+
+
 
 We describe homomorphic Schulze counting as the dependent inductive data 
 type, $ECount$, which is parametrised by $group$, a triplet which includes
