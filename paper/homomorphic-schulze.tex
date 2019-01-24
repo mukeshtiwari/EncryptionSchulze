@@ -476,11 +476,49 @@ decrypted shuffled ballot.
    decryption, and moving on to other primitives *)
 
 (* Why ? These primitives are necessary ? *)
-Now that we have developed machinery for encryption and decryption, 
-we focus on other important aspects, deciding the validity of 
-ballot and homomorphic counting of tally. 
+Now we focus on another important aspect, validity of 
+ballot. Recall that witnessing 
+the validity of ballot involves shuffling its rows and columns 
+by some permutation, which
+we don't want to reveal to achieve ballot secrecy, and decryption, so 
+we need to produce compelling evidence 
+to make sure that the operation performed in each step of witnessing validity 
+is verifiable. We stand again on shoulder of Pedersen's 
+commitment \cite{Pederson} and zero knowledge proof to achieve this.
+In nutshell, Pedersen commitment scheme has 
+the following properties. 
+\begin{itemize}
+\item Hiding: A dishonest party can't discover honest party's value 
+\item Binding: A dishonest party cannot open his commitment in more  
+	 	than one way i.e. he should not be able open to a value 
+	 	different from the one he committed to 
+\end{itemize}
 
 
+The process of witnessing validity of any ballot starts with generating a 
+permutation $\pi$ which is used to shuffle every row and column of the ballot.
+We hide $\pi$ by committing it using Pedersen's 
+commitment scheme 
+and publishing  the commitment $c_{\pi}$. However, for the binding step, rather 
+than opening $\pi$ we generate a zero knowledge proof, $zkp_{\pi}$, 
+using $\pi$ and $c_{\pi}$, which can 
+be  used to prove that $c_{\pi}$ is indeed a commitment of some permutation
+that is used in the (commitment consistent) shuffling 
+ without being opened \cite{Wikstrom:2009:CPS}. Now that we have a way 
+ to hide $\pi$, we use it to shuffle each row of 
+ballot, say $u$, producing ballot $v$, and construct a zero knowledge proof 
+of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used 
+to verify that $v$ is indeed a row permutation of $u$ using some permutation 
+whose commitment is $c_{\pi}$. We take $v$ and shuffle each column of it 
+by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
+as last step. We achieve this by adding primitives for generating 
+permutation, generating commitment of given permutation, 
+shuffling a list of ciphertext by given permuation, and constructing 
+zero knowledge proof of shuffle.
+
+
+ 
+ 
 
 
 We describe homomorphic Schulze counting as the dependent inductive data 
@@ -601,51 +639,16 @@ Ecinvalid: u is not valid so move it list of invalid pile (u :: inbs)
 %under consideration by some (secret permutation and shuffling each colum 
 %of ballot obtained from previous step by same (secret) permutation.
 
-Basically deciding 
-the validity of ballot involves shuffling its rows and columns 
-by some permutation, which
-we don't want to reveal to achieve ballot secrecy, and decryption, so 
-we need to produce compelling evidence 
-to make sure that the operation performed in each step of deciding validity 
-is verifiable. 
+
 
 To hide the permutation, we use the well known protocol Pedersen's 
-commitment \cite{Pederson}. Pedersen commitment scheme has 
-the following properties. 
-\begin{itemize}
-\item Hiding: A dishonest party can't discover honest party's value 
-\item Binding: A dishonest party cannot open his commitment in more  
-	 	than one way i.e. he should not be able open to a value 
-	 	different from the one he committed to 
-\end{itemize}
+commitment \cite{Pederson}. 
 
 
-We can hide any given permutation, $\pi$, by committing it using 
-Pedersen's commitment scheme and publishing 
-the commitment, $c_{\pi}$, but for binding step rather than 
-opening the permutation $\pi$ 
-to show that it's the permutation that we committed to, 
-we generate zero knowledge proof,
- $zkp_{\pi}$, using permutation $\pi$ and its commitment $c_{\pi}$. This 
- zero knowledge proof can be  used to prove that $c_{\pi}$ is indeed
-  a commitment 
- of some permutation, and this 
- permutation is used in (commitment consistent)shuffling 
- without revealing(opening) it \cite{Wikstrom:2009:CPS}.
  
    
    
    
-Now that we have a way to hide permutation pi, 
-we use it to permute(shuffle) each row of 
-ballot, u, producing ballot, v, with zero knowledge proof, zkppermuv which 
-can be used to verify that each row of ballot v is indeed the row permutation 
-of ballot u, and permuting each column 
-of v to produce ballot, w, with zero knowledge evidence 
-zkppermvw. We decrypt ballot w to produce ballot, b, 
-which in turn used to decide the validity of original ballot u, and 
-this step is again accompanied by zero knowledge evidence zkpdecw.
-
 
 
 The constructor, \textbf{ecdecrypt}, marks the finish to counting with 
