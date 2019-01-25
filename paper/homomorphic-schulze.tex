@@ -511,15 +511,21 @@ of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used
 to verify that $v$ is indeed a row permutation of $u$ using some permutation 
 whose commitment is $c_{\pi}$. We take $v$ and shuffle each column of it 
 by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
-as last step. We achieve this by adding primitives for generating 
-permutation, generating commitment of given permutation, 
-shuffling a list of ciphertext by given permuation, and constructing 
-zero knowledge proof of shuffle.
+as last step.   
+Primitives needed to achieve the functionality described in this step  
+are generating permutation, committing permutation,  shuffling ballot, 
+and construction of zero knowledge proof.
+We decrypt the ballot $w$ to evidence validity, and to make this step
+ verifiable we reuse the primitives developed previously for
+ encryption and decryption.
 
+(* This ends the cryptographic description *)
 
  
  
-
+(* Reminding myself again. Why have you formalized it as dependent data type. 
+   The intuition behind dependent type is that it captures the 
+   correct execution of protocol *)
 
 We describe homomorphic Schulze counting as the dependent inductive data 
 type, $ECount$, which is parametrised by $group$, a triplet which includes
