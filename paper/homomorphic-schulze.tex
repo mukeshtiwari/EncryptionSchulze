@@ -518,22 +518,49 @@ and construction of zero knowledge proof.
 We decrypt the ballot $w$ to evidence validity, and to make this step
  verifiable we reuse the primitives developed previously for
  encryption and decryption.
-
 (* This ends the cryptographic description *)
 
  
  
 (* Reminding myself again. Why have you formalized it as dependent data type. 
    The intuition behind dependent type is that it captures the 
-   correct execution of protocol *)
+   correct execution of protocol. The philosophy is well typed 
+   program can't go wrong, and it's correct by construction *)
+   
+Now that we have all the cryptographic primitives needed for 
+homomorphic-counting we represent it as a dependent inductive data. 
+The intuition behind representing it as 
+dependent inductive data type is its expressiveness, and this expressiveness 
+ allows us to capture the  different states of 
+homomorphic-counting at type level, and inhabitant of this type 
+is proof(program) of correct execution of  homomorphic-counting protocol.
+The philosophy here is well typed program can't go wrong, and it's 
+correct by construction.
+ (* Can we add some reference here 
+for well typed programs can't go wrong, and it's correct by construction
+   *). Its 
+representation in Coq data structure (Constructors omitted for brevity)
+\begin{verbatim}
+Inductive ECount (group : Group) 
+ (bs : list eballot) : EState -> Type :=
+ | ... 
+\end{verbatim}
+The $ECount$ is parametrised by $group$, used for cryptographic purpose, 
+$bs$, list of cast ballots in election, and indexed over (depends on)
+ another inductive data type $EState$.  The purpose of $EState$ to capture 
+the different states 
+of counting as mentioned earlier i.e. constructing homomorphic margin 
+function, or decryption of fully constructed homomorphic margin function, or 
+determination of final result. We capture these three states by 
+ three constructors, $epartial$, $edecrypt$, and $ewinners$ of 
+ $EState$.
 
-We describe homomorphic Schulze counting as the dependent inductive data 
-type, $ECount$, which is parametrised by $group$, a triplet which includes
- $Generator$, $Prime$, and $Public key$, list of cast ballots $bs$, and depends on another inductive data type $EState$. 
-The purpose of $EState$ to capture the intermediate states 
-of counting i.e. constructing homomorphic margin function, or 
-decryption of fully constructed homomorphic margin function, or 
-determination of final result. 
+\begin{itemize}
+ \item $epartial$ takes a pair, list of uncounted ballots and invalid ballots seen 
+       so far, and computed homomorphic margin so far
+ \item $edecrypt$ takes final decrypted margin after all the ballots are counted
+ \item $ewinners$ take a boolean function which returns true(false) for winners(losers)
+\end{itemize}
 
 %\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 %Inductive EState : Type :=
@@ -546,115 +573,130 @@ determination of final result.
 
 \begin{verbatim}
 Inductive EState : Type :=
-    | epartial : (list eballot * list eballot) ->
-                 (cand -> cand -> ciphertext) -> EState
-    | edecrypt : (cand -> cand -> plaintext) -> EState
-    | ewinners : (cand -> bool) -> EState.
+ | epartial : (list eballot * list eballot) ->
+             (cand -> cand -> ciphertext) -> EState
+ | edecrypt : (cand -> cand -> plaintext) -> EState
+ | ewinners : (cand -> bool) -> EState.
 \end{verbatim}
 
-Intuitively, we can construct element of type $EState$ using three constructors 
-$epartial$, $edecrypt$, and $ewinners$. The interpretation is 
-\begin{itemize}
- \item $epartial$ takes a pair, list of uncounted ballots and invalid ballots seen 
-       so far, and computed homomorphic margin so far
- \item $edecrypt$ takes final decrypted margin after all the ballots are counted
- \item $ewinners$ take a boolean function which returns true(false) for winners(losers)
-\end{itemize}
 
-The interpretation of $ECount$ is that inhabitant of this type is correct 
-execution of homomorphic counting method. Intuitively, the counting 
-start with the first constructor, $ecax$, with list of all 
+
+We start the counting process (building proof) by making sure the 
+consistency of 
+system, i.e. all the cast ballots are uncounted, no invalid ballot 
+and every entry in 
+margin matrix is zero. We capture this information in  
+the first constructor, $ecax$, with list of all 
 uncounted ballots $us$, encrypted zero margin $encm$, decrypted zero margin 
 $decm$, and zero knowledge proof $zkpdec$ of that $decm$ is indeed honest 
 decryption of $encm$ with assertions that ensure that all the 
 uncounted ballots 
 are equal to list of cast ballot, every entry in $decm$ is zero and 
 zero knowledge proof of honest decryption verifies. This constructor 
-bootstraps the vote counting process, and at very high level (with omitted 
-assertions)
+bootstraps the vote counting process, and its high level (with omitted 
+assertions) representation
+
 
 \begin{mdframed}[]
 Ecax
 \begin{mathpar} 
-\inferrule* { } {$(grp, bs)$ \vdash  $ECount grp bs (epartial (us, []) encm)$}
+\inferrule* { } {$ECount group bs (epartial (us, []) encm)$}
 \end{mathpar}
 \end{mdframed}
-%Coq representation
-%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-%ecax (us : list eballot) 
-% (encm : cand -> cand -> ciphertext)
-% (decm : cand -> cand -> plaintext)
-% (zkpdec : cand -> cand -> DecZkp) :
-% us = bs -> 
-% (forall c d : cand, decm c d = 0) -> 
-% (forall c d, 
-%   verify_zero_knowledge_decryption_proof 
-%   grp (decm c d) (encm c d) (zkpdec c d) 
-%   = true) -> 
-% ECount grp bs (epartial (us, []) encm)
-%\end{lstlisting}
+, and translation of high level representation into Coq representation 
+ with all the details filled with data and assertion about them.
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
+ (decm : cand -> cand -> plaintext) 
+ (zkpdec : cand -> cand -> DecZkp) :
+ us = bs -> (forall c d : cand, decm c d = 0) -> 
+ (forall c d, verify_zero_knowledge_decryption_proof 
+   (decm c d) (encm c d) (zkpdec c d) = true) -> 
+ ECount group bs (epartial (us, []) encm)
+\end{lstlisting}
 
 In next step, we take a ballot, $u$, from pile of uncounted ballots, 
 $(u :: us)$, and depending 
 on its validity, 
-we either update the margin function homomorphically, constructor $ecvalid$, or move it to the list of invalid ballots, constructor $ecinvalid$.
+we either update the margin function homomorphically, constructor $ecvalid$, or move it to the list of invalid ballots, constructor $ecinvalid$. Each row 
+of $v$ is permutation of corresponding row of $u$, and each column of 
+$w$ is permutation
+of corresponding column of $v$ by a (secret) permutation whose commitment is 
+$cpi$ and zero-knowledge-proof of the commitment is $zkpcpi$. $zkppermuv$ 
+is a column matrix of zero-knowledge-proof  about each row of $v$ is indeed 
+permutation of corresponding row of $u$, and similarly $zkppermvw$ is 
+zero-knowledge-proof about each column of $w$ is indeed 
+permutation of corresponding column of $v$. $b$ is decryption of $w$, 
+and $zkpdecw$ is zero-knowledge-proof of this fact. $inbs$ is list of 
+invalid ballots seen so far, $m$ is current margin, 
+and $nm$ is updated margin.  
+
 
 \begin{mdframed}[]
 Ecvalid: u is valid so update the margin nm = m $\bigoplus$ u
 \begin{mathpar} 
 \inferrule*
-{$(grp, bs)$ \vdash $ECount grp bs (epartial (u :: us, inbs) m)$} 
-{$(grp, bs)$ \vdash $ECount grp bs (epartial (us, inbs) nm)$}
+{$ECount group bs (epartial (u :: us, inbs) m)$} 
+{$ECount group bs (epartial (us, inbs) nm)$}
 \end{mathpar}
 \end{mdframed}
 
-%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-%ecvalid (cpi : Commitment) (zkpcpi : PermZkp)
-% (u v w : eballot) (b : pballot)
-% (zkppermuv : cand -> ShuffleZkp)
-% (zkppermvw : cand -> ShuffleZkp) 
-% (zkpdecw : cand -> cand -> DecZkp)
-% (us inbs : list eballot)
-% (m nm : cand -> cand -> ciphertext) :
-% ECount grp bs (epartial (u :: us, inbs) m) ->
-% matrix_ballot_valid b ->
-% (verify_permutation_commitment grp 
-%  (length cand_all) cpi zkpcpi = true)->
-% (forall c, verify_row_permutation_ballot
-%   grp u v cpi zkppermuv c = true) ->
-% (forall c, verify_col_permutation_ballot
-%   grp v w cpi zkppermvw c = true) ->
-% (forall c d, 
-%  verify_zero_knowledge_decryption_proof 
-%   grp (b c d) (w c d) (zkpdecw c d) = true) ->
-% (forall c d, nm c d = 
-%  homomorphic_addition grp (u c d) (m c d)) -> 
-% ECount grp bs (epartial (us, inbs) nm)
-%\end{lstlisting}
+Coq representation of Ecvalid
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+ecvalid (u v w : eballot) (b : pballot)
+ (cpi : Commitment) (zkpcpi : PermZkp)
+ (zkppermuv : cand -> ShuffleZkp)
+ (zkppermvw : cand -> ShuffleZkp) 
+ (zkpdecw : cand -> cand -> DecZkp)
+ (us inbs : list eballot)
+ (m nm : cand -> cand -> ciphertext) :
+ ECount group bs (epartial (u :: us, inbs) m) ->
+ matrix_ballot_valid b ->
+ (verify_permutation_commitment 
+  (length cand_all) cpi zkpcpi = true)->
+ (forall c, verify_row_permutation_ballot
+   u v cpi zkppermuv c = true) ->
+ (forall c, verify_col_permutation_ballot
+   v w cpi zkppermvw c = true) ->
+ (forall c d, 
+  verify_zero_knowledge_decryption_proof 
+   (b c d) (w c d) (zkpdecw c d) = true) ->
+ (forall c d, nm c d = 
+  homomorphic_addition (u c d) (m c d)) -> 
+ ECount group bs (epartial (us, inbs) nm)
+\end{lstlisting}
 
 \begin{mdframed}[]
 Ecinvalid: u is not valid so move it list of invalid pile (u :: inbs)
 \begin{mathpar} 
 \inferrule*
-   {$(grp, bs)$ \vdash $ECount grp bs (epartial (u :: us, inbs) m)$} 
-   {$(grp, bs)$ \vdash $ECount grp bs (epartial (us, u :: inbs) m)$}
+   { $ECount group bs (epartial (u :: us, inbs) m)$} 
+   { $ECount group bs (epartial (us, u :: inbs) m)$}
 \end{mathpar}
 \end{mdframed}
 
-%Basically deciding the validity involves shuffling each row of ballot 
-%under consideration by some (secret permutation and shuffling each colum 
-%of ballot obtained from previous step by same (secret) permutation.
-
-
-
-To hide the permutation, we use the well known protocol Pedersen's 
-commitment \cite{Pederson}. 
-
-
- 
-   
-   
-   
+Coq representation of Ecinvalid
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+ecinvalid (u v w : eballot) (b : pballot)
+ (cpi : Commitment) (zkpcpi : PermZkp) 
+ (zkppermuv : cand -> ShuffleZkp)
+ (zkppermvw : cand -> ShuffleZkp) 
+ (zkpdecw : cand -> cand -> DecZkp)
+ (us inbs : list eballot)
+ (m : cand -> cand -> ciphertext) :
+ ECount group bs (epartial (u :: us, inbs) m) ->
+ ~matrix_ballot_valid b ->
+ (verify_permutation_commitment
+  (length cand_all) cpi zkpcpi = true) ->
+ (forall c, verify_row_permutation_ballot
+   u v cpi zkppermuv c = true) ->
+ (forall c, verify_col_permutation_ballot
+   v w cpi zkppermvw c = true) ->
+ (forall c d, 
+  verify_zero_knowledge_decryption_proof 
+   (b c d) (w c d) (zkpdecw c d) = true) ->
+ ECount group bs (epartial (us, (u :: inbs)) m)
+\end{lstlisting}
 
 
 The constructor, \textbf{ecdecrypt}, marks the finish to counting with 
@@ -662,90 +704,48 @@ fully constructed encrypted margin \textbf{encm},
 decrypted margin \textbf{decm} with honest decryption zero knowledge proof, 
 \textbf{zkp}.
 
+\begin{mdframed}[]
+Ecdecrypt
+\begin{mathpar} 
+\inferrule*
+   { $ECount group bs (epartial ([], inbs) encm)$} 
+   { $ECount group bs (edecrypt decm)$}
+\end{mathpar}
+\end{mdframed}
+
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+ecdecrypt (inbs : list eballot) 
+ (encm : cand -> cand -> ciphertext)
+ (decm : cand -> cand -> plaintext)
+ (zkp : cand -> cand -> DecZkp) :
+ ECount group bs (epartial ([], inbs) encm) ->
+ (forall c d, 
+  verify_zero_knowledge_decryption_proof
+   (decm c d) (encm c d) (zkp c d) = true) ->
+ ECount group bs (edecrypt decm)
+\end{lstlisting}
+
 The final constructor, \textbf{ecfin}, takes fully decrypted margin 
 \textbf{dm}, boolean function \textbf{w} that determines election winner, 
 and \textbf{d}, that delivers type level evidence of winning or losing, 
-consistent with w. \linebreak
+consistent with w. 
 
-
-
-(* TODO : This code require some formatting *)
-
-%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-\begin{verbatim}
-Inductive ECount (group : Group) 
- (bs : list eballot) : EState -> Type :=
- | ecax (us : list eballot) 
-   (encm : cand -> cand -> ciphertext)
-   (decm : cand -> cand -> plaintext) 
-   (zkpdec : cand -> cand -> DecZkp) : us = bs -> 
-   (forall c d : cand, decm c d = 0) -> 
-   (forall c d, verify_zero_knowledge_decryption_proof 
-    grp (decm c d) (encm c d) (zkpdec c d) = true) -> 
-    ECount grp bs (epartial (us, []) encm)
- | ecvalid (cpi : Commitment) (zkpcpi : PermZkp)
-   (u v w : eballot) (b : pballot)
-   (zkppermuv : cand -> ShuffleZkp)
-   (zkppermvw : cand -> ShuffleZkp) 
-   (zkpdecw : cand -> cand -> DecZkp)
-   (us inbs : list eballot)
-   (m nm : cand -> cand -> ciphertext) :
-   ECount grp bs (epartial (u :: us, inbs) m) ->
-   matrix_ballot_valid b ->
-   (verify_permutation_commitment grp 
-    (length cand_all) cpi zkpcpi = true)->
-   (forall c, verify_row_permutation_ballot
-     grp u v cpi zkppermuv c = true) ->
-   (forall c, verify_col_permutation_ballot
-     grp v w cpi zkppermvw c = true) ->
-   (forall c d, 
-    verify_zero_knowledge_decryption_proof 
-     grp (b c d) (w c d) (zkpdecw c d) = true) ->
-   (forall c d, nm c d = 
-    homomorphic_addition grp (u c d) (m c d)) -> 
-   ECount grp bs (epartial (us, inbs) nm)
- | ecinvalid (cpi : Commitment) (zkpcpi : PermZkp)
-   (u v w : eballot) (b : pballot) 
-   (zkppermuv : cand -> ShuffleZkp)
-   (zkppermvw : cand -> ShuffleZkp) 
-   (zkpdecw : cand -> cand -> DecZkp)
-   (us inbs : list eballot)
-   (m : cand -> cand -> ciphertext) :
-   ECount grp bs (epartial (u :: us, inbs) m) ->
-   ~matrix_ballot_valid b ->
-   (verify_permutation_commitment grp 
-    (length cand_all) cpi zkpcpi = true) ->
-   (forall c, verify_row_permutation_ballot
-     grp u v cpi zkppermuv c = true) ->
-   (forall c, verify_col_permutation_ballot
-     grp v w cpi zkppermvw c = true) ->
-   (forall c d, 
-    verify_zero_knowledge_decryption_proof 
-     grp (b c d) (w c d) (zkpdecw c d) = true) ->
-   ECount grp bs (epartial (us, (u :: inbs)) m)
- | ecdecrypt 
-   (inbs : list eballot) 
-   (encm : cand -> cand -> ciphertext)
-   (decm : cand -> cand -> plaintext)
-   (zkp : cand -> cand -> DecZkp) :
-   ECount grp bs (epartial ([], inbs) encm) ->
-   (forall c d, 
-    verify_zero_knowledge_decryption_proof
-     grp (decm c d) (encm c d) (zkp c d) = true) ->
-   ECount grp bs (edecrypt decm)
- | ecfin 
-   dm (w : cand -> bool) 
-   (d : (forall c, (wins_type dm c) + 
-                   (loses_type dm c))) :
-   ECount grp bs (edecrypt dm) ->
-   (forall c, w c = true <-> exists x, d c = inl x)->
-   (forall c, w c = false<-> exists x, d c = inr x)->
-   ECount grp bs (ewinners w).
-\end{verbatim}	
-%\end{lstlisting}
-
-
-
+\begin{mdframed}[]
+Ecfin
+\begin{mathpar} 
+\inferrule*
+   { $ECount group bs (edecrypt dm)$} 
+   { $ECount group bs (ewinners w)$}
+\end{mathpar}
+\end{mdframed}
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+ecfin dm w 
+ (d : forall c, (wins_type dm c) + (loses_type dm c)):
+ ECount group bs (edecrypt dm) ->
+ (forall c, w c = true <-> (exists x, d c = inl x)) ->
+ (forall c, w c = false <-> (exists x, d c = inr x)) ->
+ ECount group bs (ewinners w). 
+\end{lstlisting}
 
 
 We formally states that for every list of ballots, we can find a boolean 
