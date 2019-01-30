@@ -412,6 +412,7 @@ of data structure, functions and axiom involve in encryption and decryption.
 Definition plaintext := Z.
 Variable ciphertext : Type. 
 
+
 Variable Pubkey : Type.
 Variable Prikey : Type.
 Variable DecZkp : Type.
@@ -474,6 +475,16 @@ validity of ballot which requires inspecting the values of
 decrypted shuffled ballot.
 (* Hopefully I have explained everything about encryption and 
    decryption, and moving on to other primitives *)
+
+Now that we have notion of plaintext and ciphertext, we use it to realize 
+ballot in Coq. An encrypted ballot (whenever we mention ballot in this formalization
+then it means encrypted ballot) is square matrix of ciphertext represented 
+by $eballot$ and plaintext ballot is square ballot of plaintext represented 
+by $pballot$. 
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+Definition eballot := cand -> cand -> ciphertext.
+Definition pballot := cand -> cand -> plaintext.
+\end{lstlisting}
 
 (* Why ? These primitives are necessary ? *)
 Now we focus on another important aspect, validity of 
@@ -539,7 +550,8 @@ correct by construction.
  (* Can we add some reference here 
 for well typed programs can't go wrong, and it's correct by construction
    *). Its 
-representation in Coq data structure (Constructors omitted for brevity)
+representation in Coq data structure (Constructors omitted for brevity, 
+and explained below)
 \begin{verbatim}
 Inductive ECount (group : Group) 
  (bs : list eballot) : EState -> Type :=
@@ -615,21 +627,37 @@ ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
  ECount group bs (epartial (us, []) encm)
 \end{lstlisting}
 
-In next step, we take a ballot, $u$, from pile of uncounted ballots, 
+In the next step, we take a ballot, $u$, from pile of uncounted ballots, 
 $(u :: us)$, and depending 
 on its validity, 
-we either update the margin function homomorphically, constructor $ecvalid$, or move it to the list of invalid ballots, constructor $ecinvalid$. Each row 
+we either update the margin function homomorphically, constructor $ecvalid$, or move it to the list of invalid ballots, constructor $ecinvalid$. 
+We follow all the steps explained above for witnessing the 
+validity(invalidity) of 
+ballot $u$. Each row 
 of $v$ is permutation of corresponding row of $u$, and each column of 
 $w$ is permutation
 of corresponding column of $v$ by a (secret) permutation whose commitment is 
-$cpi$ and zero-knowledge-proof of the commitment is $zkpcpi$. $zkppermuv$ 
-is a column matrix of zero-knowledge-proof  about each row of $v$ is indeed 
-permutation of corresponding row of $u$, and similarly $zkppermvw$ is 
-zero-knowledge-proof about each column of $w$ is indeed 
-permutation of corresponding column of $v$. $b$ is decryption of $w$, 
-and $zkpdecw$ is zero-knowledge-proof of this fact. $inbs$ is list of 
-invalid ballots seen so far, $m$ is current margin, 
-and $nm$ is updated margin.  
+$cpi$ and zero-knowledge-proof is $zkpcpi$. $zkppermuv$ 
+is a column matrix of zero-knowledge-proofs where each row gives evidence 
+that the corresponding row of $v$ is indeed 
+a permutation of the corresponding row of $u$, and similarly $zkppermvw$ is 
+a column matrix of 
+zero-knowledge-proofs of how each column of $w$ is indeed 
+a permutation of corresponding columns of $v$. $b$ is decryption of $w$, 
+and $zkpdecw$ is zero-knowledge-proof of this fact. $inbs$ is the list of 
+invalid ballots seen so far, $m$ is the current margin, 
+and $nm$ is new updated margin after homomorphically adding $u$ to $m$. 
+(* This statement is mouthful ? *) The assertions, 
+$matrix\_ballot\_valid$ ensures that $b$ is valid ballot; 
+$verify\_permutation\_commitment$ ensures that $zkpcpi$ is 
+zero-knowledge-proof of commitment $cpi$;   
+$verify\_row\_permutation\_ballot$ ensures that $v$ is 
+row permutation of $u$; $verify\_col\_permutation\_ballot$
+ensures that $w$ is column permutation of $v$; 
+$verify\_zero\_knowledge\_decryption_proof$ ensures that $b$ is 
+honest decryption of $w$;  $homomorphic\_addition$ ensures that 
+$nm$ is homomophic sum of $u$ and $m$.
+
 
 
 \begin{mdframed}[]
@@ -666,6 +694,8 @@ ecvalid (u v w : eballot) (b : pballot)
  ECount group bs (epartial (us, inbs) nm)
 \end{lstlisting}
 
+$Ecinvalid$ is very similar to $Ecvalid$ except ballot $b$ is 
+invalid, so we move ballot $u$ to the pile on invalid ballots.
 \begin{mdframed}[]
 Ecinvalid: u is not valid so move it list of invalid pile (u :: inbs)
 \begin{mathpar} 
@@ -699,10 +729,9 @@ ecinvalid (u v w : eballot) (b : pballot)
 \end{lstlisting}
 
 
-The constructor, \textbf{ecdecrypt}, marks the finish to counting with 
-fully constructed encrypted margin \textbf{encm}, 
-decrypted margin \textbf{decm} with honest decryption zero knowledge proof, 
-\textbf{zkp}.
+$Ecdecrypt$ marks the finish to counting with 
+fully constructed encrypted margin {encm}, 
+decrypted margin {decm} with honest decryption zero knowledge proof {zkp}.
 
 \begin{mdframed}[]
 Ecdecrypt
@@ -724,11 +753,10 @@ ecdecrypt (inbs : list eballot)
    (decm c d) (encm c d) (zkp c d) = true) ->
  ECount group bs (edecrypt decm)
 \end{lstlisting}
-
-The final constructor, \textbf{ecfin}, takes fully decrypted margin 
-\textbf{dm}, boolean function \textbf{w} that determines election winner, 
-and \textbf{d}, that delivers type level evidence of winning or losing, 
-consistent with w. 
+$Ecfin$ takes fully decrypted margin dm, 
+boolean function f that determines election winner, 
+and d, that delivers type level evidence of winning or losing, 
+consistent with f. 
 
 \begin{mdframed}[]
 Ecfin
@@ -739,28 +767,36 @@ Ecfin
 \end{mathpar}
 \end{mdframed}
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-ecfin dm w 
+ecfin dm (f : cand -> bool) 
  (d : forall c, (wins_type dm c) + (loses_type dm c)):
  ECount group bs (edecrypt dm) ->
- (forall c, w c = true <-> (exists x, d c = inl x)) ->
- (forall c, w c = false <-> (exists x, d c = inr x)) ->
- ECount group bs (ewinners w). 
+ (forall c, f c = true <-> (exists x, d c = inl x)) ->
+ (forall c, f c = false <-> (exists x, d c = inr x)) ->
+ ECount group bs (ewinners f). 
 \end{lstlisting}
 
+(* Why do we need to exhibit boolean function ? because all Schulze 
+   election has winner, and we capture this notion as boolean function  *)
 
-We formally states that for every list of ballots, we can find a boolean 
-function that decides winners \cite{Pattinson:2017:SVE}, but what more
-important is that the term of type \textbf{ECount grp bs (ewinners f)}, 
-that witnesses the correct execution of count, can be produced as evidence, 
+Now that we have captured each step of Schulze method in $ECount$ using various 
+constructors described above we focus on very important aspect of it. 
+According to Schulze method, we can always find a winner (or winners because
+it can have more  than one winner) for any given set of 
+ballots. We formally capture this notion of winner(s) as a boolean 
+function $f$ that decides winners \cite{Pattinson:2017:SVE}, but what more
+important is 
+ that the term of type \textit{ECount group bs (ewinners f)}, 
+that witnesses the correct execution of count as stated earlier because it's 
+correct by construction, can be produced as evidence, 
 known as certificate, or tally sheet (discussed in details in next section), 
 to scrutineers to audit the election. 
 
 
 
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-Lemma pschulze_winners (grp : Group) 
+Lemma pschulze_winners (group : Group) 
  (bs : list eballot) : existsT (f : cand -> bool), 
- ECount grp bs (ewinners f).
+ ECount group bs (ewinners f).
 \end{lstlisting}
 
 
@@ -768,24 +804,35 @@ Lemma pschulze_winners (grp : Group)
 Not only we provide the tally sheet  
 to verify the computation, but we provide 
 proof of correctness against fully verified implementation of 
-Schulze method \cite{Pattinson:2017:SVE}. 
-The basic intuition behind the proofs is very simple. 
-
-(* This one is bit difficult to find *)
-It basically hinges on the fact that 
+Schulze method \cite{Pattinson:2017:SVE} by using the 
+assumed axioms on cryptographic primitives.
+(* I think it can be written more better *) Our proof of correctness
+states that we produce same set of winners by two computations 
+when there is one-to-one relation between list of ballots, $bs$, used 
+in fully verified computation (\textit{Couns bs (winners f)}), and 
+list of ballots, $ebs$, used in axiomatic computation 
+(\textit{ECount group ebs (winners f)}). 
+The meaning of one-to-one relation, $mapping\_ballot\_pballot$, 
+between $bs$ and $pbs$, which is decryption of $ebs$, 
+is whenever a ballot is valid in $bs$ then 
+corresponding ballot in valid in $ebs$ because encryption does not 
+change the value or introduces cycle, and vice-versa. The basic 
+intuition behind the proofs is very simple, and basically hinges 
+on the fact that 
 if a ballot (represented as function $C \rightarrow N$)  
-contributes to margin function then its 
-encryption would also contribute to homomorphic margin, and vice-versa. 
+contributes to margin function in verified computation then its 
+encryption would also contribute to homomorphic margin in 
+axiomatic computation, and vice-versa. 
   
 
 \begin{verbatim}
   Lemma final_correctness :
-    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
+    forall  (group : Group) (bs : list ballot) (pbs : list pballot) 
     (ebs : list eballot) (w : cand -> bool)
     (H : pbs = map (fun x => 
          (fun c d => decrypt_message grp privatekey (x c d))) ebs)
     (H2 : mapping_ballot_pballot bs pbs), 
-    Count bs (winners w) -> ECount grp ebs (ewinners w).
+    Count bs (winners w) -> ECount group ebs (ewinners w).
       
   Lemma final_correctness_rev :
     forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
