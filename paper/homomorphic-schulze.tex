@@ -824,7 +824,7 @@ contributes to margin function in verified computation then its
 encryption would also contribute to homomorphic margin in 
 axiomatic computation, and vice-versa. 
   
-
+(* Rewrite this *)
 \begin{verbatim}
   Lemma final_correctness :
     forall  (group : Group) (bs : list ballot) (pbs : list pballot) 
@@ -854,27 +854,36 @@ axiomatic computation, and vice-versa.
   size
 \end{itemize}}
 
-
 We use Coq extraction mechanism\cite{Letouzey:2003:NEC}  to extract its proofs into programs retaining all the terms which lives in Type universe, 
-and erases every term  from Prop universe. 
-We use this mechanism to extract our formalized Coq proofs into
- OCaml\cite{Leroy:2013:ORM} program, and instantiate the axiomatic cryptographic 
- primitives with corresponding primitives in Unicrypt library (* reference 
- for unicrypt ? *). For cryptographic purpose, we had choice to use 
- Unicrypt, and Verificatum, because both libraries
- are open source and exhaustively tested; however, we found Verificatum is 
- difficult to use, so we settled with Unicrypt. Since Unicrypt is written 
- in Java and our extracted code is in OCaml, we can not call Unicrypt functions 
- directly from OCaml. Besides, it does not have 
- all the primitives, homomorphic addition, construction of honest 
- decryption zero knowledge proof and its verification, 
- we need, so we have written wrapper, using Java-Ocaml library 
- (* github link for library? Robert Constable Has given links 
- of github in his paper about bar induction, the good, the bad and the 
- ugly *), with functionality missing 
- in Unicrypt, and it works as middle man between OCaml  and Java.
- 
-
+and erases every term  from Prop universe. We use this mechanism to 
+extract our formalized Coq proofs into OCaml\cite{Leroy:2013:ORM} program 
+with cryptographic axioms left to be realized. (* Why did we use 
+Unicrypt. Because it has all the functionality we needed and it's well 
+tested library. *) For cryptographic purpose we used Unicrypt library
+because it is open source, well tested, and has all the functionality 
+we needed with nice APIs except construction and verification of 
+honest decryption zero-knowledge-proof .
+However, we can not call Unicrypt functions directly from extracted OCaml 
+code, because it's written in Java. To achieve the interoperability 
+between OCaml and Java we used Jules Aguillon's OCaml-Java library 
+(github link: https://github.com/Julow/ocaml-java) which provides
+ basic support of mapping OCaml primitive data structure to
+ Java primitive data structure, and OCaml class to Java class. 
+ (* why did you write you own library ? Why did you not call 
+   Unicrypt functions directly from your own extracted code ? *)
+ OCaml-Java library certainly helped us a lot, but it was not sufficient for
+ our purpose, and the reason was Unicrypt's clean nice abstraction of 
+ algebraic structures used in cryptography. These abstractions followed 
+ Java design principals and the one we found, among many, was subtyping.
+ If a class A (SafePrime) extends a class B (Prime) then 
+ A (SafePrime) is subtype of B (Prime), 
+ and we can always pass object of class A (SafePrime) at 
+ the places where it's asking for object of class B (Prime). 
+ However, subtyping made things complicated for us, because it forced us to 
+ write binding for both classes in OCaml, and we ended up writing a
+ OCaml wrapper for these algebraic structures. We would like to point out
+ that abstractions of Unicrypt forced us to make our wrapper 
+ nice and clean.   
  
  After instantiating the  
  cryptographic primitives in extracted OCaml code 
@@ -884,14 +893,6 @@ We use this mechanism to extract our formalized Coq proofs into
  it is trace of computation which can be used as a checkable record to verify
  the outcome of election.
  
- 
- 
- 
- 
- 
-  
- 
-
 
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 M: AA(13.., 10..) AB(90.., 14..) AC(11.., 23..) BA(16.., 13..) BB(79.., 46..)
