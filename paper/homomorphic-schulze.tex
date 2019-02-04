@@ -333,6 +333,29 @@ was valid, and
 ballot is not valid.
 \end{enumerate}
 
+
+\smallskip\noindent\emph{Cryptographic primitives.} Overall, the
+primitives needed to realize the above statements are 
+\begin{itemize} 
+\item encryption, decryption, construction of honest decryption
+     zero-knowledge-proof, and verification of zero-knowledge-proof. 
+\item generating permutation, generating  Pedersen's 
+     commitment \cite{Pederson} of permutation, construction of 
+     zero-knowledge-proof of Pedersen's commitment, verification of 
+     zero-knowledge-proof of Pedersen's commitment, shuffling 
+     each row and column of ballot by a given permutation; however, there 
+     was no such primitive in library (* I am not convinced about 
+     why should we talk about what is in library, but feel free to change it 
+      to something more meaningful if it's not making sense *), but 
+      it has  primitive for
+     (commitment consistent) shuffling a array of ciphertext 
+     by a given permutation \cite{Wikstrom:2009:CPS}. We used this primitive 
+     to shuffle each row and column of ballot by same permutation, 
+     generating zero-knowledge-proof of (commitment consistent) shuffle, 
+     and verification of zero-knowledge-proof of shuffle.  
+\item  update the margin matrix (homormorphic addition primitive)
+ \end{itemize}
+
 \smallskip\noindent\emph{Witnessing of Winners.}
 Once all ballots are counted, the computed margin is decrypted, and
 winners (together with evidence of winning) are being computed as
@@ -705,30 +728,6 @@ Ecinvalid: u is not valid so move it list of invalid pile (u :: inbs)
 \end{mathpar}
 \end{mdframed}
 
-Coq representation of Ecinvalid
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-ecinvalid (u v w : eballot) (b : pballot)
- (cpi : Commitment) (zkpcpi : PermZkp) 
- (zkppermuv : cand -> ShuffleZkp)
- (zkppermvw : cand -> ShuffleZkp) 
- (zkpdecw : cand -> cand -> DecZkp)
- (us inbs : list eballot)
- (m : cand -> cand -> ciphertext) :
- ECount group bs (epartial (u :: us, inbs) m) ->
- ~matrix_ballot_valid b ->
- (verify_permutation_commitment
-  (length cand_all) cpi zkpcpi = true) ->
- (forall c, verify_row_permutation_ballot
-   u v cpi zkppermuv c = true) ->
- (forall c, verify_col_permutation_ballot
-   v w cpi zkppermvw c = true) ->
- (forall c d, 
-  verify_zero_knowledge_decryption_proof 
-   (b c d) (w c d) (zkpdecw c d) = true) ->
- ECount group bs (epartial (us, (u :: inbs)) m)
-\end{lstlisting}
-
-
 $Ecdecrypt$ marks the finish to counting with 
 fully constructed encrypted margin {encm}, 
 decrypted margin {decm} with honest decryption zero knowledge proof {zkp}.
@@ -865,10 +864,10 @@ we needed with nice APIs except construction and verification of
 honest decryption zero-knowledge-proof .
 However, we can not call Unicrypt functions directly from extracted OCaml 
 code, because it's written in Java. To achieve the interoperability 
-between OCaml and Java we used Jules Aguillon's OCaml-Java library 
+between OCaml and Java we used OCaml-Java library 
 (github link: https://github.com/Julow/ocaml-java) which provides
- basic support of mapping OCaml primitive data structure to
- Java primitive data structure, and OCaml class to Java class. 
+ basic support of mapping  primitive OCaml data structure to
+ primitive Java  data structure, and OCaml class to Java class. 
  (* why did you write you own library ? Why did you not call 
    Unicrypt functions directly from your own extracted code ? *)
  OCaml-Java library certainly helped us a lot, but it was not sufficient for
@@ -879,8 +878,8 @@ between OCaml and Java we used Jules Aguillon's OCaml-Java library
  A (SafePrime) is subtype of B (Prime), 
  and we can always pass object of class A (SafePrime) at 
  the places where it's asking for object of class B (Prime). 
- However, subtyping made things complicated for us, because it forced us to 
- write binding for both classes in OCaml, and we ended up writing a
+ Subtyping made things complicated for us, because it forced us to 
+ write binding for both classes, A and B, in OCaml, and we ended up writing a
  OCaml wrapper for these algebraic structures. We would like to point out
  that abstractions of Unicrypt forced us to make our wrapper 
  nice and clean.   
@@ -891,7 +890,10 @@ between OCaml and Java we used Jules Aguillon's OCaml-Java library
  small set of ballots with 3 candidate A, B, and C participating in election
  which produces the tally sheet given below. In other words, 
  it is trace of computation which can be used as a checkable record to verify
- the outcome of election.
+ the outcome of election. For space consideration we have stripped off 
+ trailing digits in the tally sheet which is marked by $..$, and rather 
+ than representing an entry of a matrix as ($i$, $j$) it is represented as 
+ $ij$
  
 
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
@@ -993,7 +995,7 @@ think of auditing the election involves verifying these three steps
  \item For winners 
 \end{itemize} 
 
-Even though, we produce the tally by formally verified code, election 
+Even though we produce the tally by formally verified code, election 
 auditor has no information about how it was produced. This adds extra layer
 of confidence in election, because the tally can be audited by pool
 of scrutineers to certify the outcome of election regardless of how the tally 
