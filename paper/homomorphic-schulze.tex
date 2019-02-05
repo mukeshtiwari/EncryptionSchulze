@@ -312,7 +312,7 @@ of a ciphertext ballot $\encb$ by
   evidence that $b'$ is indeed the decryption of $\encb'$.
 \end{itemize}
 
-We use zero-knowledge proofs in the style of \cite{Bayer:2012:EZK}
+We use zero-knowledge proofs in the style of \cite{DBLP:conf/africacrypt/TereliusW10}
 to evidence the correctness of the shuffle, and zero-knowledge
 proofs of honest decryption [reference missing] to evidence
 correctness of decryption. This achieves ballot secrecy owing to the
@@ -339,13 +339,7 @@ In order to encrypt a value, and decrypt a value with
 evidence of correct decryption we need primitives for encryption, 
 decryption, construction of
 honest decryption zero-knowledge-proof, and verification of 
-honest decryption zero-knowledge-proof. We would like to point out 
-that whenever there is primitive for construction of zero-knowledge-proof 
-then there is primitive for verification, and the reason is verification 
-primitive always checks that claimed zero-knowledge-proof is constructed 
-honestly by construction primitive or not. If the construction primitive has 
-constructed it honestly then verification primitive 
-returns true otherwise false. 
+honest decryption zero-knowledge-proof.
 
 (* can we break this into multiple paragraphs ? *)
 The next operation, shuffling, 
