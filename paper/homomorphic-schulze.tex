@@ -366,7 +366,7 @@ honestly we need verification primitives, and hence the reason they
 always come into pair of construction and verification. 
 
    
-Now we explain the various cryptographic primitives as described above 
+Now we explain the  cryptographic primitives as described above 
 in detail. In order to encrypt a value, and decrypt a value with 
 evidence of correct decryption we need primitives for encryption, 
 decryption, construction of
@@ -381,7 +381,7 @@ without affecting any functionality of our formalization.
 
 
 The next operation, witnessing the validity of ballot, 
-is more involved, and we need to make 
+is more involved, so we need to make 
 sure that the operations performed during during this phase are verifiable. 
 Recall that witnessing 
 the validity of ballot involves shuffling its rows and columns 
@@ -389,7 +389,7 @@ by same permutation, which
 we don't want to reveal to achieve ballot secrecy, and decryption, so 
 we need to produce compelling evidence 
 to make sure that the operation performed in each step of witnessing validity 
-is verifiable. We stand again on shoulder of Pedersen's 
+is verifiable. We stand on shoulder of Pedersen's 
 commitment \cite{Pederson} and zero knowledge proof to achieve this.
 In nutshell, Pedersen commitment scheme has 
 the following properties. 
@@ -399,9 +399,16 @@ the following properties.
 	 	than one way i.e. he should not be able open to a value 
 	 	different from the one he committed to 
 \end{itemize}
+In our context, it means that once we committed to some permutation then 
+no one can guess it from commitment (hiding), and we can't change it in future 
+once committed (binding). For verifiability of generated permutation, 
+our binding step is slightly different from 
+Pedersen's binding step. Instead of revealing the permutation 
+and showing
+that it's the permutation that we committed to, we use zero-knowledge-proof
+to show that this commitment is indeed the commitment of some permutation.
 
-
-The process of witnessing validity of any ballot starts with generating a 
+The mechanics of witnessing the validity of a ballot starts with generating a 
 permutation $\pi$ which is used to shuffle every row and column of the ballot.
 We hide $\pi$ by committing it using Pedersen's 
 commitment scheme 
@@ -417,15 +424,18 @@ of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used
 to verify that $v$ is indeed a row permutation of $u$ using some permutation 
 whose commitment is $c_{\pi}$. We take $v$ and shuffle each column of it 
 by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
-as last step. 
-
-
-We achieve the needed functionality described in this step  
-by generating permutation, committing permutation,  shuffling ballot, 
-and construction of zero knowledge proof as mentioned in second 
+as last step. We achieve the needed functionality described in this step
+by primitives listed in second point, i.e. 
+generating permutation, generating  Pedersen's 
+commitment \cite{Pederson} of permutation, construction of 
+zero-knowledge-proof of Pedersen's commitment, verification of 
+zero-knowledge-proof of Pedersen's commitment, shuffling a array 
+by a given permutation \cite{Wikstrom:2009:CPS}, 
+generating zero-knowledge-proof of (commitment consistent) shuffle, 
+and verification of zero-knowledge-proof of shuffle.
 We decrypt the ballot $w$ to evidence validity, and to make this step
- verifiable we reuse the primitives developed previously for
- encryption and decryption.
+ verifiable we reuse the primitives developed in
+ encryption and decryption step.
 
 
 
@@ -537,85 +547,85 @@ additive and follows the assumed axioms.
 %of ballots, and at the same time generating enough evidence related to 
 %different operation involved in election to make sure it's audit-able.
 
-
-These primitives are plaintext, ciphertext, public key, private key, 
-encryption function, which turns a plaintext to ciphertext using 
-public key, and decryption function, which turns a ciphertext into 
-plaintext using private key, as we expect from any cryptographic system; 
-however, these primitives are not sufficient for our purpose because there is 
-not enough evidence to substantiate the statement that  
-claimed decrypted value is indeed the 
-honest decryption of claimed ciphertext. We overcome this situation 
-by adding function which constructs zero knowledge proof of honest 
-decryption (Reference Needed. Talk to Thomas), and verification 
-function to verify the claim of honest decryption using zero 
-knowledge proof constructed by previous function. 
-
-
+%
+%These primitives are plaintext, ciphertext, public key, private key, 
+%encryption function, which turns a plaintext to ciphertext using 
+%public key, and decryption function, which turns a ciphertext into 
+%plaintext using private key, as we expect from any cryptographic system; 
+%however, these primitives are not sufficient for our purpose because there is 
+%not enough evidence to substantiate the statement that  
+%claimed decrypted value is indeed the 
+%honest decryption of claimed ciphertext. We overcome this situation 
+%by adding function which constructs zero knowledge proof of honest 
+%decryption (Reference Needed. Talk to Thomas), and verification 
+%function to verify the claim of honest decryption using zero 
+%knowledge proof constructed by previous function. 
 
 
 
-Below is a code snippet about representation
-of data structure, functions and axiom involve in encryption and decryption.
 
-
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-Definition plaintext := Z.
-Variable ciphertext : Type. 
-
-
-Variable Pubkey : Type.
-Variable Prikey : Type.
-Variable DecZkp : Type.
-
-Variable privatekey : Prikey.
-Variable publickey : Pubkey.
-
-Variable encrypt_message :
- Pubkey -> plaintext -> ciphertext.
-
-Variable decrypt_message :
- Prikey -> Prikey -> ciphertext -> plaintext.
-
-Axiom decryption_deterministic :
- forall (publickey : Pubkey) 
- (privatekey : Prikey) 
- (pt : plaintext), decrypt_message 
- privatekey (encrypt_message publickey pt) = pt.
- 
-Variable construct_zero_knowledge_decryption_proof :
- Prikey -> ciphertext -> DecZkp.
-
-Variable verify_zero_knowledge_decryption_proof :
- plaintext -> ciphertext -> DecZkp -> bool.
-
-Axiom verify_true :
- forall (pt : plaintext) (ct : ciphertext) 
- (privatekey : Prikey)
- (H1 : pt = decrypt_message privatekey ct)
- (H2 : zkp = 
- construct_zero_knowledge_decryption_proof privatekey ct),
- verify_zero_knowledge_decryption_proof pt ct zkp = true.
-\end{lstlisting}
-
-( Why ? What are the axioms and why do we need them  *)
-We also have two axioms,  \textit{decryption\_deterministic} and 
-\textit{verify\_true}, about the primitives used for encryption and 
-decryption. First axiom states that decryption is deterministic, i.e.
-for any given plaintext, encryption followed by decryption yields same 
-plaintext. Second axiom stipulates the fact that for any given plaintext 
-$pt$ and ciphertext $ct$ if $pt$ is decryption of $ct$, and $zkp$ is 
-honest decryption zero knowledge proof then verification function 
-returns true or checks out. The reason for having these axioms is that this 
-formalization is proved correct with 
-respect to a fully verified implementation \cite{Pattinson:2017:SVE}; 
-however, cryptographic primitives used in formalization  
-are abstract, so we need axioms 
-to reason about their behaviour in proof 
-of correctness. As a side note, we would like to point out that
- this formalization hinges on 8 axioms assumed about cryptographic 
- primitives, and we expect any correctly implement cryptographic library 
- would follow it.
+%
+%Below is a code snippet about representation
+%of data structure, functions and axiom involve in encryption and decryption.
+%
+%
+%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+%Definition plaintext := Z.
+%Variable ciphertext : Type. 
+%
+%
+%Variable Pubkey : Type.
+%Variable Prikey : Type.
+%Variable DecZkp : Type.
+%
+%Variable privatekey : Prikey.
+%Variable publickey : Pubkey.
+%
+%Variable encrypt_message :
+% Pubkey -> plaintext -> ciphertext.
+%
+%Variable decrypt_message :
+% Prikey -> Prikey -> ciphertext -> plaintext.
+%
+%Axiom decryption_deterministic :
+% forall (publickey : Pubkey) 
+% (privatekey : Prikey) 
+% (pt : plaintext), decrypt_message 
+% privatekey (encrypt_message publickey pt) = pt.
+% 
+%Variable construct_zero_knowledge_decryption_proof :
+% Prikey -> ciphertext -> DecZkp.
+%
+%Variable verify_zero_knowledge_decryption_proof :
+% plaintext -> ciphertext -> DecZkp -> bool.
+%
+%Axiom verify_true :
+% forall (pt : plaintext) (ct : ciphertext) 
+% (privatekey : Prikey)
+% (H1 : pt = decrypt_message privatekey ct)
+% (H2 : zkp = 
+% construct_zero_knowledge_decryption_proof privatekey ct),
+% verify_zero_knowledge_decryption_proof pt ct zkp = true.
+%\end{lstlisting}
+%
+%( Why ? What are the axioms and why do we need them  *)
+%We also have two axioms,  \textit{decryption\_deterministic} and 
+%\textit{verify\_true}, about the primitives used for encryption and 
+%decryption. First axiom states that decryption is deterministic, i.e.
+%for any given plaintext, encryption followed by decryption yields same 
+%plaintext. Second axiom stipulates the fact that for any given plaintext 
+%$pt$ and ciphertext $ct$ if $pt$ is decryption of $ct$, and $zkp$ is 
+%honest decryption zero knowledge proof then verification function 
+%returns true or checks out. The reason for having these axioms is that this 
+%formalization is proved correct with 
+%respect to a fully verified implementation \cite{Pattinson:2017:SVE}; 
+%however, cryptographic primitives used in formalization  
+%are abstract, so we need axioms 
+%to reason about their behaviour in proof 
+%of correctness. As a side note, we would like to point out that
+% this formalization hinges on 8 axioms assumed about cryptographic 
+% primitives, and we expect any correctly implement cryptographic library 
+% would follow it.
 
 (* Contrary to our claim that crypto primitives are abstract, then 
 why we represented plaintext as Coq integer ? *)
@@ -633,6 +643,8 @@ then it means encrypted ballot) is square matrix of ciphertext represented
 by $eballot$ and plaintext ballot is square ballot of plaintext represented 
 by $pballot$. 
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+Definition plaintext := Z.
+Variable ciphertext : Type. 
 Definition eballot := cand -> cand -> ciphertext.
 Definition pballot := cand -> cand -> plaintext.
 \end{lstlisting}
