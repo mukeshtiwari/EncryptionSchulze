@@ -318,67 +318,15 @@ was valid, and
 ballot is not valid.
 \end{enumerate}
 
-\smallskip\noindent\emph{Cryptographic primitives.} Now we sketch out the 
-realization of primitives to achieve the functionality described above. 
-In order to encrypt a value, and decrypt a value with 
-evidence of correct decryption we need primitives for encryption, 
-decryption, construction of
-honest decryption zero-knowledge-proof, and verification of 
-honest decryption zero-knowledge-proof.
-
-(* can we break this into multiple paragraphs ? *)
-The next operation, shuffling, 
-is more involved, and we need to make 
-sure that the operations performed during the shuffle is verifiable. Recall
-that shuffling involves permuting each row and column of a ballot 
-by some permutation, which we don't want to reveal to achieve 
-ballot secrecy. The primitives needed for this operation are 
-generate permutation, and shuffle an array by a given permutation and we 
-apply this primitive to each row and column of a ballot to shuffle it. 
-Once we have these primitives, the next question is how do we 
-ensure the verifiability of these operations ? We ensure the secrecy of
-permutation by  Pedersen's commitment scheme\cite{Pederson} 
-and verifiability  by zero knowledge proof. In nutshell, Pedersen commitment 
-scheme has the following properties. 
-\begin{itemize}
-\item Hiding: A dishonest party can't discover honest party's value 
-\item Binding: A dishonest party cannot open his commitment in more  
-	 	than one way i.e. he should not be able open to a value 
-	 	different from the one he committed to 
-\end{itemize}
-In our context, it means that once we committed to some permutation then 
-no one can guess it from commitment (hiding), and we can't change it in future 
-once committed (binding). For verifiability of generated permutation, 
-our binding step is slightly different from 
-Pedersen's binding step. Instead of revealing the permutation 
-and showing
-that it's the permutation that we committed to, we use zero-knowledge-proof
-to show that this commitment is indeed the commitment of some permutation.
-We use this commitment in construction and verification of 
-zero-knowledge-proof of shuffle, which we describe next. 
-For verification of shuffle of ballot, we follow  the protocol 
-known as commitment consistent shuffle \cite{Wikstrom:2009:CPS}. 
-This protocol generates zero-knowledge-proof of shuffle by 
-using a (secret)permutation, commitment of the permutation, array, and 
-shuffled array,  and later it can be verified that the shuffled array 
-is indeed  permutation of the array by using the commitment and 
-zero-knowledge-proof constructed in previous step. 
-The primitives needed to achieve verification for operations used in shuffle 
-are generate Pedersen commitment of permutation, generate 
-zero-knowledge-proof of commitment, 
-verification of zero-knowledge-proof of commitment, 
-generating zero-knowledge-proof of (commitment consistent) shuffle, 
-     and verification of zero-knowledge-proof of 
-     (commitment consistent) shuffle.  
-Finally, we need primitive to update the margin which is simple homomorphic
-addition function, and the operations performed by this function 
- can be easily verified using a simple calculator capable of performing 
- basic arithmetic operations on large number (In our case, homormorphic 
- addition function is multiplying two large numbers modulo a large prime 
- number)
-
-Overall, the primitives needed to realize the functionality
-explained above 
+\smallskip\noindent\emph{Cryptographic primitives.}
+(* Rearranging it. Giving high level details here and more 
+   explanation below. Always remember why ? *)
+ 
+ Overall, the cryptographic primitives, which are literal translation of 
+ functionality described above to preserve the privacy
+ of ballots, and at the same time generating enough evidence related to 
+ different operation involved in election to make sure it's audit-able, 
+ are given below 
 \begin{itemize} 
 \item encryption, decryption, construction of honest decryption
      zero-knowledge-proof, and verification of zero-knowledge-proof. 
@@ -391,6 +339,150 @@ explained above
      and verification of zero-knowledge-proof of shuffle.
 \item  update the margin matrix (homormorphic addition primitive)
 \end{itemize}
+  
+(* Why do we need construction and verification of zero-knowledge-proof ?*)
+Before we move forward to explain these primitives in more detail
+we would like to point out one crucial fact that  whenever 
+there is primitive for construction of zero-knowledge-proof 
+then there is corresponding primitive for verifying it. 
+The verification primitive 
+takes zero-knowledge-proof with some other public parameters 
+(depending on context) 
+and returns a boolean value which certifies the credentials of constructed 
+zero-knowledge-proof. In short, if the verification primitive returns 
+true then we trust that zero-knowledge-proof is constructed honestly, 
+otherwise not. At this point, the natural question is 
+why do we need these two primitives in conjugation ? If our purpose 
+is to just count the (encrypted)ballots then we only need 
+construction primitive
+to generate the zero-knowledge-proof evidence of counting; however, 
+we have formally verified the outcome of (encrypted)ballots homomorphic
+counting against 
+a fully verified (plaintext)ballots counting\cite{Pattinson:2017:SVE}
+assuming that the (encrypted)ballots decrypt to the (plaintext)ballots, 
+and all the zero-knowledge-proofs are constructed honestly.
+In order to verify(check) the claim that zero-knowledge-proofs are constructed 
+honestly we need verification primitives, and hence the reason they 
+always come into pair of construction and verification. 
+
+   
+Now we explain the various cryptographic primitives as described above 
+in detail. In order to encrypt a value, and decrypt a value with 
+evidence of correct decryption we need primitives for encryption, 
+decryption, construction of
+honest decryption zero-knowledge-proof, and verification of 
+honest decryption zero-knowledge-proof. Technically, we don't need 
+encryption primitive because at no point in the formalization we 
+encrypt values, and we count already given encrypted ballots. 
+The reason for adding encryption primitive is completeness, and 
+under the hood we use it to generate encrypted ballots; however, we
+want to reiterate that we can safely remove the encryption function 
+without affecting any functionality of our formalization.
+
+
+The next operation, witnessing the validity of ballot, 
+is more involved, and we need to make 
+sure that the operations performed during during this phase are verifiable. 
+Recall that witnessing 
+the validity of ballot involves shuffling its rows and columns 
+by same permutation, which
+we don't want to reveal to achieve ballot secrecy, and decryption, so 
+we need to produce compelling evidence 
+to make sure that the operation performed in each step of witnessing validity 
+is verifiable. We stand again on shoulder of Pedersen's 
+commitment \cite{Pederson} and zero knowledge proof to achieve this.
+In nutshell, Pedersen commitment scheme has 
+the following properties. 
+\begin{itemize}
+\item Hiding: A dishonest party can't discover honest party's value 
+\item Binding: A dishonest party cannot open his commitment in more  
+	 	than one way i.e. he should not be able open to a value 
+	 	different from the one he committed to 
+\end{itemize}
+
+
+The process of witnessing validity of any ballot starts with generating a 
+permutation $\pi$ which is used to shuffle every row and column of the ballot.
+We hide $\pi$ by committing it using Pedersen's 
+commitment scheme 
+and publishing  the commitment $c_{\pi}$. However, for the binding step, rather 
+than opening $\pi$ we generate a zero knowledge proof, $zkp_{\pi}$, 
+using $\pi$ and $c_{\pi}$, which can 
+be  used to prove that $c_{\pi}$ is indeed a commitment of some permutation
+that is used in the (commitment consistent) shuffling 
+ without being opened \cite{Wikstrom:2009:CPS}. Now that we have a way 
+ to hide $\pi$, we use it to shuffle each row of 
+ballot, say $u$, producing ballot $v$, and construct a zero knowledge proof 
+of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used 
+to verify that $v$ is indeed a row permutation of $u$ using some permutation 
+whose commitment is $c_{\pi}$. We take $v$ and shuffle each column of it 
+by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
+as last step. 
+
+
+We achieve the needed functionality described in this step  
+by generating permutation, committing permutation,  shuffling ballot, 
+and construction of zero knowledge proof as mentioned in second 
+We decrypt the ballot $w$ to evidence validity, and to make this step
+ verifiable we reuse the primitives developed previously for
+ encryption and decryption.
+
+
+
+
+
+%(* can we break this into multiple paragraphs ? *)
+%The next operation, shuffling, 
+%is more involved, and we need to make 
+%sure that the operations performed during the shuffle is verifiable. Recall
+%that shuffling involves permuting each row and column of a ballot 
+%by some permutation, which we don't want to reveal to achieve 
+%ballot secrecy. The primitives needed for this operation are 
+%generate permutation, and shuffle an array by a given permutation and we 
+%apply this primitive to each row and column of a ballot to shuffle it. 
+%Once we have these primitives, the next question is how do we 
+%ensure the verifiability of these operations ? We ensure the secrecy of
+%permutation by  Pedersen's commitment scheme\cite{Pederson} 
+%and verifiability  by zero knowledge proof. In nutshell, Pedersen commitment 
+%scheme has the following properties. 
+%\begin{itemize}
+%\item Hiding: A dishonest party can't discover honest party's value 
+%\item Binding: A dishonest party cannot open his commitment in more  
+%	 	than one way i.e. he should not be able open to a value 
+%	 	different from the one he committed to 
+%\end{itemize}
+%In our context, it means that once we committed to some permutation then 
+%no one can guess it from commitment (hiding), and we can't change it in future 
+%once committed (binding). For verifiability of generated permutation, 
+%our binding step is slightly different from 
+%Pedersen's binding step. Instead of revealing the permutation 
+%and showing
+%that it's the permutation that we committed to, we use zero-knowledge-proof
+%to show that this commitment is indeed the commitment of some permutation.
+%We use this commitment in construction and verification of 
+%zero-knowledge-proof of shuffle, which we describe next. 
+%For verification of shuffle of ballot, we follow  the protocol 
+%known as commitment consistent shuffle \cite{Wikstrom:2009:CPS}. 
+%This protocol generates zero-knowledge-proof of shuffle by 
+%using a (secret)permutation, commitment of the permutation, array, and 
+%shuffled array,  and later it can be verified that the shuffled array 
+%is indeed  permutation of the array by using the commitment and 
+%zero-knowledge-proof constructed in previous step. 
+%The primitives needed to achieve verification for operations used in shuffle 
+%are generate Pedersen commitment of permutation, generate 
+%zero-knowledge-proof of commitment, 
+%verification of zero-knowledge-proof of commitment, 
+%generating zero-knowledge-proof of (commitment consistent) shuffle, 
+%     and verification of zero-knowledge-proof of 
+%     (commitment consistent) shuffle.  
+Finally, we need primitive to update the margin which is simple homomorphic
+addition function, and the operations performed by this function 
+ can be easily verified using a simple calculator capable of performing 
+ basic arithmetic operations on large number (In our case, homormorphic 
+ addition function is multiplying two large numbers modulo a large prime 
+ number)
+
+
 
 \smallskip\noindent\emph{Witnessing of Winners.}
 Once all ballots are counted, the computed margin is decrypted, and
@@ -440,10 +532,10 @@ of election, so we have treated them as abstract entity and assumed
 axioms about them inside theorem prover Coq. This abstraction allows us to
 instantiate these entities with any crypto-system which is homomorphically 
 additive and follows the assumed axioms. 
-(* Why did you come up with only these primitives, why not some thing else ?*)
-We came up with these primitives solely based on need to preserve the privacy
-of ballots, and at the same time generating enough evidence related to 
-different operation involved in election to make sure it's audit-able.
+%(* Why did you come up with only these primitives, why not some thing else ?*)
+%We came up with these primitives solely based on need to preserve the privacy
+%of ballots, and at the same time generating enough evidence related to 
+%different operation involved in election to make sure it's audit-able.
 
 
 These primitives are plaintext, ciphertext, public key, private key, 
@@ -545,51 +637,52 @@ Definition eballot := cand -> cand -> ciphertext.
 Definition pballot := cand -> cand -> plaintext.
 \end{lstlisting}
 
-(* Why ? These primitives are necessary ? *)
-Now we focus on another important aspect, validity of 
-ballot. Recall that witnessing 
-the validity of ballot involves shuffling its rows and columns 
-by some permutation, which
-we don't want to reveal to achieve ballot secrecy, and decryption, so 
-we need to produce compelling evidence 
-to make sure that the operation performed in each step of witnessing validity 
-is verifiable. We stand again on shoulder of Pedersen's 
-commitment \cite{Pederson} and zero knowledge proof to achieve this.
-In nutshell, Pedersen commitment scheme has 
-the following properties. 
-\begin{itemize}
-\item Hiding: A dishonest party can't discover honest party's value 
-\item Binding: A dishonest party cannot open his commitment in more  
-	 	than one way i.e. he should not be able open to a value 
-	 	different from the one he committed to 
-\end{itemize}
-
-
-The process of witnessing validity of any ballot starts with generating a 
-permutation $\pi$ which is used to shuffle every row and column of the ballot.
-We hide $\pi$ by committing it using Pedersen's 
-commitment scheme 
-and publishing  the commitment $c_{\pi}$. However, for the binding step, rather 
-than opening $\pi$ we generate a zero knowledge proof, $zkp_{\pi}$, 
-using $\pi$ and $c_{\pi}$, which can 
-be  used to prove that $c_{\pi}$ is indeed a commitment of some permutation
-that is used in the (commitment consistent) shuffling 
- without being opened \cite{Wikstrom:2009:CPS}. Now that we have a way 
- to hide $\pi$, we use it to shuffle each row of 
-ballot, say $u$, producing ballot $v$, and construct a zero knowledge proof 
-of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used 
-to verify that $v$ is indeed a row permutation of $u$ using some permutation 
-whose commitment is $c_{\pi}$. We take $v$ and shuffle each column of it 
-by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
-as last step.   
-Primitives needed to achieve the functionality described in this step  
-are generating permutation, committing permutation,  shuffling ballot, 
-and construction of zero knowledge proof.
-We decrypt the ballot $w$ to evidence validity, and to make this step
- verifiable we reuse the primitives developed previously for
- encryption and decryption.
-(* This ends the cryptographic description *)
-
+%(* This is duplicate *)
+%(* Why ? These primitives are necessary ? *)
+%Now we focus on another important aspect, validity of 
+%ballot. Recall that witnessing 
+%the validity of ballot involves shuffling its rows and columns 
+%by some permutation, which
+%we don't want to reveal to achieve ballot secrecy, and decryption, so 
+%we need to produce compelling evidence 
+%to make sure that the operation performed in each step of witnessing validity 
+%is verifiable. We stand again on shoulder of Pedersen's 
+%commitment \cite{Pederson} and zero knowledge proof to achieve this.
+%In nutshell, Pedersen commitment scheme has 
+%the following properties. 
+%\begin{itemize}
+%\item Hiding: A dishonest party can't discover honest party's value 
+%\item Binding: A dishonest party cannot open his commitment in more  
+%	 	than one way i.e. he should not be able open to a value 
+%	 	different from the one he committed to 
+%\end{itemize}
+%
+%
+%The process of witnessing validity of any ballot starts with generating a 
+%permutation $\pi$ which is used to shuffle every row and column of the ballot.
+%We hide $\pi$ by committing it using Pedersen's 
+%commitment scheme 
+%and publishing  the commitment $c_{\pi}$. However, for the binding step, rather 
+%than opening $\pi$ we generate a zero knowledge proof, $zkp_{\pi}$, 
+%using $\pi$ and $c_{\pi}$, which can 
+%be  used to prove that $c_{\pi}$ is indeed a commitment of some permutation
+%that is used in the (commitment consistent) shuffling 
+% without being opened \cite{Wikstrom:2009:CPS}. Now that we have a way 
+% to hide $\pi$, we use it to shuffle each row of 
+%ballot, say $u$, producing ballot $v$, and construct a zero knowledge proof 
+%of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used 
+%to verify that $v$ is indeed a row permutation of $u$ using some permutation 
+%whose commitment is $c_{\pi}$. We take $v$ and shuffle each column of it 
+%by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
+%as last step.   
+%Primitives needed to achieve the functionality described in this step  
+%are generating permutation, committing permutation,  shuffling ballot, 
+%and construction of zero knowledge proof.
+%We decrypt the ballot $w$ to evidence validity, and to make this step
+% verifiable we reuse the primitives developed previously for
+% encryption and decryption.
+%(* This ends the cryptographic description *)
+%
  
  
 (* Reminding myself again. Why have you formalized it as dependent data type. 
