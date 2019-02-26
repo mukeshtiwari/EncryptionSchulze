@@ -353,7 +353,7 @@ zero-knowledge-proof. In short, if the verification primitive returns
 true then we trust that zero-knowledge-proof is constructed honestly, 
 otherwise not. At this point, the natural question is 
 why do we need these two primitives in conjugation ? If our purpose 
-is to just count the (encrypted)ballots then we only need 
+is to just count (encrypted)ballots then we only need 
 construction primitive
 to generate the zero-knowledge-proof evidence of counting; however, 
 we have formally verified the outcome of (encrypted)ballots homomorphic
@@ -400,7 +400,8 @@ the following properties.
 	 	different from the one he committed to 
 \end{itemize}
 In our context, it means that once we committed to some permutation then 
-no one can guess it from commitment (hiding), and we can't change it in future 
+no adversary can guess it from commitment (hiding), 
+and we can't change it in future 
 once committed (binding). For verifiability of generated permutation, 
 our binding step is slightly different from 
 Pedersen's binding step. Instead of revealing the permutation 
@@ -541,7 +542,41 @@ to audit and verify the outcome, during different phase
 of election, so we have treated them as abstract entity and assumed 
 axioms about them inside theorem prover Coq. This abstraction allows us to
 instantiate these entities with any crypto-system which is homomorphically 
-additive and follows the assumed axioms. 
+additive and follows the axioms we assumed about them. These axioms are 
+simple and inspected carefully, and we expect any cryptographic 
+library having the functionality mentioned in cryptographic primitives
+section to follow it. As a by product, these axioms can be used 
+as property to test the  implementation of cryptographic primitives.
+ Below is a small code snippet from our formalization
+about the representation of cryptographic primitives in Coq theorem prover.
+(* I can't get rid of group because it's integral part of our formalization,
+ so can we find a way to incorporate it in our paper ? *)
+A plaintext is represented as Coq Integer, ciphertext is abstract type, 
+ encrypted ballot, denoted by $eballot$,  is square matrix of ciphertext,
+ plaintext ballot, denoted by $pballot$,  is square ballot of plaintext,
+ and axiom  $decryption\_left\_inverse$ states that if we encrypt 
+ a plaintext $pt$ with $publickey$ (encapsulated in $group$ which is 
+ used for cryptographic infrastructure) and decrypt it with corresponding 
+ $privatekey$ then we get the same plaintext, i.e. $pt$. (* 
+ In this formalization, we do not deal with key management of
+ cryptographic infrastructure, 
+ so we point our reader to have a look at (* some reference goes here *)
+ to know more about group based cryptographic systems. *) 
+   
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+Definition plaintext := Z.
+Variable ciphertext : Type. 
+
+Definition eballot := cand -> cand -> ciphertext.
+Definition pballot := cand -> cand -> plaintext.
+
+Axiom decryption_left_inverse (group : Group) 
+ (privatekey : Prikey) : forall  (pt : plaintext),
+ decrypt_message group privatekey 
+ (encrypt_message group pt) = pt.
+\end{lstlisting}
+
+
 %(* Why did you come up with only these primitives, why not some thing else ?*)
 %We came up with these primitives solely based on need to preserve the privacy
 %of ballots, and at the same time generating enough evidence related to 
@@ -629,25 +664,36 @@ additive and follows the assumed axioms.
 
 (* Contrary to our claim that crypto primitives are abstract, then 
 why we represented plaintext as Coq integer ? *)
-A astute reader would have noticed that plaintext is represented as 
-concrete data type (Coq Integer) rather than abstract, and 
-the reason for using concrete type for plaintext is evidencing the
-validity of ballot which requires inspecting the values of 
-decrypted shuffled ballot.
+The astute reader would have noticed that on the contrary to our claim that 
+cryptographic primitives are treated as abstract entity in the 
+formalization, plaintext is represented as concrete data type (Coq Integer),
+ and the reason for using concrete type for plaintext is because each 
+ entry in ballot is encryption of a preference expressed as integer 
+ to rank the candidate by voter.
+ 
+ 
+ two fold:
+ $i)$ evidencing the validity of ballot which requires inspecting 
+ the values of decrypted shuffled ballot inside theorem prover, 
+ and $ii)$ 
+ 
+ we decrypted the 
+ fully constructed margin matrix on which we run a formally verified 
+ computation and compute winners.  
 (* Hopefully I have explained everything about encryption and 
    decryption, and moving on to other primitives *)
-
-Now that we have notion of plaintext and ciphertext, we use it to realize 
-ballot in Coq. An encrypted ballot (whenever we mention ballot in this formalization
-then it means encrypted ballot) is square matrix of ciphertext represented 
-by $eballot$ and plaintext ballot is square ballot of plaintext represented 
-by $pballot$. 
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-Definition plaintext := Z.
-Variable ciphertext : Type. 
-Definition eballot := cand -> cand -> ciphertext.
-Definition pballot := cand -> cand -> plaintext.
-\end{lstlisting}
+%
+%Now that we have notion of plaintext and ciphertext, we use it to realize 
+%ballot in Coq. An encrypted ballot (whenever we mention ballot in this formalization
+%then it means encrypted ballot) is square matrix of ciphertext represented 
+%by $eballot$ and plaintext ballot is square ballot of plaintext represented 
+%by $pballot$. 
+%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+%Definition plaintext := Z.
+%Variable ciphertext : Type. 
+%Definition eballot := cand -> cand -> ciphertext.
+%Definition pballot := cand -> cand -> plaintext.
+%\end{lstlisting}
 
 %(* This is duplicate *)
 %(* Why ? These primitives are necessary ? *)
@@ -702,7 +748,7 @@ Definition pballot := cand -> cand -> plaintext.
    correct execution of protocol. The philosophy is well typed 
    program can't go wrong, and it's correct by construction *)
    
-Now that we have all the cryptographic primitives needed for 
+Now that we have given glimpse of cryptographic primitives needed for 
 homomorphic-counting we represent it as a dependent inductive data. 
 The intuition behind representing it as 
 dependent inductive data type is its expressiveness, and this expressiveness 
