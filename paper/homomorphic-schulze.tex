@@ -340,15 +340,16 @@ ballot is not valid.
 
 
 \smallskip\noindent\emph{Cryptographic primitives.}
-(* Rearranging it. Giving high level details here and more 
-   explanation below. Always remember why ? *) 
+(* Always remember why ? *) 
  Overall, the cryptographic primitives needed to achieve the functionality
  are given below, and (* At this point, I am inclined to think that how did 
  we come up with these primitives ? These primitives are basically 
- refinement of functionality described above *) these primitives, 
- which are suitable for representing inside computer(theorem prover),
+ refinement of functionality described above *) these primitives
  are more refined translation of functionality
- described in previous section.
+ described in previous section. We have carried out this refinement process
+ keeping in mind that the privacy of ballots is utmost,
+ and at the same time, we generate enough evidence related to different 
+ operations involved in counting to make sure that it's audit-able. 
  
 \begin{itemize} 
 \item encryption, decryption, construction of honest decryption
@@ -398,7 +399,7 @@ honest decryption zero-knowledge-proof.
 
 
 (* We need encryption function to encryption zero margin, 
-so this would go away. This is the only place  
+so this paragraph would go away. 
 Technically, we don't need 
 encryption primitive because at no point in the formalization we 
 encrypt values, and we count already given encrypted ballots. 
@@ -410,7 +411,7 @@ without affecting any functionality of our formalization. *)
 
 The next operation, witnessing the validity of ballot, 
 is more involved, so we need to make 
-sure that the operations performed during during this phase are verifiable. 
+sure that the operations performed during this phase are verifiable. 
 Recall that witnessing 
 the validity of a ballot begins with shuffling its rows and columns 
 by the same permutation, which
@@ -431,7 +432,7 @@ the following properties.
 \end{itemize}
 
 Combination of Pedersen's commitment scheme 
-with zero knowledge proof leads to a two step protocol (also known 
+with zero knowledge proof leads to a similar two step protocol (also known 
 as commitment-consistent proof of shuffle).
 \begin{itemize}
 \item We commit to a secret permutation and publish the commitment (hiding).
@@ -465,7 +466,7 @@ by a given permutation \cite{Wikstrom:2009:CPS},
 generating zero-knowledge-proof of (commitment consistent) shuffle, 
 and verification of zero-knowledge-proof of shuffle.
 We decrypt the ballot $w$ to evidence validity, and to make this step
- verifiable we reuse the primitives developed in
+ verifiable, we reuse the primitives developed in
  encryption and decryption step.
 
 
@@ -566,34 +567,45 @@ winning conditions.
 
 (* Remember the question. Why abstract because our purpose is to 
    audit the election, and not verify crypto primitives ? *)
+
 The purpose of this formalization is not to verify cryptographic primitives, 
-but use them as a tool to construct evidence, which can be used 
-to audit and verify the outcome, during different phase 
+but use them as a tool to construct evidence which can be used 
+to audit and verify the outcome during different phase 
 of election, so we have treated them as abstract entity and assumed 
-axioms about them inside theorem prover Coq. This abstraction allows us to
-instantiate these entities with any crypto-system which is homomorphically 
-additive and follows the axioms we assumed about them. These axioms are 
+axioms about them inside Coq theorem prover \cite{Bertot:2004:ITP}.
+These axioms are 
 simple and inspected carefully, and we expect any cryptographic 
 library having the functionality mentioned in cryptographic primitives
-section to follow it. As a by product, these axioms can be used 
+section to follow it. As a by-product, these axioms can be used 
 as property to test the  implementation of cryptographic primitives.
+(* Why Coq ? Because its expressiveness *) The reason for using Coq 
+theorem prover is that its expressiveness to capture homomorphic 
+Schulze counting succinctly as dependent inductive data type, and 
+its well developed program extraction \cite{Letouzey:2003:NEC} facility 
+which can be used to extract proofs into Haskell or OCaml program.    
+This abstraction allows us to
+instantiate these entities with any crypto-system which is homomorphically 
+additive. 
+
  Below is a small code snippet from our formalization
 about the representation of cryptographic primitives in Coq theorem prover.
 (* I can't get rid of group because it's integral part of our formalization,
  so can we find a way to incorporate it in our paper ? *)
 A plaintext is represented as Coq Integer, ciphertext is abstract type, 
- encrypted ballot, denoted by $eballot$,  is square matrix of ciphertext,
- plaintext ballot, denoted by $pballot$,  is square matrix of plaintext,
- and axiom  $decryption\_left\_inverse$ states that if we encrypt 
- a plaintext $pt$ with $publickey$ (encapsulated in $group$ with other
- parameters 
- used for cryptographic infrastructure) and decrypt it with corresponding 
- $privatekey$ then we get the same plaintext, i.e. $pt$.
- In this formalization, we do not deal with key management of
- cryptographic infrastructure, 
- so we point our reader to have a look at (* standard literature or 
- reference for group based cryptosystem paper *)
- to know more about group based cryptographic systems.
+encrypted ballot, denoted by $eballot$,  is square matrix of ciphertext, and
+plaintext ballot, denoted by $pballot$,  is square matrix of plaintext.
+
+
+and axiom  $decryption\_left\_inverse$ states that if we encrypt 
+a plaintext $pt$ with $publickey$ (encapsulated inside $group$ with other
+parameters 
+used for cryptographic infrastructure) and decrypt it with corresponding 
+$privatekey$, then we get the same plaintext, i.e. $pt$.
+In this formalization, we do not deal with key management of
+cryptographic infrastructure, 
+so we point our reader to have a look at (* standard literature or 
+reference for group based cryptosystem paper *)
+to know more about group based cryptographic systems.
    
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 Definition plaintext := Z.
