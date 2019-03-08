@@ -507,7 +507,6 @@ winning conditions.
 
 (* Remember the question. Why abstract because our purpose is to 
    audit the election, and not verify crypto primitives ? *)
-
 The purpose of this formalization is not to verify cryptographic primitives, 
 but use them as a tool to construct evidence which can be used 
 to audit and verify the outcome during different phase 
@@ -535,7 +534,7 @@ A plaintext is represented as Coq Integer, ciphertext is abstract type,
 encrypted ballot, denoted by $eballot$,  is square matrix of ciphertext, and
 plaintext ballot, denoted by $pballot$,  is square matrix of plaintext.
 The axiom  $decryption\_left\_inverse$, as its name suggests, states 
-that decryption process is left inverse of encryption, i.e.  
+that decryption  is left inverse of encryption, i.e.  
 if we encrypt a plaintext $pt$ with $publickey$ 
 (encapsulated inside $group$ with other parameters 
 used for cryptographic infrastructure) and decrypt it with corresponding 
@@ -632,12 +631,12 @@ Inductive EState : Type :=
 
 
 Now, we explain the internal details of counting, i.e. the details
-of constructors which capture the different state of counting.
+of constructors which capture the progression of counting.
 The counting process starts with  making sure the 
 consistency of  system, i.e. all the cast ballots are uncounted, no invalid
-ballot and every entry in initial margin matrix is encryption of zero. 
-We capture this information in  
-the first constructor, $ecax$, and it bootstraps the counting process. 
+ballot, and every entry in initial margin matrix is encryption of zero. 
+We encapsulate these information in  
+the first constructor, $ecax$, which bootstraps the counting process. 
 It's high level representation with assertions to capture the consistency 
 of state.
 
@@ -689,7 +688,7 @@ In short, these evidence are
 \item commitment of a (secret) permutation, $cpi$, and zero-knowledge-proof,
       $zkpcpi$, of this commitment
 \item ballot $v$ whose each row is permutation of corresponding row of 
-      $u$, and zero-knowledge-proof of this fact, $zkppermuv$. Similar,
+      $u$, and zero-knowledge-proof of this fact, $zkppermuv$. Similarly,
       ballot $w$ whose each column is permutation of corresponding column 
       of $v$ by same (secret) permutation, and zero-knowledge-proof of 
       this fact, $zkppermvw$ 
@@ -697,8 +696,8 @@ In short, these evidence are
       of this fact, $zkpdecw$      
 \end{itemize}
 
-At high level, the representation of $Ecvalid$ with assertions to ensure 
-the consistency of progress (counting). 
+At high level, the representation of $Ecvalid$ with assertions about 
+data to ensure the consistency of progress (counting).
 \begin{mdframed}[]
 Ecvalid
 \begin{itemize}
@@ -789,8 +788,9 @@ invalid, so we move ballot $u$ to the pile on invalid ballots.
 \end{mdframed}
 
 $Ecdecrypt$ marks the finish to counting with 
-fully constructed encrypted margin {encm}, 
-decrypted margin {decm} with honest decryption zero knowledge proof {zkp}. Its
+fully constructed encrypted margin,\ $encm$, 
+produces decrypted margin, $decm$, with honest decryption zero 
+knowledge proof, $zkp$. Its
 high level representation with assertion to ensure the consistency of counting.
 
 \begin{mdframed}[]
@@ -820,8 +820,8 @@ Ecdecrypt
 %   group (decm c d) (encm c d) (zkp c d) = true) ->
 % ECount group bs (edecrypt decm)
 %\end{lstlisting}
-$Ecfin$ takes fully decrypted margin dm and produces boolean function 
-w that determines election winner(s) and loser(s).
+$Ecfin$ takes fully decrypted margin $dm$ and produces boolean function 
+$w$ that determines election winner(s) and loser(s).
 It's same as our previous work, so we refer to 
 \cite{Pattinson:2017:SVE} for more details.
 
@@ -852,10 +852,10 @@ it can have more  than one winner) for any given set of
 ballots. We capture this notion of winner(s) as a boolean 
 function $f$ that decides winners \cite{Pattinson:2017:SVE}, but what more
 important is 
- that the term of type \textit{ECount group bs (ewinners f)}, 
-that witnesses the correct execution of count as stated earlier because it's 
-correct by construction, can be produced as evidence, 
-known as certificate, or tally sheet (discussed in details in next section), 
+ that the term of type \textit{ECount group bs (ewinners f)} 
+ which witnesses the correct execution of count as stated earlier because it's 
+correct by construction. It can be produced as evidence, 
+known as certificate/tally-sheet (discussed in details in next section), 
 to scrutineers to audit the election. 
 
 
@@ -867,31 +867,42 @@ Lemma pschulze_winners (group : Group)
 \end{lstlisting}
 
 
-
-Not only we provide the tally sheet  
-to verify the computation, but we provide 
+One of key achievements of our formalization is,
+not only we provide the tally sheet  
+to verify the outcome, but we provide 
 proof of correctness against fully verified implementation of 
 Schulze method \cite{Pattinson:2017:SVE} by using the 
-assumed axioms on cryptographic primitives.
-(* I think it can be written more better *) Our proof of correctness
-states that we produce same set of winners by two computations 
+axioms on cryptographic primitives. At this point, we would 
+take slight detour to explain the terms to avoid confusion.
+The meaning of $eballot$, and $pballot$ has usual meaning, but 
+in fully verified implementation of Schulze method \cite{Pattinson:2017:SVE},
+we represented ballot as function from candidate to natural number, 
+and it's Coq representation 
+\begin{verbatim}
+  Definition ballot := cand -> nat.
+\end{verbatim}
+
+(* Even after rewriting this, I still feel that it can be rewritten more
+precisely *)
+In this paragraph, $ballot$, $pballot$, and $eballot$ should be 
+inferred as explained above. We will take extra precaution to avoid 
+the confusion, but any confusion would mistake of ours. 
+Our proof of correctness
+states that we produce same set of winner(s) by two computations 
 when there is one-to-one relation between list of ballots, $bs$, used 
 in fully verified computation (\textit{Couns bs (winners f)}), and 
-list of ballots, $ebs$, used in axiomatic computation 
+list of (encrypted)ballots, $ebs$, used in axiomatic computation 
 (\textit{ECount group ebs (winners f)}). 
 The meaning of one-to-one relation, $mapping\_ballot\_pballot$, 
 between $bs$ and $pbs$, which is decryption of $ebs$, 
 is whenever a ballot is valid in $bs$ then 
-corresponding ballot in valid in $ebs$ because encryption does not 
+corresponding (encrypted)ballot in valid in $ebs$ because encryption does not 
 change the value or introduces cycle, and vice-versa. The basic 
-intuition behind the proofs is very simple, and basically hinges 
-on the fact that 
-if a ballot (represented as function $C \rightarrow N$)  
-contributes to margin function in verified computation then its 
-encryption would also contribute to homomorphic margin in 
-axiomatic computation, and vice-versa. 
-  
-(* Rewrite this *)
+intuition behind the proofs hinges on the fact that 
+if a ballot from $bs$ contributes to margin function in verified 
+computation then its encryption would also contribute to homomorphic 
+margin in axiomatic computation, and vice-versa. 
+
 \begin{verbatim}
   Lemma final_correctness :
     forall  (group : Group) (bs : list ballot) (pbs : list pballot) 
