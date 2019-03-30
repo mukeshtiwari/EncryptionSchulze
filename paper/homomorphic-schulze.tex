@@ -304,7 +304,7 @@ proofs of honest decryption [reference missing] to evidence
 correctness of decryption. This achieves ballot secrecy owing to the
 fact that the permutation is never revealed.
 
-In summary, the homomorphic counting starts
+In summary, the evidence of correct (homomorphic) counting starts
 with an encryption of the zero margin $\encm$, and for each
 ciphertext ballot $\encb$
 \begin{enumerate}
@@ -324,35 +324,37 @@ ballot is not valid.
 
 
 \smallskip\noindent\emph{Cryptographic primitives.}
-(* Always remember why ? *) 
- Overall, the cryptographic primitives needed to achieve the functionality
- are given below, and (* At this point, I am inclined to think that how did 
- we come up with these primitives ? These primitives are basically 
- refinement of functionality described above *) these primitives
- are more refined translation of functionality
- described in previous section. We have carried out this refinement process
- keeping in mind that the privacy of ballots is utmost,
- and at the same time, we generate enough evidence related to different 
- operations involved in counting to make sure that it's audit-able. 
- 
-\begin{itemize} 
-\item encryption, decryption, construction of honest decryption
-     zero-knowledge-proof, and verification of zero-knowledge-proof. 
-\item generating permutation, generating  Pedersen's 
-     commitment \cite{Pederson} of permutation, construction of 
-     zero-knowledge-proof of Pedersen's commitment, verification of 
-     zero-knowledge-proof of Pedersen's commitment, shuffling a array 
-     by a given permutation \cite{Wikstrom:2009:CPS}, 
-     generating zero-knowledge-proof of (commitment consistent) shuffle, 
-     and verification of zero-knowledge-proof of shuffle.
-\item  update the margin matrix (homormorphic addition primitive)
-\end{itemize}
+%(* Always remember why ? *) 
+% Overall, the cryptographic primitives needed to achieve the functionality
+% are given below, and (* At this point, I am inclined to think that how did 
+% we come up with these primitives ? These primitives are basically 
+% refinement of functionality described above *) these primitives
+% are more refined translation of functionality
+% described in previous section. We have carried out this refinement process
+% keeping in mind that the privacy of ballots is utmost,
+% and at the same time, we generate enough evidence related to different 
+% operations involved in counting to make sure that it's audit-able. 
+% 
+%\begin{itemize} 
+%\item encryption, decryption, construction of honest decryption
+%     zero-knowledge-proof, and verification of zero-knowledge-proof. 
+%\item generating permutation, generating  Pedersen's 
+%     commitment \cite{Pederson} of permutation, construction of 
+%     zero-knowledge-proof of Pedersen's commitment, verification of 
+%     zero-knowledge-proof of Pedersen's commitment, shuffling a array 
+%     by a given permutation \cite{Wikstrom:2009:CPS}, 
+%     generating zero-knowledge-proof of (commitment consistent) shuffle, 
+%     and verification of zero-knowledge-proof of shuffle.
+%\item  update the margin matrix (homormorphic addition primitive)
+%\end{itemize}
   
-(* Why do we need construction and verification of zero-knowledge-proof ?*)
-Before we move forward to explain these primitives in more detail,
-we would like to point out one crucial fact that  whenever 
-there is primitive for construction of zero-knowledge-proof, 
-there is corresponding primitive for verifying it. 
+(* Explanation of Why do we need construction and verification 
+of zero-knowledge-proof ?*)
+Before we move forward to explain Cryptographic primitives,
+we would like to highlight one crucial fact that  whenever 
+there is primitive for constructing a zero-knowledge-proof, 
+there is corresponding primitive to verify the constructed 
+zero-knowledge-proof.
 The verification primitive takes zero-knowledge-proof with some 
 other public parameters (depending on context) 
 and returns a boolean value which certifies the credentials of constructed 
@@ -362,35 +364,46 @@ otherwise not. At this point, the natural question is that
 why do we need these two primitives in conjugation ? If our purpose 
 is to just count (encrypted)ballots, then we only need 
 construction primitive
-to generate the zero-knowledge-proof evidence of counting; however, 
-we have formally verified the outcome of (encrypted)ballots, $ebs$, 
-homomorphic counting against 
-a fully verified (plaintext)ballots, $bs$, counting\cite{Pattinson:2017:SVE}
-assuming that $ebs$ decrypt to $bs$, 
-and all the zero-knowledge-proofs are constructed honestly during the 
-homomorphic counting of $ebs$.
-In order to verify(check) the claim that zero-knowledge-proofs are constructed 
-honestly, we need verification primitives, and hence the reason they 
-always come into pair of construction and verification. 
+to generate the zero-knowledge-proof evidence of counting (which can be
+checked by independent verifier for attesting the outcome).
+However, in our formalization we have formally 
+verified the outcome of homomorphic counting 
+on (encrypted)ballots against the outcome of (plaintext)ballots
+counting\cite{Pattinson:2017:SVE} assuming that all (encrypted)ballots 
+decrypts to (plaintext)ballots. During this process, we need to verify that 
+all zero-knowledge-proofs were constructed honestly, and this step 
+is precisely the reason for verification primitive, hence they 
+always come into pair of construction and verification.
+%
+% However, 
+%we have formally verified the outcome of (encrypted)ballots, $ebs$, 
+%homomorphic counting against 
+%a fully verified (plaintext)ballots, $bs$, counting\cite{Pattinson:2017:SVE}
+%assuming that $ebs$ decrypt to $bs$, 
+%and all the zero-knowledge-proofs are constructed honestly during the 
+%homomorphic counting.
+%In order to verify(check) the claim that zero-knowledge-proofs are constructed 
+%honestly, we need verification primitives, and hence the reason they 
+%always come into pair of construction and verification. 
 
    
-Now, we focus on the  cryptographic primitives as described above. 
+Now, we focus on the  cryptographic primitives needed to implement 
+the functionality described in previous section in more detail. 
 In order to encrypt and decrypt a value with 
 evidence of correct decryption, we need primitives for encryption, 
 decryption, construction of
 honest decryption zero-knowledge-proof, and verification of 
 honest decryption zero-knowledge-proof.
-
-
-(* We need encryption function to encryption zero margin, 
-so this paragraph would go away. 
-Technically, we don't need 
-encryption primitive because at no point in the formalization we 
-encrypt values, and we count already given encrypted ballots. 
-The reason for adding encryption primitive is completeness, and 
-under the hood we use it to generate encrypted ballots; however, we
-want to reiterate that we can safely remove the encryption function 
-without affecting any functionality of our formalization. *)
+%
+%(* We need encryption function to encryption zero margin, 
+%so this paragraph would go away. 
+%Technically, we don't need 
+%encryption primitive because at no point in the formalization we 
+%encrypt values, and we count already given encrypted ballots. 
+%The reason for adding encryption primitive is completeness, and 
+%under the hood we use it to generate encrypted ballots; however, we
+%want to reiterate that we can safely remove the encryption function 
+%without affecting any functionality of our formalization. *)
 
 
 The next operation, witnessing the validity of ballot, 
@@ -401,13 +414,12 @@ the validity of a ballot begins with shuffling its rows and columns
 by the same permutation, which
 we don't want to reveal to achieve ballot secrecy, and follows with 
 decryption  of obtained shuffled ballot, so 
-we need to produce compelling evidence 
+we need to produce evidence 
 to make sure that the operation performed in each step 
 is verifiable. We achieve secrecy of the permutation and 
 verifiability that it's used in shuffling by combining 
 Pedersen's commitment \cite{Pederson} scheme with zero knowledge proof.
-In nutshell, Pedersen commitment scheme has 
-the following properties. 
+In nutshell, Pedersen commitment scheme has the following properties. 
 \begin{itemize}
 \item Hiding: A dishonest party can't discover honest party's value 
 \item Binding: A dishonest party cannot open his commitment in more  
@@ -417,7 +429,7 @@ the following properties.
 
 Combination of Pedersen's commitment scheme 
 with zero knowledge proof leads to a similar two step protocol (also known 
-as commitment-consistent proof of shuffle).
+as commitment-consistent proof of shuffle)\cite{Wikstrom:2009:CPS}.
 \begin{itemize}
 \item We commit to a secret permutation and publish the commitment (hiding).
 \item We use zero knowledge proof to show that shuffling has used 
@@ -438,8 +450,7 @@ that is used in the (commitment consistent) shuffling
 ballot, say $u$, producing ballot $v$, and construct a zero knowledge proof 
 of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used 
 to verify that $v$ is indeed a row permutation of $u$ using some permutation 
-whose commitment is $c_{\pi}$. At this point, we would like to point 
-out that shuffling 
+whose commitment is $c_{\pi}$. Shuffling 
 introduces re-encryption, so there is no way to correlate the output
 ballot $v$ with input ballot $u$.  We take $v$ and shuffle each column of it 
 by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
@@ -458,11 +469,22 @@ We decrypt the ballot $w$ to evidence validity, and to make this step
 
 
 Finally, we need primitive to update the margin which is simple homomorphic
-addition function, and the operations performed by this function 
- can be easily verified using a simple calculator capable of performing 
- basic arithmetic operations on large number (In our case, homormorphic 
+addition function (In our case, homormorphic 
  addition function is multiplying two large numbers modulo a large prime 
- number)
+ number).
+In summary, the cryptographic primitives needed are 
+\begin{itemize} 
+\item encryption, decryption, construction of honest decryption
+     zero-knowledge-proof, and verification of zero-knowledge-proof. 
+\item generating permutation, generating  Pedersen's 
+     commitment \cite{Pederson} of permutation, construction of 
+     zero-knowledge-proof of Pedersen's commitment, verification of 
+     zero-knowledge-proof of Pedersen's commitment, shuffling a array 
+     by a given permutation \cite{Wikstrom:2009:CPS}, 
+     generating zero-knowledge-proof of (commitment consistent) shuffle, 
+     and verification of zero-knowledge-proof of shuffle.
+\item  update the margin matrix (homormorphic addition primitive)
+\end{itemize}
 
 
 
@@ -512,17 +534,16 @@ but use them as a tool to construct evidence which can be used
 to audit and verify the outcome during different phase 
 of election, so we have treated them as abstract entity and assumed 
 axioms about them inside Coq theorem prover \cite{Bertot:2004:ITP}.
-These axioms are 
-simple and inspected carefully, and we expect any cryptographic 
-library having the functionality mentioned in cryptographic primitives
-section to follow it. As a by-product, these axioms can be used 
-as property to test the  implementation of cryptographic primitives.
+These axioms are very simple, and as a by product, these axioms can 
+be used by any property based testing library to test the concrete
+implementation of cryptographic primitives.
 (* Why Coq ? Because its expressiveness *) The reason for using Coq 
 theorem prover is that its expressiveness to capture homomorphic 
 Schulze counting succinctly as dependent inductive data type, and 
 its well developed program extraction \cite{Letouzey:2003:NEC} facility 
-which can be used to extract proofs into Haskell or OCaml program.    
-This abstraction allows us to
+which can be used to extract proofs into Haskell, OCaml, or Scheme program.  
+This abstraction sets us free from considering any concrete implementation 
+during formalization, and later, we can 
 instantiate these entities with any crypto-system which is homomorphically 
 additive. 
 
@@ -542,8 +563,10 @@ $privatekey$, we get the same plaintext $pt$. Similarly, we have
 primitives for witnessing validity and computing homomorphic margin with
 axioms stating their correctness property.
 In this formalization, we do not deal with key generation and management of
-cryptographic infrastructure, 
-so we point our reader to have a look at (* standard literature or 
+cryptographic infrastructure, but we assume that public and private keys 
+are generated 
+in pair and related with each other. 
+We refer the reader to have a look at (* standard literature or 
 reference for group based cryptosystem paper *)
 to know more about group based cryptographic systems.
    
