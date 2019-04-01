@@ -671,53 +671,58 @@ indeed the decryption of encrypted zero margin matrix by using the
 zero-knowledge-proof of honest decryption. 
 We encapsulate these information in  
 the first constructor, $Ecax$, which bootstraps the counting process. 
-Its high level representation with assertions to capture the consistency 
-of state.
+Its high level representation with data in first column, and 
+assertions about them in second column.
+\begin{mdframed}[]
+Ecax
 \begin{center}
-\begin{tabular}{p{0.4\textwidth}  p{0.4\textwidth}}
+\begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
 \begin{itemize}
-  \item cast ballots $bs$, and uncounted ballots $us$
-  \item encrypted zero margin matrix $encm$, 
-      decrypted zero margin matrix $decm$, and 
+  \item[*] cast ballots $bs$, and uncounted ballots $us$
+  \item[*] encrypted zero margin matrix $encm$, 
+      its decryption (decrypted zero margin matrix) $decm$, and 
       zero-knowledge proof $zkpdec$ of honest decryption
   \end{itemize}
   &
   \begin{itemize}
-  \item uncounted 
+  \item[*] uncounted 
 	ballots are equal to cast ballots, i.e. $us$ = $bs$
-  \item honest decryption verification 
-	primitive  returns true, i.e.
+  \item[*] honest decryption verification 
+	primitive  returns true, i.e. \textit{
 (forall c d, verify\_zero\_knowledge\_decryption\_proof 
-   group (decm c d) (encm c d) (zkpdec c d) = true)
-   \item all the entries in $decm$ are zero, i.e. 
-      (forall c d : cand, decm c d = 0)
+   group (decm c d) (encm c d) (zkpdec c d) = true)}
+   \item[*] all the entries in $decm$ are zero, i.e. \textit{
+      (forall c d : cand, decm c d = 0)}
 \end{itemize}
 \end{tabular}
-\end{center}
-
-\begin{mdframed}[]
-Ecax
-
-\begin{itemize}
-\item cast ballots $bs$, and uncounted ballots $us$ 
- with assertion that uncounted ballots are equal to 
- cast ballots, i.e. $us$ = $bs$
-\item encrypted zero margin matrix $encm$, 
-      decrypted zero margin matrix $decm$, and 
-      zero-knowledge proof $zkpdec$ of honest decryption
-with assertions that honest decryption verification 
-primitive  returns true, i.e.
-(forall c d, verify\_zero\_knowledge\_decryption\_proof 
-   group (decm c d) (encm c d) (zkpdec c d) = true), 
-   and all the entries in $decm$ are zero, i.e. 
-      (forall c d : cand, decm c d = 0)
-\end{itemize}
 \begin{mathpar} 
 \inferrule* [left=Ecax] { } {$ECount group bs (epartial (us, []) encm)$}
 \end{mathpar}
+\end{center}
 \end{mdframed}
-and translation of high level representation into Coq representation 
- with all the details filled with data and assertions about them.
+
+%\begin{mdframed}[]
+%Ecax
+%
+%\begin{itemize}
+%\item cast ballots $bs$, and uncounted ballots $us$ 
+% with assertion that uncounted ballots are equal to 
+% cast ballots, i.e. $us$ = $bs$
+%\item encrypted zero margin matrix $encm$, 
+%      decrypted zero margin matrix $decm$, and 
+%      zero-knowledge proof $zkpdec$ of honest decryption
+%with assertions that honest decryption verification 
+%primitive  returns true, i.e. \textit{
+%(forall c d, verify\_zero\_knowledge\_decryption\_proof 
+%   group (decm c d) (encm c d) (zkpdec c d) = true)}, 
+%   and all the entries in $decm$ are zero, i.e. \textit{ 
+%      (forall c d : cand, decm c d = 0)}
+%\end{itemize}
+%\begin{mathpar} 
+%\inferrule* [left=Ecax] { } {$ECount group bs (epartial (us, []) encm)$}
+%\end{mathpar}
+%\end{mdframed}
+Translation of high level representation into Coq representation is trivial.
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
  (decm : cand -> cand -> plaintext) 
