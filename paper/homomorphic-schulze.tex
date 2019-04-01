@@ -565,7 +565,7 @@ axioms stating their correctness property.
 In this formalization, we do not deal with key generation and management of
 cryptographic infrastructure, but we assume that public and private keys 
 are generated 
-in pair and related with each other. 
+in pair and related with each other in accordance with cryptographic scheme. 
 We refer the reader to have a look at (* standard literature or 
 reference for group based cryptosystem paper *)
 to know more about group based cryptographic systems.
@@ -604,18 +604,16 @@ Now that we have given glimpse of cryptographic primitives needed for
 homomorphic-counting, we represent homomorphic-counting  as a 
 dependent inductive data type, $ECount$, with the interpretation that its 
 inhabitant is proof of correct execution of homomorphic Schulze counting. 
-At this point, the natural question is, why is it represented as inductive 
-data type, and why not as a function which is very natural representation 
-for counting ballots ? 
-Well, the counting could have been easily expressed as 
-a function iterating over cast ballots and adding them homomorphically,
-and decrypting the final computed margin to compute the winner(s). 
-It's certainly very easy and quick way to compute winners, but it leaves no 
-ground for auditing the outcome. The proof of correct execution, 
-also known as certificate/scrutiny sheet/tally sheet, plays a major 
-role in auditing the outcome, and producing the evidence 
-to make the election audit-able was one of 
-major driving force to represent it as dependent inductive data type. Its 
+(* Why dependent inductive data type, because we wanted to have 
+   notion of proof or evidence to show that it is universally verifiable.
+   Universal verifiability, by which anyone may determine that all of the
+    ballots in the box have been correctly counted. *) Our emphasis on 
+    universal verifiability, where anyone can verify the election outcome based 
+    on cast ballots, lead to this design decision. Any inhabitant 
+    of $ECount$ precisely records the progression of counting step by step 
+    described in protocol, and we 
+    produce this inhabitant as a proof, also known as scrutiny/tally sheet, 
+    to verify the outcome of election. Its 
 representation in Coq data structure (Constructors omitted for brevity, 
 and explained below)
 \begin{verbatim}
@@ -624,10 +622,11 @@ Inductive ECount (group : Group)
  | ... 
 \end{verbatim}
 
-The $ECount$ is parametrised by $group$, used for cryptographic 
+The $ECount$ is family of inductive data type and 
+parametrised by $group$, used for cryptographic 
 infrastructure as stated earlier, 
 $bs$, list of cast ballots in election, and indexed over (depends on)
- another inductive data type $EState$.  
+ another inductive data type $EState$. 
  The purpose of $EState$ to capture the different states 
 of counting, i.e. constructing homomorphic margin 
 function, or decryption of fully constructed homomorphic margin function, or 
@@ -652,34 +651,66 @@ Inductive EState : Type :=
 \end{verbatim}
 
 
-
+(* The whole process of counting can be envisioned as manipulating data in 
+"protocol specific way". The protocol specific way is ensured by 
+adding assertions on data object *)
 Now, we explain the internal details of counting, i.e. the details
-of constructors which capture the progression of counting.
-The counting process starts with  making sure the 
-consistency of  system, i.e. all the cast ballots are uncounted, no invalid
-ballot, and every entry in initial margin matrix is encryption of zero. 
+of constructors which capture the progression of counting by means
+of data object and assertions (also known as 
+side condition) to make sure that operations performed on these data
+objects are in accordance with protocol description. The counting process
+starts with (data objects) list of uncounted ballots, no invalid ballot, and 
+encrypted zero margin matrix with its decryption
+(decrypted zero margin matrix) and zero-knowledge-proof
+of honest decryption. We ensure the consistency of 
+this step by adding assertions, i.e. 
+list of all uncounted ballots are equal to cast ballots, no invalid 
+ballot by making sure it's empty list, and every entry in
+decrypted margin matrix is zero, and decrypted margin matrix is
+indeed the decryption of encrypted zero margin matrix by using the 
+zero-knowledge-proof of honest decryption. 
 We encapsulate these information in  
-the first constructor, $ecax$, which bootstraps the counting process. 
-It's high level representation with assertions to capture the consistency 
+the first constructor, $Ecax$, which bootstraps the counting process. 
+Its high level representation with assertions to capture the consistency 
 of state.
-
-%(*  with list of all 
-%uncounted ballots $us$, encrypted zero margin $encm$, decrypted zero margin 
-%$decm$, and zero knowledge proof $zkpdec$ of that $decm$ is indeed honest 
-%decryption of $encm$ with assertions that ensure that all the 
-%uncounted ballots  are equal to list of cast ballot, 
-%every entry in $decm$ is zero and 
-%zero knowledge proof of honest decryption verifies.  This constructor 
-%bootstraps the vote counting process, and its high level representation *)
+\begin{center}
+\begin{tabular}{p{0.4\textwidth}  p{0.4\textwidth}}
+\begin{itemize}
+  \item cast ballots $bs$, and uncounted ballots $us$
+  \item encrypted zero margin matrix $encm$, 
+      decrypted zero margin matrix $decm$, and 
+      zero-knowledge proof $zkpdec$ of honest decryption
+  \end{itemize}
+  &
+  \begin{itemize}
+  \item uncounted 
+	ballots are equal to cast ballots, i.e. $us$ = $bs$
+  \item honest decryption verification 
+	primitive  returns true, i.e.
+(forall c d, verify\_zero\_knowledge\_decryption\_proof 
+   group (decm c d) (encm c d) (zkpdec c d) = true)
+   \item all the entries in $decm$ are zero, i.e. 
+      (forall c d : cand, decm c d = 0)
+\end{itemize}
+\end{tabular}
+\end{center}
 
 \begin{mdframed}[]
 Ecax
+
 \begin{itemize}
-\item the initial uncounted ballots, $us$, are equal to cast ballots, $bs$
-\item all the entries in $decm$, decryption of initial encrypted 
-      margin matrix $encm$, are zero
-\item zero-knowledge-proof, $zkpdec$, of the fact that $decm$ is  
-      honest decryption of $encm$   
+\item cast ballots $bs$, and uncounted ballots $us$ 
+ with assertion that uncounted ballots are equal to 
+ cast ballots, i.e. $us$ = $bs$
+\item encrypted zero margin matrix $encm$, 
+      decrypted zero margin matrix $decm$, and 
+      zero-knowledge proof $zkpdec$ of honest decryption
+with assertions that honest decryption verification 
+primitive  returns true, i.e.
+(forall c d, verify\_zero\_knowledge\_decryption\_proof 
+   group (decm c d) (encm c d) (zkpdec c d) = true), 
+   and all the entries in $decm$ are zero, i.e. 
+      (forall c d : cand, decm c d = 0)
 \end{itemize}
 \begin{mathpar} 
 \inferrule* [left=Ecax] { } {$ECount group bs (epartial (us, []) encm)$}
