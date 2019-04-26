@@ -118,12 +118,15 @@ Markus Schulze.
   {C}ondorcet-consistent single-winner election method.
 \newblock {\em Social Choice and Welfare}, 36(2):267--303, 2011.
 
+<<<<<<< HEAD
 \bibitem{DBLP:conf/africacrypt/TereliusW10}
 Bj{\"{o}}rn Terelius and Douglas Wikstr{\"{o}}m.
 \newblock Proofs of restricted shuffles.
 \newblock In {\em {AFRICACRYPT}}, volume 6055 of {\em Lecture Notes in Computer
   Science}, pages 100--113. Springer, 2010.
 
+=======
+>>>>>>> ba7d2a3af405b6e37fb2ce314eff2f33653dbeb9
 \bibitem{Wikstrom:2009:CPS}
 Douglas Wikstr\"{o}m.
 \newblock A commitment-consistent proof of a shuffle.

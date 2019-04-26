@@ -6,6 +6,7 @@
 \usepackage{listings}
 \usepackage{mathpartir}
 \usepackage{mdframed}
+\usepackage{proof}
 \usetikzlibrary{automata,positioning}
 \captionsetup{compatibility=false}
 \pagestyle{plain}
@@ -303,8 +304,7 @@ proofs of honest decryption [reference missing] to evidence
 correctness of decryption. This achieves ballot secrecy owing to the
 fact that the permutation is never revealed.
 
-
-In summary, the homomorphic computation of the margin matrix starts
+In summary, the evidence of correct (homomorphic) counting starts
 with an encryption of the zero margin $\encm$, and for each
 ciphertext ballot $\encb$
 \begin{enumerate}
@@ -316,69 +316,163 @@ correctness
 was valid, and
 \item publishes the unchanged margin function, if the decrypted
 ballot is not valid.
+\item publishes the fully constructed margin, together with its decryption  
+  and ZKP of honest decryption after counting all the ballots     
+\item publishes the winner(s), together with evidence to substantiate the
+    claim
 \end{enumerate}
 
-\smallskip\noindent\emph{Cryptographic primitives.} Now we sketch out the 
-realization of primitives to achieve the functionality described above. 
-In order to encrypt a value, and decrypt a value with 
-evidence of correct decryption we need primitives for encryption, 
+
+\smallskip\noindent\emph{Cryptographic primitives.}
+%(* Always remember why ? *) 
+% Overall, the cryptographic primitives needed to achieve the functionality
+% are given below, and (* At this point, I am inclined to think that how did 
+% we come up with these primitives ? These primitives are basically 
+% refinement of functionality described above *) these primitives
+% are more refined translation of functionality
+% described in previous section. We have carried out this refinement process
+% keeping in mind that the privacy of ballots is utmost,
+% and at the same time, we generate enough evidence related to different 
+% operations involved in counting to make sure that it's audit-able. 
+% 
+%\begin{itemize} 
+%\item encryption, decryption, construction of honest decryption
+%     zero-knowledge-proof, and verification of zero-knowledge-proof. 
+%\item generating permutation, generating  Pedersen's 
+%     commitment \cite{Pederson} of permutation, construction of 
+%     zero-knowledge-proof of Pedersen's commitment, verification of 
+%     zero-knowledge-proof of Pedersen's commitment, shuffling a array 
+%     by a given permutation \cite{Wikstrom:2009:CPS}, 
+%     generating zero-knowledge-proof of (commitment consistent) shuffle, 
+%     and verification of zero-knowledge-proof of shuffle.
+%\item  update the margin matrix (homormorphic addition primitive)
+%\end{itemize}
+  
+(* Explanation of Why do we need construction and verification 
+of zero-knowledge-proof ?*)
+Before we move forward to explain Cryptographic primitives,
+we would like to highlight one crucial fact that  whenever 
+there is primitive for constructing a zero-knowledge-proof, 
+there is corresponding primitive to verify the constructed 
+zero-knowledge-proof.
+The verification primitive takes zero-knowledge-proof with some 
+other public parameters (depending on context) 
+and returns a boolean value which certifies the credentials of constructed 
+zero-knowledge-proof. In short, if the verification primitive returns 
+true, then we trust that zero-knowledge-proof is constructed honestly, 
+otherwise not. At this point, the natural question is that
+why do we need these two primitives in conjugation ? If our purpose 
+is to just count (encrypted)ballots, then we only need 
+construction primitive
+to generate the zero-knowledge-proof evidence of counting (which can be
+checked by independent verifier for attesting the outcome).
+However, in our formalization we have formally 
+verified the outcome of homomorphic counting 
+on (encrypted)ballots against the outcome of (plaintext)ballots
+counting\cite{Pattinson:2017:SVE} assuming that all (encrypted)ballots 
+decrypts to (plaintext)ballots. During this process, we need to verify that 
+all zero-knowledge-proofs were constructed honestly, and this step 
+is precisely the reason for verification primitive, hence they 
+always come into pair of construction and verification.
+%
+% However, 
+%we have formally verified the outcome of (encrypted)ballots, $ebs$, 
+%homomorphic counting against 
+%a fully verified (plaintext)ballots, $bs$, counting\cite{Pattinson:2017:SVE}
+%assuming that $ebs$ decrypt to $bs$, 
+%and all the zero-knowledge-proofs are constructed honestly during the 
+%homomorphic counting.
+%In order to verify(check) the claim that zero-knowledge-proofs are constructed 
+%honestly, we need verification primitives, and hence the reason they 
+%always come into pair of construction and verification. 
+
+   
+Now, we focus on the  cryptographic primitives needed to implement 
+the functionality described in previous section in more detail. 
+In order to encrypt and decrypt a value with 
+evidence of correct decryption, we need primitives for encryption, 
 decryption, construction of
 honest decryption zero-knowledge-proof, and verification of 
 honest decryption zero-knowledge-proof.
+%
+%(* We need encryption function to encryption zero margin, 
+%so this paragraph would go away. 
+%Technically, we don't need 
+%encryption primitive because at no point in the formalization we 
+%encrypt values, and we count already given encrypted ballots. 
+%The reason for adding encryption primitive is completeness, and 
+%under the hood we use it to generate encrypted ballots; however, we
+%want to reiterate that we can safely remove the encryption function 
+%without affecting any functionality of our formalization. *)
 
-(* can we break this into multiple paragraphs ? *)
-The next operation, shuffling, 
-is more involved, and we need to make 
-sure that the operations performed during the shuffle is verifiable. Recall
-that shuffling involves permuting each row and column of a ballot 
-by some permutation, which we don't want to reveal to achieve 
-ballot secrecy. The primitives needed for this operation are 
-generate permutation, and shuffle an array by a given permutation and we 
-apply this primitive to each row and column of a ballot to shuffle it. 
-Once we have these primitives, the next question is how do we 
-ensure the verifiability of these operations ? We ensure the secrecy of
-permutation by  Pedersen's commitment scheme\cite{Pederson} 
-and verifiability  by zero knowledge proof. In nutshell, Pedersen commitment 
-scheme has the following properties. 
+
+The next operation, witnessing the validity of ballot, 
+is more involved, so we need to make 
+sure that the operations performed during this phase are verifiable. 
+Recall that witnessing 
+the validity of a ballot begins with shuffling its rows and columns 
+by the same permutation, which
+we don't want to reveal to achieve ballot secrecy, and follows with 
+decryption  of obtained shuffled ballot, so 
+we need to produce evidence 
+to make sure that the operation performed in each step 
+is verifiable. We achieve secrecy of the permutation and 
+verifiability that it's used in shuffling by combining 
+Pedersen's commitment \cite{Pederson} scheme with zero knowledge proof.
+In nutshell, Pedersen commitment scheme has the following properties. 
 \begin{itemize}
 \item Hiding: A dishonest party can't discover honest party's value 
 \item Binding: A dishonest party cannot open his commitment in more  
-	 	than one way i.e. he should not be able open to a value 
+	 	than one way, i.e. he should not be able open to a value 
 	 	different from the one he committed to 
 \end{itemize}
-In our context, it means that once we committed to some permutation then 
-no one can guess it from commitment (hiding), and we can't change it in future 
-once committed (binding). For verifiability of generated permutation, 
-our binding step is slightly different from 
-Pedersen's binding step. Instead of revealing the permutation 
-and showing
-that it's the permutation that we committed to, we use zero-knowledge-proof
-to show that this commitment is indeed the commitment of some permutation.
-We use this commitment in construction and verification of 
-zero-knowledge-proof of shuffle, which we describe next. 
-For verification of shuffle of ballot, we follow  the protocol 
-known as commitment consistent shuffle \cite{Wikstrom:2009:CPS}. 
-This protocol generates zero-knowledge-proof of shuffle by 
-using a (secret)permutation, commitment of the permutation, array, and 
-shuffled array,  and later it can be verified that the shuffled array 
-is indeed  permutation of the array by using the commitment and 
-zero-knowledge-proof constructed in previous step. 
-The primitives needed to achieve verification for operations used in shuffle 
-are generate Pedersen commitment of permutation, generate 
-zero-knowledge-proof of commitment, 
-verification of zero-knowledge-proof of commitment, 
-generating zero-knowledge-proof of (commitment consistent) shuffle, 
-     and verification of zero-knowledge-proof of 
-     (commitment consistent) shuffle.  
-Finally, we need primitive to update the margin which is simple homomorphic
-addition function, and the operations performed by this function 
- can be easily verified using a simple calculator capable of performing 
- basic arithmetic operations on large number (In our case, homormorphic 
- addition function is multiplying two large numbers modulo a large prime 
- number)
 
-Overall, the primitives needed to realize the functionality
-explained above 
+Combination of Pedersen's commitment scheme 
+with zero knowledge proof leads to a similar two step protocol (also known 
+as commitment-consistent proof of shuffle)\cite{Wikstrom:2009:CPS}.
+\begin{itemize}
+\item We commit to a secret permutation and publish the commitment (hiding).
+\item We use zero knowledge proof to show that shuffling has used 
+      the same permutation which we committed to in previous step (binding).
+\end{itemize}  
+
+The mechanics of witnessing the validity of a ballot starts with generating a 
+permutation $\pi$ which is used to shuffle every row and column of the ballot.
+We hide $\pi$ by committing it using Pedersen's 
+commitment scheme 
+and publishing  the commitment $c_{\pi}$. However, for the binding step, rather 
+than opening $\pi$ we generate a zero knowledge proof, $zkp_{\pi}$, 
+using $\pi$ and $c_{\pi}$, which can 
+be  used to prove that $c_{\pi}$ is indeed a commitment of some permutation
+that is used in the (commitment consistent) shuffling 
+ without being opened \cite{Wikstrom:2009:CPS}. Now that we have a way 
+ to hide $\pi$, we use it to shuffle each row of 
+ballot, say $u$, producing ballot $v$, and construct a zero knowledge proof 
+of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used 
+to verify that $v$ is indeed a row permutation of $u$ using some permutation 
+whose commitment is $c_{\pi}$. Shuffling 
+introduces re-encryption, so there is no way to correlate the output
+ballot $v$ with input ballot $u$.  We take $v$ and shuffle each column of it 
+by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
+as last step. We achieve the needed functionality described in this step
+by primitives listed in second point, i.e. 
+generating permutation, generating  Pedersen's 
+commitment \cite{Pederson} of permutation, construction of 
+zero-knowledge-proof of Pedersen's commitment, verification of 
+zero-knowledge-proof of Pedersen's commitment, shuffling a array 
+by a given permutation \cite{Wikstrom:2009:CPS}, 
+generating zero-knowledge-proof of (commitment consistent) shuffle, 
+and verification of zero-knowledge-proof of shuffle.
+We decrypt the ballot $w$ to evidence validity, and to make this step
+ verifiable, we reuse the primitives developed in
+ encryption and decryption step.
+
+
+Finally, we need primitive to update the margin which is simple homomorphic
+addition function (In our case, homormorphic 
+ addition function is multiplying two large numbers modulo a large prime 
+ number).
+In summary, the cryptographic primitives needed are 
 \begin{itemize} 
 \item encryption, decryption, construction of honest decryption
      zero-knowledge-proof, and verification of zero-knowledge-proof. 
@@ -391,6 +485,8 @@ explained above
      and verification of zero-knowledge-proof of shuffle.
 \item  update the margin matrix (homormorphic addition primitive)
 \end{itemize}
+
+
 
 \smallskip\noindent\emph{Witnessing of Winners.}
 Once all ballots are counted, the computed margin is decrypted, and
@@ -434,181 +530,90 @@ winning conditions.
 (* Remember the question. Why abstract because our purpose is to 
    audit the election, and not verify crypto primitives ? *)
 The purpose of this formalization is not to verify cryptographic primitives, 
-but use them as a tool to construct evidence, which can be used 
-to audit and verify the outcome, during different phase 
+but use them as a tool to construct evidence which can be used 
+to audit and verify the outcome during different phase 
 of election, so we have treated them as abstract entity and assumed 
-axioms about them inside theorem prover Coq. This abstraction allows us to
+axioms about them inside Coq theorem prover \cite{Bertot:2004:ITP}.
+These axioms are very simple, and as a by product, these axioms can 
+be used by any property based testing library to test the concrete
+implementation of cryptographic primitives.
+(* Why Coq ? Because its expressiveness *) The reason for using Coq 
+theorem prover is that its expressiveness to capture homomorphic 
+Schulze counting succinctly as dependent inductive data type, and 
+its well developed program extraction \cite{Letouzey:2003:NEC} facility 
+which can be used to extract proofs into Haskell, OCaml, or Scheme program.  
+This abstraction sets us free from considering any concrete implementation 
+during formalization, and later, we can 
 instantiate these entities with any crypto-system which is homomorphically 
-additive and follows the assumed axioms. 
-(* Why did you come up with only these primitives, why not some thing else ?*)
-We came up with these primitives solely based on need to preserve the privacy
-of ballots, and at the same time generating enough evidence related to 
-different operation involved in election to make sure it's audit-able.
+additive. 
 
-
-These primitives are plaintext, ciphertext, public key, private key, 
-encryption function, which turns a plaintext to ciphertext using 
-public key, and decryption function, which turns a ciphertext into 
-plaintext using private key, as we expect from any cryptographic system; 
-however, these primitives are not sufficient for our purpose because there is 
-not enough evidence to substantiate the statement that  
-claimed decrypted value is indeed the 
-honest decryption of claimed ciphertext. We overcome this situation 
-by adding function which constructs zero knowledge proof of honest 
-decryption (Reference Needed. Talk to Thomas), and verification 
-function to verify the claim of honest decryption using zero 
-knowledge proof constructed by previous function. 
-
-
-
-
-
-Below is a code snippet about representation
-of data structure, functions and axiom involve in encryption and decryption.
-
-
+ Below is a small code snippet from our formalization
+about the representation of cryptographic primitives in Coq theorem prover.
+(* I can't get rid of group because it's integral part of our formalization,
+ so can we find a way to incorporate it in our paper ? *)
+A plaintext is represented as Coq Integer, ciphertext is abstract type, 
+encrypted ballot, denoted by $eballot$,  is square matrix of ciphertext, and
+plaintext ballot, denoted by $pballot$,  is square matrix of plaintext.
+The axiom  $decryption\_left\_inverse$, as its name suggests, states 
+that decryption  is left inverse of encryption, i.e.  
+if we encrypt a plaintext $pt$ with $publickey$ 
+(encapsulated inside $group$ with other parameters 
+used for cryptographic infrastructure) and decrypt it with corresponding 
+$privatekey$, we get the same plaintext $pt$. Similarly, we have 
+primitives for witnessing validity and computing homomorphic margin with
+axioms stating their correctness property.
+In this formalization, we do not deal with key generation and management of
+cryptographic infrastructure, but we assume that public and private keys 
+are generated 
+in pair and related with each other in accordance with cryptographic scheme. 
+We refer the reader to have a look at (* standard literature or 
+reference for group based cryptosystem paper *)
+to know more about group based cryptographic systems.
+   
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 Definition plaintext := Z.
 Variable ciphertext : Type. 
 
+Definition eballot := cand -> cand -> ciphertext.
+Definition pballot := cand -> cand -> plaintext.
 
-Variable Pubkey : Type.
-Variable Prikey : Type.
-Variable DecZkp : Type.
-
-Variable privatekey : Prikey.
-Variable publickey : Pubkey.
-
-Variable encrypt_message :
- Pubkey -> plaintext -> ciphertext.
-
-Variable decrypt_message :
- Prikey -> Prikey -> ciphertext -> plaintext.
-
-Axiom decryption_deterministic :
- forall (publickey : Pubkey) 
- (privatekey : Prikey) 
- (pt : plaintext), decrypt_message 
- privatekey (encrypt_message publickey pt) = pt.
- 
-Variable construct_zero_knowledge_decryption_proof :
- Prikey -> ciphertext -> DecZkp.
-
-Variable verify_zero_knowledge_decryption_proof :
- plaintext -> ciphertext -> DecZkp -> bool.
-
-Axiom verify_true :
- forall (pt : plaintext) (ct : ciphertext) 
- (privatekey : Prikey)
- (H1 : pt = decrypt_message privatekey ct)
- (H2 : zkp = 
- construct_zero_knowledge_decryption_proof privatekey ct),
- verify_zero_knowledge_decryption_proof pt ct zkp = true.
+Axiom decryption_left_inverse (group : Group) 
+ (privatekey : Prikey) : forall  (pt : plaintext),
+ decrypt_message group privatekey 
+ (encrypt_message group pt) = pt.
 \end{lstlisting}
 
-( Why ? What are the axioms and why do we need them  *)
-We also have two axioms,  \textit{decryption\_deterministic} and 
-\textit{verify\_true}, about the primitives used for encryption and 
-decryption. First axiom states that decryption is deterministic, i.e.
-for any given plaintext, encryption followed by decryption yields same 
-plaintext. Second axiom stipulates the fact that for any given plaintext 
-$pt$ and ciphertext $ct$ if $pt$ is decryption of $ct$, and $zkp$ is 
-honest decryption zero knowledge proof then verification function 
-returns true or checks out. The reason for having these axioms is that this 
-formalization is proved correct with 
-respect to a fully verified implementation \cite{Pattinson:2017:SVE}; 
-however, cryptographic primitives used in formalization  
-are abstract, so we need axioms 
-to reason about their behaviour in proof 
-of correctness. As a side note, we would like to point out that
- this formalization hinges on 8 axioms assumed about cryptographic 
- primitives, and we expect any correctly implement cryptographic library 
- would follow it.
+
+
 
 (* Contrary to our claim that crypto primitives are abstract, then 
 why we represented plaintext as Coq integer ? *)
-A astute reader would have noticed that plaintext is represented as 
-concrete data type (Coq Integer) rather than abstract, and 
-the reason for using concrete type for plaintext is evidencing the
-validity of ballot which requires inspecting the values of 
-decrypted shuffled ballot.
-(* Hopefully I have explained everything about encryption and 
-   decryption, and moving on to other primitives *)
-
-Now that we have notion of plaintext and ciphertext, we use it to realize 
-ballot in Coq. An encrypted ballot (whenever we mention ballot in this formalization
-then it means encrypted ballot) is square matrix of ciphertext represented 
-by $eballot$ and plaintext ballot is square ballot of plaintext represented 
-by $pballot$. 
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-Definition eballot := cand -> cand -> ciphertext.
-Definition pballot := cand -> cand -> plaintext.
-\end{lstlisting}
-
-(* Why ? These primitives are necessary ? *)
-Now we focus on another important aspect, validity of 
-ballot. Recall that witnessing 
-the validity of ballot involves shuffling its rows and columns 
-by some permutation, which
-we don't want to reveal to achieve ballot secrecy, and decryption, so 
-we need to produce compelling evidence 
-to make sure that the operation performed in each step of witnessing validity 
-is verifiable. We stand again on shoulder of Pedersen's 
-commitment \cite{Pederson} and zero knowledge proof to achieve this.
-In nutshell, Pedersen commitment scheme has 
-the following properties. 
-\begin{itemize}
-\item Hiding: A dishonest party can't discover honest party's value 
-\item Binding: A dishonest party cannot open his commitment in more  
-	 	than one way i.e. he should not be able open to a value 
-	 	different from the one he committed to 
-\end{itemize}
-
-
-The process of witnessing validity of any ballot starts with generating a 
-permutation $\pi$ which is used to shuffle every row and column of the ballot.
-We hide $\pi$ by committing it using Pedersen's 
-commitment scheme 
-and publishing  the commitment $c_{\pi}$. However, for the binding step, rather 
-than opening $\pi$ we generate a zero knowledge proof, $zkp_{\pi}$, 
-using $\pi$ and $c_{\pi}$, which can 
-be  used to prove that $c_{\pi}$ is indeed a commitment of some permutation
-that is used in the (commitment consistent) shuffling 
- without being opened \cite{Wikstrom:2009:CPS}. Now that we have a way 
- to hide $\pi$, we use it to shuffle each row of 
-ballot, say $u$, producing ballot $v$, and construct a zero knowledge proof 
-of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used 
-to verify that $v$ is indeed a row permutation of $u$ using some permutation 
-whose commitment is $c_{\pi}$. We take $v$ and shuffle each column of it 
-by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
-as last step.   
-Primitives needed to achieve the functionality described in this step  
-are generating permutation, committing permutation,  shuffling ballot, 
-and construction of zero knowledge proof.
-We decrypt the ballot $w$ to evidence validity, and to make this step
- verifiable we reuse the primitives developed previously for
- encryption and decryption.
-(* This ends the cryptographic description *)
-
+The astute reader would have noticed that on the contrary to our claim that 
+cryptographic primitives are treated as abstract entity in the 
+formalization, plaintext is represented as concrete data type (Coq Integer).
+The reason for using concrete type for plaintext is because each 
+entry in ballot is encryption of a preference expressed as integer 
+(basically -1, 0, 1) to rank the candidate. 
+We need to observe these preference to evidence its validity
+from shuffled decrypted ballot, 
+and  for computing winners by running a formally verified computation
+from fully constructed decrypted margin matrix inside theorem prover.  
  
- 
-(* Reminding myself again. Why have you formalized it as dependent data type. 
-   The intuition behind dependent type is that it captures the 
-   correct execution of protocol. The philosophy is well typed 
-   program can't go wrong, and it's correct by construction *)
    
-Now that we have all the cryptographic primitives needed for 
-homomorphic-counting we represent it as a dependent inductive data. 
-The intuition behind representing it as 
-dependent inductive data type is its expressiveness, and this expressiveness 
- allows us to capture the  different states of 
-homomorphic-counting at type level, and inhabitant of this type 
-is proof(program) of correct execution of  homomorphic-counting protocol.
-The philosophy here is well typed program can't go wrong, and it's 
-correct by construction.
- (* Can we add some reference here 
-for well typed programs can't go wrong, and it's correct by construction
-   *). Its 
+Now that we have given glimpse of cryptographic primitives needed for 
+homomorphic-counting, we represent homomorphic-counting  as a 
+dependent inductive data type, $ECount$, with the interpretation that its 
+inhabitant is proof of correct execution of homomorphic Schulze counting. 
+(* Why dependent inductive data type, because we wanted to have 
+   notion of proof or evidence to show that it is universally verifiable.
+   Universal verifiability, by which anyone may determine that all of the
+    ballots in the box have been correctly counted. *) Our emphasis on 
+    universal verifiability, where anyone can verify the election outcome based 
+    on cast ballots, lead to this design decision. Any inhabitant 
+    of $ECount$ precisely records the progression of counting step by step 
+    described in protocol, and we 
+    produce this inhabitant as a proof, also known as scrutiny/tally sheet, 
+    to verify the outcome of election. Its 
 representation in Coq data structure (Constructors omitted for brevity, 
 and explained below)
 \begin{verbatim}
@@ -616,11 +621,14 @@ Inductive ECount (group : Group)
  (bs : list eballot) : EState -> Type :=
  | ... 
 \end{verbatim}
-The $ECount$ is parametrised by $group$, used for cryptographic purpose, 
+
+The $ECount$ is family of inductive data type and 
+parametrised by $group$, used for cryptographic 
+infrastructure as stated earlier, 
 $bs$, list of cast ballots in election, and indexed over (depends on)
- another inductive data type $EState$.  The purpose of $EState$ to capture 
-the different states 
-of counting as mentioned earlier i.e. constructing homomorphic margin 
+ another inductive data type $EState$. 
+ The purpose of $EState$ to capture the different states 
+of counting, i.e. constructing homomorphic margin 
 function, or decryption of fully constructed homomorphic margin function, or 
 determination of final result. We capture these three states by 
  three constructors, $epartial$, $edecrypt$, and $ewinners$ of 
@@ -633,14 +641,6 @@ determination of final result. We capture these three states by
  \item $ewinners$ take a boolean function which returns true(false) for winners(losers)
 \end{itemize}
 
-%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-%Inductive EState : Type :=
-% | epartial : (list eballot * list eballot) ->
-%    (cand -> cand -> ciphertext) -> EState
-% | edecrypt : (cand -> cand -> plaintext) -> 
-%    EState
-% | ewinners : (cand -> bool) -> EState.
-%\end{lstlisting}
 
 \begin{verbatim}
 Inductive EState : Type :=
@@ -651,164 +651,304 @@ Inductive EState : Type :=
 \end{verbatim}
 
 
-
-We start the counting process (building proof) by making sure the 
-consistency of 
-system, i.e. all the cast ballots are uncounted, no invalid ballot 
-and every entry in 
-margin matrix is zero. We capture this information in  
-the first constructor, $ecax$, with list of all 
-uncounted ballots $us$, encrypted zero margin $encm$, decrypted zero margin 
-$decm$, and zero knowledge proof $zkpdec$ of that $decm$ is indeed honest 
-decryption of $encm$ with assertions that ensure that all the 
-uncounted ballots 
-are equal to list of cast ballot, every entry in $decm$ is zero and 
-zero knowledge proof of honest decryption verifies. This constructor 
-bootstraps the vote counting process, and its high level (with omitted 
-assertions) representation
-
-
+(* The whole process of counting can be envisioned as manipulating data in 
+"protocol specific way". The protocol specific way is ensured by 
+adding assertions on data object *)
+Now, we explain the internal details of counting, i.e. the details
+of constructors which capture the progression of counting by means
+of data object and assertions (also known as 
+side condition) to make sure that operations performed on these data
+objects are in accordance with protocol description. The counting process
+starts with (data objects) list of uncounted ballots, no invalid ballot, and 
+encrypted zero margin matrix with its decryption
+(decrypted zero margin matrix) and zero-knowledge-proof
+of honest decryption. We ensure the consistency of 
+this step by adding assertions, i.e. 
+list of all uncounted ballots are equal to cast ballots, no invalid 
+ballot by making sure it's empty list, and every entry in
+decrypted margin matrix is zero, and decrypted margin matrix is
+indeed the decryption of encrypted zero margin matrix by using the 
+zero-knowledge-proof of honest decryption. 
+We encapsulate these information in  
+the first constructor, $Ecax$, which bootstraps the counting process. 
+Its high level representation with data in first column, and 
+assertions about them in second column.
 \begin{mdframed}[]
 Ecax
+\begin{center}
+\begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
+\begin{itemize}
+  \item[*] cast ballots $bs$, and uncounted ballots $us$
+  \item[*] encrypted zero margin matrix $encm$, 
+      its decryption (decrypted zero margin matrix) $decm$, and 
+      zero-knowledge proof $zkpdec$ of honest decryption
+  \end{itemize}
+  &
+  \begin{itemize}
+  \item[*] uncounted 
+	ballots are equal to cast ballots, i.e. $us$ = $bs$
+  \item[*] honest decryption verification 
+	primitive  verifies the fact that $decm$ is honest 
+	decryption of $encm$  using $zkpdec$, i.e. it returns true
+%	, i.e. \textit{
+%(forall c d, verify\_zero\_knowledge\_decryption\_proof 
+%   group (decm c d) (encm c d) (zkpdec c d) = true)}
+   \item[*]all the entries in $decm$ are zero
+%   , i.e. \textit{
+%      (forall c d : cand, decm c d = 0)}
+\end{itemize}
+\end{tabular}
 \begin{mathpar} 
-\inferrule* { } {$ECount group bs (epartial (us, []) encm)$}
+\inferrule* [left=Ecax] { } {$ECount group bs (epartial (us, []) encm)$}
 \end{mathpar}
+\end{center}
 \end{mdframed}
-, and translation of high level representation into Coq representation 
- with all the details filled with data and assertion about them.
+
+%\begin{mdframed}[]
+%Ecax
+%
+%\begin{itemize}
+%\item cast ballots $bs$, and uncounted ballots $us$ 
+% with assertion that uncounted ballots are equal to 
+% cast ballots, i.e. $us$ = $bs$
+%\item encrypted zero margin matrix $encm$, 
+%      decrypted zero margin matrix $decm$, and 
+%      zero-knowledge proof $zkpdec$ of honest decryption
+%with assertions that honest decryption verification 
+%primitive  returns true, i.e. \textit{
+%(forall c d, verify\_zero\_knowledge\_decryption\_proof 
+%   group (decm c d) (encm c d) (zkpdec c d) = true)}, 
+%   and all the entries in $decm$ are zero, i.e. \textit{ 
+%      (forall c d : cand, decm c d = 0)}
+%\end{itemize}
+%\begin{mathpar} 
+%\inferrule* [left=Ecax] { } {$ECount group bs (epartial (us, []) encm)$}
+%\end{mathpar}
+%\end{mdframed}
+Translation of high level representation into Coq representation is trivial.
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
  (decm : cand -> cand -> plaintext) 
  (zkpdec : cand -> cand -> DecZkp) :
  us = bs -> (forall c d : cand, decm c d = 0) -> 
  (forall c d, verify_zero_knowledge_decryption_proof 
-   (decm c d) (encm c d) (zkpdec c d) = true) -> 
+   group (decm c d) (encm c d) (zkpdec c d) = true) -> 
  ECount group bs (epartial (us, []) encm)
 \end{lstlisting}
 
-In the next step, we take a ballot, $u$, from pile of uncounted ballots, 
-$(u :: us)$, and depending 
-on its validity, 
-we either update the margin function homomorphically, constructor $ecvalid$, or move it to the list of invalid ballots, constructor $ecinvalid$. 
-We follow all the steps explained above for witnessing the 
-validity(invalidity) of 
-ballot $u$. Each row 
-of $v$ is permutation of corresponding row of $u$, and each column of 
-$w$ is permutation
-of corresponding column of $v$ by a (secret) permutation whose commitment is 
-$cpi$ and zero-knowledge-proof is $zkpcpi$. $zkppermuv$ 
-is a column matrix of zero-knowledge-proofs where each row gives evidence 
-that the corresponding row of $v$ is indeed 
-a permutation of the corresponding row of $u$, and similarly $zkppermvw$ is 
-a column matrix of 
-zero-knowledge-proofs of how each column of $w$ is indeed 
-a permutation of corresponding columns of $v$. $b$ is decryption of $w$, 
-and $zkpdecw$ is zero-knowledge-proof of this fact. $inbs$ is the list of 
-invalid ballots seen so far, $m$ is the current margin, 
-and $nm$ is new updated margin after homomorphically adding $u$ to $m$. 
-(* This statement is mouthful ? *) The assertions, 
-$matrix\_ballot\_valid$ ensures that $b$ is valid ballot; 
-$verify\_permutation\_commitment$ ensures that $zkpcpi$ is 
-zero-knowledge-proof of commitment $cpi$;   
-$verify\_row\_permutation\_ballot$ ensures that $v$ is 
-row permutation of $u$; $verify\_col\_permutation\_ballot$
-ensures that $w$ is column permutation of $v$; 
-$verify\_zero\_knowledge\_decryption_proof$ ensures that $b$ is 
-honest decryption of $w$;  $homomorphic\_addition$ ensures that 
-$nm$ is homomophic sum of $u$ and $m$.
-
-
+Now that we have bootstrapped the counting process, we take a ballot 
+$u$, from pile of uncounted ballots
+$(u :: us)$, and depending  on its validity, 
+we either update the margin function homomorphically, constructor $ecvalid$, 
+or move it to the list of invalid ballots, constructor $ecinvalid$. We repeat
+this process until we have exhausted all the ballots. During this process, 
+we follow all the steps explained in the section 
+\emph{Cryptographic primitives} to generate evidence 
+for verifying the validity(invalidity) of ballot $u$. 
+%In short, these evidence are
+%\begin{itemize}
+%\item commitment of a (secret) permutation, $cpi$, and zero-knowledge-proof,
+%      $zkpcpi$, of this commitment
+%\item ballot $v$ whose each row is permutation of corresponding row of 
+%      $u$, and zero-knowledge-proof of this fact, $zkppermuv$. Similarly,
+%      ballot $w$ whose each column is permutation of corresponding column 
+%      of $v$ by same (secret) permutation, and zero-knowledge-proof of 
+%      this fact, $zkppermvw$ 
+%\item ballot $b$ which is decryption of ballot $w$, and zero-knowledge-proof
+%      of this fact, $zkpdecw$      
+%\end{itemize}
+At high level, the representation of $Ecvalid$ with data/evidence 
+and assertions about data to ensure the consistency of progress (counting).
 
 \begin{mdframed}[]
-Ecvalid: u is valid so update the margin nm = m $\bigoplus$ u
+Ecvalid
+\begin{center}
+\begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
+\begin{itemize}
+  \item[*] commitment of a (secret) permutation $cpi$, and 
+  zero-knowledge-proof $zkpcpi$ of this commitment
+  \item[*] ballot $v$ whose each row is permutation of corresponding row of 
+      $u$, and zero-knowledge-proof of this fact $zkppermuv$. Similarly,
+      ballot $w$ whose each column is permutation of corresponding column 
+      of $v$ by same (secret) permutation, and zero-knowledge-proof of 
+      this fact $zkppermvw$
+  \item[*]ballot $b$ which is decryption of ballot $w$, and 
+  zero-knowledge-proof of this fact $zkpdecw$  
+  \item[*] old margin matrix $m$, and updated margin matrix $nm$
+  \end{itemize}
+  &
+  \begin{itemize}
+  \item[*] permutation commitment primitive verifies 
+  %\textit{$verify\_permutation\_commitment$} verifies 
+      the claim (returns true) that  $cpi$ is commitment of a 
+      (secret) permutation whose zero-knowlege-proof is $zkpcpi$  
+  \item[*] shuffle verification primitive verifies the claim 
+  %\textit{$verify\_row\_permutation\_ballot$} verifies the claim
+      that each row of ballot $v$ is permutation of corresponding 
+      row of ballot $u$ by same permutation whose commitment is $cpi$
+      by using the zero-knowledge-proof, $zkppermuv$. Similarly,
+      it verifies the claim for 
+      %$verify\_col\_permutation\_ballot$ verifies the claim 
+      ballot $v$ and $w$, but for columns. 
+  \item[*] honest decryption verification primitive
+  %\textit{$verify\_zero\_knowledge\_decryption\_proof$} 
+  verifies the claim
+      that ballot $b$ is honest decryption of ballot $w$
+  \item[*] ballot validity primitive verifies that ballot $b$ is valid 
+%  $matrix\_ballot\_valid$ $b$ verifies that ballot $b$ is valid, 
+  \item[*] update margin $nm$ is equal to homomorphic addition of 
+           old margin $m$ and ballot $u$
+%  $homomorphic\_addition$ ensures that $nm$ is homomophic
+%      addition of $u$ and $m$.
+    
+\end{itemize}
+\end{tabular}
 \begin{mathpar} 
-\inferrule*
+\inferrule* [left=Ecvalid]
 {$ECount group bs (epartial (u :: us, inbs) m)$} 
 {$ECount group bs (epartial (us, inbs) nm)$}
 \end{mathpar}
+\end{center}
 \end{mdframed}
-
-Coq representation of Ecvalid
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-ecvalid (u v w : eballot) (b : pballot)
- (cpi : Commitment) (zkpcpi : PermZkp)
- (zkppermuv : cand -> ShuffleZkp)
- (zkppermvw : cand -> ShuffleZkp) 
- (zkpdecw : cand -> cand -> DecZkp)
- (us inbs : list eballot)
- (m nm : cand -> cand -> ciphertext) :
- ECount group bs (epartial (u :: us, inbs) m) ->
- matrix_ballot_valid b ->
- (verify_permutation_commitment 
-  (length cand_all) cpi zkpcpi = true)->
- (forall c, verify_row_permutation_ballot
-   u v cpi zkppermuv c = true) ->
- (forall c, verify_col_permutation_ballot
-   v w cpi zkppermvw c = true) ->
- (forall c d, 
-  verify_zero_knowledge_decryption_proof 
-   (b c d) (w c d) (zkpdecw c d) = true) ->
- (forall c d, nm c d = 
-  homomorphic_addition (u c d) (m c d)) -> 
- ECount group bs (epartial (us, inbs) nm)
-\end{lstlisting}
+%
+%\begin{mdframed}[]
+%Ecvalid
+%\begin{itemize}
+%\item $verify\_permutation\_commitment$ verifies 
+%      the claim (returns true) that  $cpi$ is commitment of a 
+%      (secret) permutation whose zero-knowlege-proof is $zkpcpi$  
+%\item $verify\_row\_permutation\_ballot$ verifies the claim
+%      that each row of ballot $v$ is permutation of corresponding 
+%      row of ballot $u$ by same permutation whose commitment is $cpi$
+%      by using the zero-knowledge-proof, $zkppermuv$. Similarly, 
+%      $verify\_col\_permutation\_ballot$ verifies the claim 
+%      ballot $v$ and $w$, but for columns. 
+%\item $verify\_zero\_knowledge\_decryption\_proof$ verifies the claim
+%      that ballot $b$ is honest decryption of ballot $w$
+%\item $homomorphic\_addition$ ensures that $nm$ is homomophic
+%      addition of $u$ and $m$.
+%\end{itemize}
+%\begin{mathpar} 
+%\inferrule* [left=Ecvalid]
+%{$ECount group bs (epartial (u :: us, inbs) m)$} 
+%{$ECount group bs (epartial (us, inbs) nm)$}
+%\end{mathpar}
+%\end{mdframed}
+%
+%Next, we take a ballot, $u$, from pile of uncounted ballots, 
+%$(u :: us)$, and depending 
+%on its validity, 
+%we either update the margin function homomorphically, constructor $ecvalid$, or move it to the list of invalid ballots, constructor $ecinvalid$. 
+%We follow all the steps explained above for witnessing the 
+%validity(invalidity) of 
+%ballot $u$. Each row 
+%of $v$ is permutation of corresponding row of $u$, and each column of 
+%$w$ is permutation
+%of corresponding column of $v$ by a (secret) permutation whose commitment is 
+%$cpi$ and zero-knowledge-proof is $zkpcpi$. $zkppermuv$ 
+%is a column matrix of zero-knowledge-proofs where each row gives evidence 
+%that the corresponding row of $v$ is indeed 
+%a permutation of the corresponding row of $u$, and similarly $zkppermvw$ is 
+%a column matrix of 
+%zero-knowledge-proofs of how each column of $w$ is indeed 
+%a permutation of corresponding columns of $v$. $b$ is decryption of $w$, 
+%and $zkpdecw$ is zero-knowledge-proof of this fact. $inbs$ is the list of 
+%invalid ballots seen so far, $m$ is the current margin, 
+%and $nm$ is new updated margin after homomorphically adding $u$ to $m$. 
+%(* This statement is mouthful ? *) The assertions, 
+%$matrix\_ballot\_valid$ ensures that $b$ is valid ballot; 
+%$verify\_permutation\_commitment$ ensures that $zkpcpi$ is 
+%zero-knowledge-proof of commitment $cpi$;   
+%$verify\_row\_permutation\_ballot$ ensures that $v$ is 
+%row permutation of $u$; $verify\_col\_permutation\_ballot$
+%ensures that $w$ is column permutation of $v$; 
+%$verify\_zero\_knowledge\_decryption_proof$ ensures that $b$ is 
+%honest decryption of $w$;  $homomorphic\_addition$ ensures that 
+%$nm$ is homomophic sum of $u$ and $m$.
+%Coq representation of Ecvalid
+%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+%ecvalid (u v w : eballot) (b : pballot)
+% (cpi : Commitment) (zkpcpi : PermZkp)
+% (zkppermuv : cand -> ShuffleZkp)
+% (zkppermvw : cand -> ShuffleZkp) 
+% (zkpdecw : cand -> cand -> DecZkp)
+% (us inbs : list eballot)
+% (m nm : cand -> cand -> ciphertext) :
+% ECount group bs (epartial (u :: us, inbs) m) ->
+% matrix_ballot_valid b ->
+% (verify_permutation_commitment 
+%  group (length cand_all) cpi zkpcpi = true)->
+% (forall c, verify_row_permutation_ballot
+%   group u v cpi zkppermuv c = true) ->
+% (forall c, verify_col_permutation_ballot
+%   group v w cpi zkppermvw c = true) ->
+% (forall c d, 
+%  verify_zero_knowledge_decryption_proof 
+%   group (b c d) (w c d) (zkpdecw c d) = true) ->
+% (forall c d, nm c d = 
+%  homomorphic_addition group (u c d) (m c d)) -> 
+% ECount group bs (epartial (us, inbs) nm)
+%\end{lstlisting}
 
 $Ecinvalid$ is very similar to $Ecvalid$ except ballot $b$ is 
 invalid, so we move ballot $u$ to the pile on invalid ballots.
 \begin{mdframed}[]
-Ecinvalid: u is not valid so move it list of invalid pile (u :: inbs)
 \begin{mathpar} 
-\inferrule*
+\inferrule* [left=Ecinvalid]
    { $ECount group bs (epartial (u :: us, inbs) m)$} 
    { $ECount group bs (epartial (us, u :: inbs) m)$}
 \end{mathpar}
 \end{mdframed}
 
-$Ecdecrypt$ marks the finish to counting with 
-fully constructed encrypted margin {encm}, 
-decrypted margin {decm} with honest decryption zero knowledge proof {zkp}.
-
+$Ecdecrypt$ marks the exhaustion of ballot  with  fully constructed 
+encrypted margin, its decryption and zero-knowledge-proof of honest
+decryption.
 \begin{mdframed}[]
 Ecdecrypt
+\begin{center}
+\begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
+\begin{itemize}
+  \item[*] fully constructed encrypted zero margin matrix $encm$, 
+      its decryption (decrypted zero margin matrix) $decm$, and 
+      zero-knowledge proof $zkpdec$ of honest decryption
+  \end{itemize}
+  &
+  \begin{itemize}
+  \item[*] honest decryption verification primitive verifies the 
+  fact that $decm$ is honest decryption of $encm$ using 
+  zero-knowledge-proof $zkpdec$, i.e. it returns true
+\end{itemize}
+\end{tabular}
 \begin{mathpar} 
-\inferrule*
+\inferrule* [left=Ecdecrypt]
    { $ECount group bs (epartial ([], inbs) encm)$} 
    { $ECount group bs (edecrypt decm)$}
 \end{mathpar}
+\end{center}
 \end{mdframed}
 
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-ecdecrypt (inbs : list eballot) 
- (encm : cand -> cand -> ciphertext)
- (decm : cand -> cand -> plaintext)
- (zkp : cand -> cand -> DecZkp) :
- ECount group bs (epartial ([], inbs) encm) ->
- (forall c d, 
-  verify_zero_knowledge_decryption_proof
-   (decm c d) (encm c d) (zkp c d) = true) ->
- ECount group bs (edecrypt decm)
-\end{lstlisting}
-$Ecfin$ takes fully decrypted margin dm, 
-boolean function f that determines election winner, 
-and d, that delivers type level evidence of winning or losing, 
-consistent with f. 
+Finally, $Ecfin$ takes fully decrypted margin 
+$dm$ and produces boolean function 
+$w$ that determines election winner(s) and loser(s).
+It's same as our previous work, so we refer to 
+\cite{Pattinson:2017:SVE} for more details.
 
 \begin{mdframed}[]
 Ecfin
 \begin{mathpar} 
-\inferrule*
+\inferrule* [left=Ecfin]
    { $ECount group bs (edecrypt dm)$} 
    { $ECount group bs (ewinners w)$}
 \end{mathpar}
 \end{mdframed}
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-ecfin dm (f : cand -> bool) 
- (d : forall c, (wins_type dm c) + (loses_type dm c)):
- ECount group bs (edecrypt dm) ->
- (forall c, f c = true <-> (exists x, d c = inl x)) ->
- (forall c, f c = false <-> (exists x, d c = inr x)) ->
- ECount group bs (ewinners f). 
-\end{lstlisting}
+%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+%ecfin dm (f : cand -> bool) 
+% (d : forall c, (wins_type dm c) + (loses_type dm c)):
+% ECount group bs (edecrypt dm) ->
+% (forall c, f c = true <-> (exists x, d c = inl x)) ->
+% (forall c, f c = false <-> (exists x, d c = inr x)) ->
+% ECount group bs (ewinners f). 
+%\end{lstlisting}
 
 (* Why do we need to exhibit boolean function ? because all Schulze 
    election has winner, and we capture this notion as boolean function  *)
@@ -817,13 +957,12 @@ Now that we have captured each step of Schulze method in $ECount$ using various
 constructors described above we focus on very important aspect of it. 
 According to Schulze method, we can always find a winner (or winners because
 it can have more  than one winner) for any given set of 
-ballots. We formally capture this notion of winner(s) as a boolean 
+ballots. We capture this notion of winner(s) as a boolean 
 function $f$ that decides winners \cite{Pattinson:2017:SVE}, but what more
-important is 
- that the term of type \textit{ECount group bs (ewinners f)}, 
-that witnesses the correct execution of count as stated earlier because it's 
-correct by construction, can be produced as evidence, 
-known as certificate, or tally sheet (discussed in details in next section), 
+important is that the term of type \textit{(ECount group bs (ewinners f))} 
+ which witnesses the step by step execution of count as stated earlier. 
+It can be produced as evidence, 
+known as certificate/tally-sheet (discussed in details in next section), 
 to scrutineers to audit the election. 
 
 
@@ -835,48 +974,95 @@ Lemma pschulze_winners (group : Group)
 \end{lstlisting}
 
 
-
-Not only we provide the tally sheet  
-to verify the computation, but we provide 
+One of key achievements of our formalization is,
+not only we provide the tally sheet  
+to verify the outcome, but we also provide 
 proof of correctness against fully verified implementation of 
 Schulze method \cite{Pattinson:2017:SVE} by using the 
-assumed axioms on cryptographic primitives.
-(* I think it can be written more better *) Our proof of correctness
-states that we produce same set of winners by two computations 
-when there is one-to-one relation between list of ballots, $bs$, used 
-in fully verified computation (\textit{Couns bs (winners f)}), and 
-list of ballots, $ebs$, used in axiomatic computation 
-(\textit{ECount group ebs (winners f)}). 
-The meaning of one-to-one relation, $mapping\_ballot\_pballot$, 
-between $bs$ and $pbs$, which is decryption of $ebs$, 
-is whenever a ballot is valid in $bs$ then 
-corresponding ballot in valid in $ebs$ because encryption does not 
-change the value or introduces cycle, and vice-versa. The basic 
-intuition behind the proofs is very simple, and basically hinges 
-on the fact that 
-if a ballot (represented as function $C \rightarrow N$)  
-contributes to margin function in verified computation then its 
-encryption would also contribute to homomorphic margin in 
-axiomatic computation, and vice-versa. 
-  
-(* Rewrite this *)
-\begin{verbatim}
-  Lemma final_correctness :
-    forall  (group : Group) (bs : list ballot) (pbs : list pballot) 
-    (ebs : list eballot) (w : cand -> bool)
-    (H : pbs = map (fun x => 
-         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
-    (H2 : mapping_ballot_pballot bs pbs), 
-    Count bs (winners w) -> ECount group ebs (ewinners w).
-      
-  Lemma final_correctness_rev :
-    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
-    (ebs : list eballot) (w : cand -> bool)
-    (H : pbs = map (fun x => 
-         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
-    (H2 : mapping_ballot_pballot bs pbs),
-    ECount grp ebs (ewinners w) -> Count bs (winners w).
-\end{verbatim}
+axioms on cryptographic primitives. Our proof of correctness
+states that we produce same set of winner(s) by two computations 
+when there is one-to-one relation between list of (plaintext)ballots 
+$bs$ used  in fully verified computation (\textit{Couns bs (winners f)}), 
+and list of (encrypted)ballots $ebs$ used in axiomatic computation 
+(\textit{ECount group ebs (winners f)}). The meaning of 
+one-to-one relationship between list of (plaintext)ballot $bs$ and
+(encrypted)ballot $ebs$ is, all the ballots in $bs$ are decryption
+of ballots in $ebs$. This assumption leads to fact that
+ballot validity is not affected by encryption/decryption, because 
+encryption/decryption do not modify the value, or introduce 
+cycles, but simply transform them. What it means is, whenever there is a (plaintext)ballot valid in 
+$bs$ then corresponding (encrypted)ballot is valid in $ebs$, and vice-versa.
+Similarly, whenever there is invalid ballot in $bs$ then 
+corresponding ballot in $ebs$ is also invalid, and vice-versa.
+Finally, the idea for proof that they both produce same winner(s) and 
+loser(s) hinges on the 
+fact that fully constructed margin using ballot $bs$ will be same as 
+decryption of fully constructed encrypted margin using $ebs$. 
+%
+%The meaning of 
+%one-to-one relationship between plaintext ballot and encrypted 
+%ballot is,
+%whenever a ballot is valid in $bs$ then 
+%corresponding (encrypted)ballot in valid in $ebs$ because encryption does not 
+%change the value or introduces cycle, and vice-versa. The basic 
+%intuition behind the proofs hinges on the fact that 
+%if a ballot from $bs$ contributes to margin function in verified 
+%computation then its encryption would also contribute to homomorphic 
+%margin in axiomatic computation, and vice-versa.  
+%
+%One of key achievements of our formalization is,
+%not only we provide the tally sheet  
+%to verify the outcome, but we provide 
+%proof of correctness against fully verified implementation of 
+%Schulze method \cite{Pattinson:2017:SVE} by using the 
+%axioms on cryptographic primitives. At this point, we would 
+%take slight detour to explain the terms to avoid confusion.
+%The meaning of $eballot$, and $pballot$ has usual meaning, but 
+%in fully verified implementation of Schulze method \cite{Pattinson:2017:SVE},
+%we represented ballot as function from candidate to natural number, 
+%and it's Coq representation 
+%\begin{verbatim}
+%  Definition ballot := cand -> nat.
+%\end{verbatim}
+%
+%(* Even after rewriting this, I still feel that it can be rewritten more
+%precisely *)
+%In this paragraph, $ballot$, $pballot$, and $eballot$ should be 
+%inferred as explained above. We will take extra precaution to avoid 
+%the confusion, but any confusion would mistake of ours. 
+%Our proof of correctness
+%states that we produce same set of winner(s) by two computations 
+%when there is one-to-one relation between list of ballots, $bs$, used 
+%in fully verified computation (\textit{Couns bs (winners f)}), and 
+%list of (encrypted)ballots, $ebs$, used in axiomatic computation 
+%(\textit{ECount group ebs (winners f)}). 
+%The meaning of one-to-one relation, $mapping\_ballot\_pballot$, 
+%between $bs$ and $pbs$, which is decryption of $ebs$, 
+%is whenever a ballot is valid in $bs$ then 
+%corresponding (encrypted)ballot in valid in $ebs$ because encryption does not 
+%change the value or introduces cycle, and vice-versa. The basic 
+%intuition behind the proofs hinges on the fact that 
+%if a ballot from $bs$ contributes to margin function in verified 
+%computation then its encryption would also contribute to homomorphic 
+%margin in axiomatic computation, and vice-versa. 
+%
+%\begin{verbatim}
+%  Lemma final_correctness :
+%    forall  (group : Group) (bs : list ballot) (pbs : list pballot) 
+%    (ebs : list eballot) (w : cand -> bool)
+%    (H : pbs = map (fun x => 
+%         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+%    (H2 : mapping_ballot_pballot bs pbs), 
+%    Count bs (winners w) -> ECount group ebs (ewinners w).
+%      
+%  Lemma final_correctness_rev :
+%    forall  (grp : Group) (bs : list ballot) (pbs : list pballot) 
+%    (ebs : list eballot) (w : cand -> bool)
+%    (H : pbs = map (fun x => 
+%         (fun c d => decrypt_message grp privatekey (x c d))) ebs)
+%    (H2 : mapping_ballot_pballot bs pbs),
+%    ECount grp ebs (ewinners w) -> Count bs (winners w).
+%\end{verbatim}
 
 
 
@@ -889,27 +1075,29 @@ axiomatic computation, and vice-versa.
   size
 \end{itemize}}
 
-We use Coq extraction mechanism\cite{Letouzey:2003:NEC}  to extract its proofs into programs retaining all the terms which lives in Type universe, 
-and erases every term  from Prop universe. We use this mechanism to 
+We use the Coq extraction mechanism\cite{Letouzey:2003:NEC}  to extract
+proofs into programs retaining all the terms which live in Type universe, 
+and erases every term  from the Prop universe. We use this mechanism to 
 extract our formalized Coq proofs into OCaml\cite{Leroy:2013:ORM} program 
 with cryptographic axioms left to be realized. (* Why did we use 
 Unicrypt. Because it has all the functionality we needed and it's well 
-tested library. *) For cryptographic purpose we used Unicrypt library
+tested library. *) For cryptographic purposes, we used Unicrypt 
+\footnote{https://github.com/bfh-evg/unicrypt}
 because it is open source, well tested, and has all the functionality 
 we needed with nice APIs except construction and verification of 
-honest decryption zero-knowledge-proof .
+honest decryption zero-knowledge-proof.
 However, we can not call Unicrypt functions directly from extracted OCaml 
 code, because it's written in Java. To achieve the interoperability 
-between OCaml and Java we used OCaml-Java library 
-(github link: https://github.com/Julow/ocaml-java) which provides
+between OCaml and Java, we used OCaml-Java library\footnote{ 
+https://github.com/Julow/ocaml-java} which provides
  basic support of mapping  primitive OCaml data structure to
  primitive Java  data structure, and OCaml class to Java class. 
- (* why did you write you own library ? Why did you not call 
+ (* why did you write you own bindings ? Why did you not call 
    Unicrypt functions directly from your own extracted code ? *)
  OCaml-Java library certainly helped us a lot, but it was not sufficient for
- our purpose, and the reason was Unicrypt's clean nice abstraction of 
+ our purpose, and the reason was Unicrypt's clean abstraction of 
  algebraic structures used in cryptography. These abstractions followed 
- Java design principals and the one we found, among many, was subtyping.
+ Java design principals, and the one we found, among many, was subtyping.
  If a class A (SafePrime) extends a class B (Prime) then 
  A (SafePrime) is subtype of B (Prime), 
  and we can always pass object of class A (SafePrime) at 
@@ -928,107 +1116,124 @@ between OCaml and Java we used OCaml-Java library
  it is trace of computation which can be used as a checkable record to verify
  the outcome of election. For space consideration we have stripped off 
  trailing digits in the tally sheet which is marked by $..$, and rather 
- than representing an entry of a matrix as ($i$, $j$) it is represented as 
+ than representing an entry of a matrix as ($i$, $j$), it is represented as 
  $ij$
  
 
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-M: AA(13.., 10..) AB(90.., 14..) AC(11.., 23..) BA(16.., 13..) BB(79.., 46..)
-BC(12.., 14..) CA(50.., 53..) CB(70.., 68..) CC(23.., 82..), 
+M: AA(13.., 10..) AB(90.., 14..) 
+AC(11.., 23..) BA(16.., 13..) BB(79.., 46..) BC(12.., 14..)
+CA(50.., 53..) CB(70.., 68..) CC(23.., 82..), 
 D: [AA: 0 AB: 0 AC: 0 BA: 0 BB: 0 BC: 0 CA: 0 CB: 0 CC: 0], 
 Zero-Knowledge-Proof-of-Honest-Decryption: [..]
----------------------------------------------------------------------------
-V: [AA(42.., 15..) AB(63.., 32..) AC(70, 44..) BA(47.., 34..) BB(16.., 28..)
-BC(39.., 16..) CA(19.., 13..) CB(57.., 12..) CC(19.., 89..),..], I:  [], 
-M: AA(12.., 11..) AB(13.., 66..) AC(16.., 14.) BA(48.., 31..) BB(15.., 52..)
-BC(15.., 68..) CA(39.., 69..) CB(12.., 78..) CC(10.., 40..),
-Row-Permuted-Ballot: AA(53.., 16..) AB(23.., 44..) AC(72.., 47..)
-BA(10.., 19..) BB(74.., 16..) BC(20.., 60..) CA(44.., 10..) CB(12.., 16..)
-CC(59.., 98..),
-Column-Permuted-Ballot: AA(81.., 41..) AB(17.., 14..) AC(10.., 14..) 
-BA(37.., 12..) BB(14.., 66..) BC(10.., 13..) CA(12.., 13..) 
-CB(14.., 16..) CC(12.., 10..),
-Decryption-of-Permuted Ballot: AA0 AB-1 AC1 BA1 BB0 BC1 CA-1 CB-1 CC0,
+-------------------------------------------------------------
+V: [AA(42.., 15..) AB(63.., 32..) AC(70, 44..) BA(47.., 34..) 
+BB(16.., 28..) BC(39.., 16..) CA(19.., 13..) CB(57.., 12..) 
+CC(19.., 89..),..], I:  [], 
+M: AA(12.., 11..) AB(13.., 66..) AC(16.., 14.) BA(48.., 31..) 
+BB(15.., 52..) BC(15.., 68..) CA(39.., 69..) CB(12.., 78..)
+CC(10.., 40..),
+Row-Permuted-Ballot: AA(53.., 16..) AB(23.., 44..) 
+AC(72.., 47..) BA(10.., 19..) BB(74.., 16..) BC(20.., 60..) 
+CA(44.., 10..) CB(12.., 16..) CC(59.., 98..),
+Column-Permuted-Ballot: AA(81.., 41..) AB(17.., 14..) 
+AC(10.., 14..) BA(37.., 12..) BB(14.., 66..) BC(10.., 13..)
+CA(12.., 13..) CB(14.., 16..) CC(12.., 10..),
+Decryption-of-Permuted Ballot: AA0 AB-1 AC1 BA1 BB0 BC1 CA-1 
+CB-1 CC0,
 Zero-Knowledge-Proof-of-Row-Permutation: [Tuple[...]], 
 Zero-Knowledge-Proof-of-Column-Permutation: [Tuple[..]], 
 Zero-Knowledge-Proof-of-Decryption: [Triple[..]], 
 Permutation-Commitment: Triple[..]
 Zero-Knowledge-Proof-of-Commitment: Tuple[..]
-------------------------------------------------------------------------------------------
+--------------------------------------------------------------
 .
 .
 .
-------------------------------------------------------------------------------------------
-V: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) BA(13.., 31..) BB(27.., 82..)
-BC(31.., 50..) CA(16.., 11..) CB(74.., 15..) CC(26.., 36..)], I: [], M: AA(86.., 38..)
-AB(21.., 14..) AC(16.., 25..) BA(16.., 22..) BB(18.., 15..) BC(11.., 63..)
-CA(15.., 34..) CB(76.., 18..) CC(11.., 10..), 
+--------------------------------------------------------------
+V: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) 
+BA(13.., 31..) BB(27.., 82..) BC(31.., 50..) CA(16.., 11..) 
+CB(74.., 15..) CC(26.., 36..)], I: [],
+M: AA(86.., 38..) AB(21.., 14..) AC(16.., 25..) BA(16.., 22..) 
+BB(18.., 15..) BC(11.., 63..) CA(15.., 34..) CB(76.., 18..) 
+CC(11.., 10..), 
 Row-Permuted-Ballot: .., Column-Permuted-Ballot: .., 
-Decryption-of-Permuted-Ballot: AA0 AB-10 AC1 BA10 BB0 BC1 CA-1 CB-1 CC0,
+Decryption-of-Permuted-Ballot: AA0 AB-10 AC1 BA10 BB0 BC1 CA-1 
+CB-1 CC0,
 Zero-Knowledge-Proof-of-Row-Permutation: [..],
 Zero-Knowledge-Proof-of-Column-Permutation: [..], 
 Zero-Knowledge-Proof-of-Decryption: [..], 
 Permutation-Commitment: Triple[..], 
 Zero-Knowledge-Proof-of-Commitment: Tuple[..]
-------------------------------------------------------------------------------------
-V: [], I: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) BA(13.., 31..) BB(27.., 82..)
-BC(31.., 50..) CA(16.., 11..) CB(74.., 15..) CC(26.., 36..)], M: .., 
+--------------------------------------------------------------
+V: [], I: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) 
+BA(13.., 31..) BB(27.., 82..)
+BC(31.., 50..) CA(16.., 11..) CB(74.., 15..) CC(26.., 36..)], 
+M: .., 
 D: [AA: 0 AB: 4 AC: 4 BA: -4 BB: 0 BC: 4 CA: -4 CB: -4 CC: 0],
 Zero-Knowledge-Proof-of-Decryption: [..]
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------
 D: [AA: 0 AB: 4 AC: 4 BA: -4 BB: 0 BC: 4 CA: -4 CB: -4 CC: 0]
 winning: A
-   for B: path A --> B of strength 4, 5-coclosed set: [(B,A),(C,A),(C,B)]
-   for C: path A --> C of strength 4, 5-coclosed set: [(B,A),(C,A),(C,B)] 
+   for B: path A --> B of strength 4, 5-coclosed set: 
+       [(B,A),(C,A),(C,B)]
+   for C: path A --> C of strength 4, 5-coclosed set:
+       [(B,A),(C,A),(C,B)] 
 losing: B
-   exists A: path A --> B of strength 4, 4-coclosed set: [(A,A),(B,A),(B,B),(C,A),
-   (C,B),(C,C)]
+   exists A: path A --> B of strength 4, 4-coclosed set: 
+     [(A,A),(B,A),(B,B),(C,A),(C,B),(C,C)]
 losing: C
-   exists A: path A --> C of strength 4, 4-coclosed set: [(A,A),(B,A),(B,B),
-   (C,A),(C,B),(C,C)]
+   exists A: path A --> C of strength 4, 4-coclosed set: 
+     [(A,A),(B,A),(B,B),(C,A),(C,B),(C,C)]
 
 \end{lstlisting}
 
 
 Now, we will wear the hat of scrutinizer to audit the election based on 
  scrutiny sheet to gain more understanding. In the very first line, all we 
- have to make sure that every entry is encrypted margin function M is encryption 
- of zero. As we can see that every entry in decrypted margin D 
- of encrypted margin M is zero, but we can verify this fact with 
- given Zero-Knowledge-Proof-of-Honest-Decryption.
+ have to make sure that every entry is encrypted margin function \textit{M} 
+ is encryption 
+ of zero. As we can see that every entry in decrypted margin \textit{D} 
+ of encrypted margin \textit{M} is zero, but we can verify this fact with 
+ given \textit{Zero-Knowledge-Proof-of-Honest-Decryption}.
  
  In next few lines, we need to make sure that if ballot from the top of 
- pile (all cast ballots) V is valid then it is added homomorphically to 
- running margin M, 
- and if not then moved to pile of invalid ballots I. In 
- order to certify the claim that ballot under consideration is valid, 
- or not, all we have to do is certify the claim that Row-Permuted-Ballot 
+ pile (all cast ballots) \textit{V} is valid then it is added 
+ homomorphically to  running margin \textit{M}, 
+ and if not then moved to pile of invalid ballots \textit{I}. In 
+ order to certify the claim that ballot under consideration is valid 
+ or not, all we have to do is certify the claim that 
+ \textit{Row-Permuted-Ballot} 
  is indeed row shuffle of ballot under consideration by 
  some (secret)permutation using the information  
- Zero-Knowledge-Proof-of-Row-Permutation, Permutation-Commitment, and 
- Zero-Knowledge-Proof-of-Commitment. We need to follow the same methodology 
- to verify the column permuted ballot Column-Permuted-Ballot. Finally, 
- all we have to verify the decryption claim of Decryption-of-Permuted-Ballot
+ \textit{Zero-Knowledge-Proof-of-Row-Permutation}, 
+ \textit{Permutation-Commitment}, and 
+ \textit{Zero-Knowledge-Proof-of-Commitment}. 
+ We need to follow the same methodology 
+ to verify the column permuted ballot \textit{Column-Permuted-Ballot}. 
+ Finally, all we have to verify the decryption claim of 
+ \textit{Decryption-of-Permuted-Ballot}
  is honest decryption of Column-Permuted-Ballot using 
- Zero-Knowledge-Proof-of-Decryption. We keep doing this step until we have 
- processed all the ballots from pile V, i.e. V = []. 
+ \textit{Zero-Knowledge-Proof-of-Decryption}. We keep doing this 
+ step until we have 
+ processed all the ballots from pile $V$, i.e. $V$ = []. 
  
- Once we have exhausted all the ballots from pile V, i.e. V = [], we 
- need to certify the that decrypted margin function D is indeed the 
- honest decryption of encrypted margin function M, and we can 
- verify this claim using Zero-Knowledge-Proof-of-Decryption.
+ Once we have exhausted all the ballots from pile $V$, we 
+ need to certify the that decrypted margin function $D$ is indeed the 
+ honest decryption of encrypted margin function $M$, and we can 
+ verify this claim using \textit{Zero-Knowledge-Proof-of-Decryption}.
  
  In final step, we need to check the claim of winner(s) and losers. 
  For winner(s), we need to verify that the claimed path exists with 
  the given strength, and claimed set is indeed the coclosed, and similar
- steps for losers.
-
-In a nutshell, one can 
+ steps for losers. In a nutshell, one can 
 think of auditing the election involves verifying these three steps
 \begin{itemize}
  \item The correctness of steps computing homomorphic margin 
  \item The decryption of fully constructed margin
- \item For winners 
+ \item For winner(s) and loser(s), 
+       if the claimed path of given strength exists, and given sets are 
+       indeed coclosed 
 \end{itemize} 
 
 Even though we produce the tally by formally verified code, election 
@@ -1113,17 +1318,17 @@ here.
 \bibliographystyle{plain}
 \bibliography{all2,delta2}
 
-\appendix
-\section{Discussion and Further Work}
-
-One aspect that we have not considered here is encryption of
-ballots to safe-guard voter privacy which can be incorporated using
-protocols such as shuffle-sum \cite{Benaloh:2009:SSC} and
-homomorphic encryption \cite{Yi:2014:HEA}. The key idea here is to
-formalise a given voting scheme based on encrypted ballots, and then
-to establish a homomorphic property: the decryption of the result
-obtained from encrypted ballots is the same as the result obtained from
-the decrypted ballots.  We leave this to further work.
+%\appendix
+%\section{Discussion and Further Work}
+%
+%One aspect that we have not considered here is encryption of
+%ballots to safe-guard voter privacy which can be incorporated using
+%protocols such as shuffle-sum \cite{Benaloh:2009:SSC} and
+%homomorphic encryption \cite{Yi:2014:HEA}. The key idea here is to
+%formalise a given voting scheme based on encrypted ballots, and then
+%to establish a homomorphic property: the decryption of the result
+%obtained from encrypted ballots is the same as the result obtained from
+%the decrypted ballots.  We leave this to further work.
 
 %\bibliographystyle{myplain}
 %\bibliography{all2,delta2}
