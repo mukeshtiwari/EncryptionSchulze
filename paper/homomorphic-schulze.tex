@@ -29,11 +29,11 @@
 \title{Verifiable Homomorphic Tallying for the Schulze Vote Counting
 Scheme}
 
-%%
-%\author{Thomas Haines \inst{1} \and
-%      Dirk Pattinson\inst{2} \and Mukesh Tiwari \inst{2}}
-%\institute{Polyas GmbH, Germany \and
-%         Research School of Computer Science, ANU, Canberra}
+%
+\author{Thomas Haines \inst{1} \and
+      Dirk Pattinson\inst{2} \and Mukesh Tiwari \inst{2}}
+\institute{NTNU, Norway \and
+         Research School of Computer Science, ANU, Canberra}
 \maketitle
 
 \begin{abstract}
@@ -195,17 +195,17 @@ evidence for winning elections has been put forward (for plaintext
 ballots) in \cite{Pattinson:2015:VCM}. 
 
 \section{Verifiable Homomorphic Tallying}
-\texttt{
-  Bullet points of content for reference and later deletion
-\begin{itemize}
-  \item general protocol, comparision with plaintext counting
-  \item two-phase structure: margin matrix, then winners with
-  winners as before: encryption commutes with margin computation
-  \item homomorphic computation of margin matrix, ballot
-  representation
-  \item computation of winners (as for plaintext)
-\end{itemize}
-}
+%\texttt{
+%  Bullet points of content for reference and later deletion
+%\begin{itemize}
+%  \item general protocol, comparision with plaintext counting
+%  \item two-phase structure: margin matrix, then winners with
+%  winners as before: encryption commutes with margin computation
+%  \item homomorphic computation of margin matrix, ballot
+%  representation
+%  \item computation of winners (as for plaintext)
+%\end{itemize}
+%}
 The realisation of verifiable of homomorphic tallying that we are about to
 describe follows the same two phases as the protocol: for each
 ballot, we decide whether it is formal, and if so, homomorphically
@@ -348,8 +348,8 @@ ballot is not valid.
 %\item  update the margin matrix (homormorphic addition primitive)
 %\end{itemize}
   
-(* Explanation of Why do we need construction and verification 
-of zero-knowledge-proof ?*)
+%(* Explanation of Why do we need construction and verification 
+%of zero-knowledge-proof ?*)
 Before we move forward to explain Cryptographic primitives,
 we would like to highlight one crucial fact that  whenever 
 there is primitive for constructing a zero-knowledge-proof, 
@@ -364,13 +364,13 @@ otherwise not. At this point, the natural question is that
 why do we need these two primitives in conjugation ? If our purpose 
 is to just count (encrypted)ballots, then we only need 
 construction primitive
-to generate the zero-knowledge-proof evidence of counting (which can be
-checked by independent verifier for attesting the outcome).
+to generate the zero-knowledge-proof evidence of counting which can be
+checked by independent verifier for attesting the outcome.
 However, in our formalization we have formally 
 verified the outcome of homomorphic counting 
 on (encrypted)ballots against the outcome of (plaintext)ballots
 counting\cite{Pattinson:2017:SVE} assuming that all (encrypted)ballots 
-decrypts to (plaintext)ballots. During this process, we need to verify that 
+decrypts to (plaintext)ballots. During this process we need to verify that 
 all zero-knowledge-proofs were constructed honestly, and this step 
 is precisely the reason for verification primitive, hence they 
 always come into pair of construction and verification.
@@ -517,18 +517,17 @@ winning conditions.
 
 
 \section{Realisation in a Theorem Prover}
-\texttt{
-  Bullet points of content for reference and later deletion
-\begin{itemize}
-  \item Axiomatisation of the cryptographic primitives
-  \item correctness proof modulo correct crypto
-  \item describe certificates and how to check them
-  \item show that ``certificates certify''
-\end{itemize}}
+%\texttt{
+%  Bullet points of content for reference and later deletion
+%\begin{itemize}
+%  \item Axiomatisation of the cryptographic primitives
+%  \item correctness proof modulo correct crypto
+%  \item describe certificates and how to check them
+%  \item show that ``certificates certify''
+%\end{itemize}}
 
-
-(* Remember the question. Why abstract because our purpose is to 
-   audit the election, and not verify crypto primitives ? *)
+%(* Remember the question. Why abstract because our purpose is to 
+%   audit the election, and not verify crypto primitives ? *) 
 The purpose of this formalization is not to verify cryptographic primitives, 
 but use them as a tool to construct evidence which can be used 
 to audit and verify the outcome during different phase 
@@ -536,8 +535,7 @@ of election, so we have treated them as abstract entity and assumed
 axioms about them inside Coq theorem prover \cite{Bertot:2004:ITP}.
 These axioms are very simple, and as a by product, these axioms can 
 be used by any property based testing library to test the concrete
-implementation of cryptographic primitives.
-(* Why Coq ? Because its expressiveness *) The reason for using Coq 
+implementation of cryptographic primitives. The reason for using Coq 
 theorem prover is that its expressiveness to capture homomorphic 
 Schulze counting succinctly as dependent inductive data type, and 
 its well developed program extraction \cite{Letouzey:2003:NEC} facility 
@@ -549,9 +547,7 @@ additive.
 
  Below is a small code snippet from our formalization
 about the representation of cryptographic primitives in Coq theorem prover.
-(* I can't get rid of group because it's integral part of our formalization,
- so can we find a way to incorporate it in our paper ? *)
-A plaintext is represented as Coq Integer, ciphertext is abstract type, 
+A $plaintext$ is represented as Coq Integer, $ciphertext$ is abstract type, 
 encrypted ballot, denoted by $eballot$,  is square matrix of ciphertext, and
 plaintext ballot, denoted by $pballot$,  is square matrix of plaintext.
 The axiom  $decryption\_left\_inverse$, as its name suggests, states 
@@ -566,8 +562,7 @@ In this formalization, we do not deal with key generation and management of
 cryptographic infrastructure, but we assume that public and private keys 
 are generated 
 in pair and related with each other in accordance with cryptographic scheme. 
-We refer the reader to have a look at (* standard literature or 
-reference for group based cryptosystem paper *)
+We refer the reader to have a look at 
 to know more about group based cryptographic systems.
    
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
@@ -585,9 +580,9 @@ Axiom decryption_left_inverse (group : Group)
 
 
 
-
-(* Contrary to our claim that crypto primitives are abstract, then 
-why we represented plaintext as Coq integer ? *)
+%
+%(* Contrary to our claim that crypto primitives are abstract, then 
+%why we represented plaintext as Coq integer ? *)
 The astute reader would have noticed that on the contrary to our claim that 
 cryptographic primitives are treated as abstract entity in the 
 formalization, plaintext is represented as concrete data type (Coq Integer).
@@ -604,11 +599,12 @@ Now that we have given glimpse of cryptographic primitives needed for
 homomorphic-counting, we represent homomorphic-counting  as a 
 dependent inductive data type, $ECount$, with the interpretation that its 
 inhabitant is proof of correct execution of homomorphic Schulze counting. 
-(* Why dependent inductive data type, because we wanted to have 
-   notion of proof or evidence to show that it is universally verifiable.
-   Universal verifiability, by which anyone may determine that all of the
-    ballots in the box have been correctly counted. *) Our emphasis on 
-    universal verifiability, where anyone can verify the election outcome based 
+%(* Why dependent inductive data type, because we wanted to have 
+%   notion of proof or evidence to show that it is universally verifiable.
+%   Universal verifiability, by which anyone may determine that all of the
+%    ballots in the box have been correctly counted. *) 
+Our emphasis on  universal verifiability, where anyone can verify 
+the election outcome based 
     on cast ballots, lead to this design decision. Any inhabitant 
     of $ECount$ precisely records the progression of counting step by step 
     described in protocol, and we 
@@ -651,9 +647,9 @@ Inductive EState : Type :=
 \end{verbatim}
 
 
-(* The whole process of counting can be envisioned as manipulating data in 
-"protocol specific way". The protocol specific way is ensured by 
-adding assertions on data object *)
+%(* The whole process of counting can be envisioned as manipulating data in 
+%"protocol specific way". The protocol specific way is ensured by 
+%adding assertions on data object *)
 Now, we explain the internal details of counting, i.e. the details
 of constructors which capture the progression of counting by means
 of data object and assertions (also known as 
@@ -760,7 +756,7 @@ for verifying the validity(invalidity) of ballot $u$.
 At high level, the representation of $Ecvalid$ with data/evidence 
 and assertions about data to ensure the consistency of progress (counting).
 
-\begin{mdframed}[]
+\begin{mdframed}[nobreak=true]
 Ecvalid
 \begin{center}
 \begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
@@ -903,7 +899,7 @@ invalid, so we move ballot $u$ to the pile on invalid ballots.
 $Ecdecrypt$ marks the exhaustion of ballot  with  fully constructed 
 encrypted margin, its decryption and zero-knowledge-proof of honest
 decryption.
-\begin{mdframed}[]
+\begin{mdframed}[nobreak=true]
 Ecdecrypt
 \begin{center}
 \begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
@@ -949,9 +945,9 @@ Ecfin
 % (forall c, f c = false <-> (exists x, d c = inr x)) ->
 % ECount group bs (ewinners f). 
 %\end{lstlisting}
-
-(* Why do we need to exhibit boolean function ? because all Schulze 
-   election has winner, and we capture this notion as boolean function  *)
+%
+%(* Why do we need to exhibit boolean function ? because all Schulze 
+%   election has winner, and we capture this notion as boolean function  *)
 
 Now that we have captured each step of Schulze method in $ECount$ using various 
 constructors described above we focus on very important aspect of it. 
@@ -1067,23 +1063,22 @@ decryption of fully constructed encrypted margin using $ebs$.
 
 
 \section{Extraction and Experiments}
-\texttt{ \begin{itemize}
-  \item extension of Unicrypt with homomorphic addition
-  \item coupling between library and extracted code
-  \item need for light weight wrappers
-  \item experimental results: how long, how much memory, certicicate
-  size
-\end{itemize}}
+%\texttt{ \begin{itemize}
+%  \item extension of Unicrypt with homomorphic addition
+%  \item coupling between library and extracted code
+%  \item need for light weight wrappers
+%  \item experimental results: how long, how much memory, certicicate
+%  size
+%\end{itemize}}
 
 We use the Coq extraction mechanism\cite{Letouzey:2003:NEC}  to extract
 proofs into programs retaining all the terms which live in Type universe, 
 and erases every term  from the Prop universe. We use this mechanism to 
 extract our formalized Coq proofs into OCaml\cite{Leroy:2013:ORM} program 
-with cryptographic axioms left to be realized. (* Why did we use 
-Unicrypt. Because it has all the functionality we needed and it's well 
-tested library. *) For cryptographic purposes, we used Unicrypt 
+with cryptographic axioms left to be realized. For cryptographic purposes, 
+we used Unicrypt 
 \footnote{https://github.com/bfh-evg/unicrypt}
-because it is open source, well tested, and has all the functionality 
+because it is open source, well tested and has all the functionality 
 we needed with nice APIs except construction and verification of 
 honest decryption zero-knowledge-proof.
 However, we can not call Unicrypt functions directly from extracted OCaml 
@@ -1092,21 +1087,24 @@ between OCaml and Java, we used OCaml-Java library\footnote{
 https://github.com/Julow/ocaml-java} which provides
  basic support of mapping  primitive OCaml data structure to
  primitive Java  data structure, and OCaml class to Java class. 
- (* why did you write you own bindings ? Why did you not call 
-   Unicrypt functions directly from your own extracted code ? *)
- OCaml-Java library certainly helped us a lot, but it was not sufficient for
- our purpose, and the reason was Unicrypt's clean abstraction of 
+ OCaml-Java library certainly helped us a lot in providing basic 
+ support to call Java function from OCaml program, but it was not 
+ sufficient for
+ our purpose. The reason was Unicrypt's clean abstraction of 
  algebraic structures used in cryptography. These abstractions followed 
  Java design principals, and the one we found, among many, was subtyping.
  If a class A (SafePrime) extends a class B (Prime) then 
  A (SafePrime) is subtype of B (Prime), 
  and we can always pass object of class A (SafePrime) at 
  the places where it's asking for object of class B (Prime). 
- Subtyping made things complicated for us, because it forced us to 
- write binding for both classes, A and B, in OCaml, and we ended up writing a
+ Subtyping, and many other abstraction principals imposed 
+ proper construction of data structure in OCaml program 
+ before passing it to Java function and  
+ required us to
+ write binding for both classes, A and B, in OCaml. We ended up writing a
  OCaml wrapper for these algebraic structures. We would like to point out
  that abstractions of Unicrypt forced us to make our wrapper 
- nice and clean.   
+ nice and clean.
  
  After instantiating the  
  cryptographic primitives in extracted OCaml code 
