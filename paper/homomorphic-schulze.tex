@@ -80,7 +80,7 @@ Unfortunately, it appears as if coercion resistance is not achievable
 in the remote setting without relying on overly optimistic---to say the least---assumptions.
 A weaker property called receipt-freeness captures the idea that an honest 
 voter---while able to verify that their ballot was counted---is required to keep 
-no information that a possible coercer could use to verifying how that voter had voted.
+no information that a possible coercer could use to verify how that voter had voted.
 
 End to end verifiability and the related notation of software independence~\cite{Rivest:2008:PTRS}
  have been claimed properties for many voting schemes.  Kusters et al~\cite{Kusters:2010:CCS} gave
@@ -300,7 +300,7 @@ of a ciphertext ballot $\encb$ by
 
 We use zero-knowledge proofs in the style of \cite{DBLP:conf/africacrypt/TereliusW10}
 to evidence the correctness of the shuffle, and zero-knowledge
-proofs of honest decryption [reference missing] to evidence
+proofs of honest decryption \cite{DBLP:conf/crypto/ChaumP92} to evidence
 correctness of decryption. This achieves ballot secrecy owing to the
 fact that the permutation is never revealed.
 
@@ -418,17 +418,17 @@ we need to produce evidence
 to make sure that the operation performed in each step 
 is verifiable. We achieve secrecy of the permutation and 
 verifiability that it's used in shuffling by combining 
-Pedersen's commitment \cite{Pederson} scheme with zero knowledge proof.
+Pedersen's commitment \cite{Pederson} scheme with a zero knowledge proof.
 In nutshell, Pedersen commitment scheme has the following properties. 
 \begin{itemize}
-\item Hiding: A dishonest party can't discover honest party's value 
+\item Hiding: The commitment reveals no information about what was commited to.
 \item Binding: A dishonest party cannot open his commitment in more  
 	 	than one way, i.e. he should not be able open to a value 
-	 	different from the one he committed to 
+	 	different from the one he committed to.
 \end{itemize}
 
 Combination of Pedersen's commitment scheme 
-with zero knowledge proof leads to a similar two step protocol (also known 
+with a zero knowledge proof leads to a similar two step protocol (also known 
 as commitment-consistent proof of shuffle)\cite{Wikstrom:2009:CPS}.
 \begin{itemize}
 \item We commit to a secret permutation and publish the commitment (hiding).
@@ -453,8 +453,8 @@ to verify that $v$ is indeed a row permutation of $u$ using some permutation
 whose commitment is $c_{\pi}$. Shuffling 
 introduces re-encryption, so there is no way to correlate the output
 ballot $v$ with input ballot $u$.  We take $v$ and shuffle each column of it 
-by $\pi$ producing ballot $w$, and construct zero knowledge proof same 
-as last step. We achieve the needed functionality described in this step
+by $\pi$ producing ballot $w$, and construct a zero knowledge proof in the same 
+way as the last step. We achieve the needed functionality described in this step
 by primitives listed in second point, i.e. 
 generating permutation, generating  Pedersen's 
 commitment \cite{Pederson} of permutation, construction of 
@@ -475,14 +475,14 @@ addition function (In our case, homormorphic
 In summary, the cryptographic primitives needed are 
 \begin{itemize} 
 \item encryption, decryption, construction of honest decryption
-     zero-knowledge-proof, and verification of zero-knowledge-proof. 
-\item generating permutation, generating  Pedersen's 
-     commitment \cite{Pederson} of permutation, construction of 
-     zero-knowledge-proof of Pedersen's commitment, verification of 
-     zero-knowledge-proof of Pedersen's commitment, shuffling a array 
+     zero-knowledge-proofs, and verisfication of zero-knowledge-proofs. 
+\item generating permutations, generating Pedersen's 
+     commitments \cite{Pederson} of permutation, construction of 
+     zero-knowledge-proofs of Pedersen's commitments, verification of 
+     zero-knowledge-proofs of Pedersen's commitments, shuffling a array 
      by a given permutation \cite{Wikstrom:2009:CPS}, 
-     generating zero-knowledge-proof of (commitment consistent) shuffle, 
-     and verification of zero-knowledge-proof of shuffle.
+     generating zero-knowledge-proofs of (commitment consistent) shuffle, 
+     and verification of zero-knowledge-proofs of shuffle.
 \item  update the margin matrix (homormorphic addition primitive)
 \end{itemize}
 
@@ -490,9 +490,9 @@ In summary, the cryptographic primitives needed are
 
 \smallskip\noindent\emph{Witnessing of Winners.}
 Once all ballots are counted, the computed margin is decrypted, and
-winners (together with evidence of winning) are being computed as
-for plaintext counting. We discuss this this part only briefly to be
-self contained as it is as for plaintext counting
+winners (together with evidence of winning) are computed using 
+plaintext counting. We discuss this part only briefly, for completness,
+ as it is identicial to the existing work on plaintext counting
 \cite{Pattinson:2017:SVE}. For each of the winners $w$ and each
 candidate $c$ we publish
 \begin{itemize}
@@ -531,7 +531,7 @@ winning conditions.
 The purpose of this formalization is not to verify cryptographic primitives, 
 but use them as a tool to construct evidence which can be used 
 to audit and verify the outcome during different phase 
-of election, so we have treated them as abstract entity and assumed 
+of election, so we have treated them as abstract entities and assumed 
 axioms about them inside Coq theorem prover \cite{Bertot:2004:ITP}.
 These axioms are very simple, and as a by product, these axioms can 
 be used by any property based testing library to test the concrete
@@ -561,9 +561,9 @@ axioms stating their correctness property.
 In this formalization, we do not deal with key generation and management of
 cryptographic infrastructure, but we assume that public and private keys 
 are generated 
-in pair and related with each other in accordance with cryptographic scheme. 
-We refer the reader to have a look at 
-to know more about group based cryptographic systems.
+in pairs and related with each other in accordance with cryptographic scheme. 
+We refer the reader to \cite{DBLP:conf/crypto/Gamal84} for a description
+of the ElGamal cryptosystem.
    
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 Definition plaintext := Z.
@@ -655,13 +655,13 @@ of constructors which capture the progression of counting by means
 of data object and assertions (also known as 
 side condition) to make sure that operations performed on these data
 objects are in accordance with protocol description. The counting process
-starts with (data objects) list of uncounted ballots, no invalid ballot, and 
+starts with (data objects) list of uncounted ballots, no invalid ballots, and 
 encrypted zero margin matrix with its decryption
 (decrypted zero margin matrix) and zero-knowledge-proof
 of honest decryption. We ensure the consistency of 
 this step by adding assertions, i.e. 
 list of all uncounted ballots are equal to cast ballots, no invalid 
-ballot by making sure it's empty list, and every entry in
+ballots by making sure it's an empty list, and every entry in
 decrypted margin matrix is zero, and decrypted margin matrix is
 indeed the decryption of encrypted zero margin matrix by using the 
 zero-knowledge-proof of honest decryption. 
@@ -926,7 +926,7 @@ Ecdecrypt
 Finally, $Ecfin$ takes fully decrypted margin 
 $dm$ and produces boolean function 
 $w$ that determines election winner(s) and loser(s).
-It's same as our previous work, so we refer to 
+It's the same as our previous work, so we refer to 
 \cite{Pattinson:2017:SVE} for more details.
 
 \begin{mdframed}[]
@@ -985,10 +985,10 @@ one-to-one relationship between list of (plaintext)ballot $bs$ and
 (encrypted)ballot $ebs$ is, all the ballots in $bs$ are decryption
 of ballots in $ebs$. This assumption leads to fact that
 ballot validity is not affected by encryption/decryption, because 
-encryption/decryption do not modify the value, or introduce 
-cycles, but simply transform them. What it means is, whenever there is a (plaintext)ballot valid in 
+encryption/decryption do not modify the value %, or introduce cycles, 
+but simply transform them. What it means is, whenever there is a (plaintext)ballot valid in 
 $bs$ then corresponding (encrypted)ballot is valid in $ebs$, and vice-versa.
-Similarly, whenever there is invalid ballot in $bs$ then 
+Similarly, whenever there is an invalid ballot in $bs$ then 
 corresponding ballot in $ebs$ is also invalid, and vice-versa.
 Finally, the idea for proof that they both produce same winner(s) and 
 loser(s) hinges on the 
@@ -1076,8 +1076,7 @@ proofs into programs retaining all the terms which live in Type universe,
 and erases every term  from the Prop universe. We use this mechanism to 
 extract our formalized Coq proofs into OCaml\cite{Leroy:2013:ORM} program 
 with cryptographic axioms left to be realized. For cryptographic purposes, 
-we used Unicrypt 
-\footnote{https://github.com/bfh-evg/unicrypt}
+we used Unicrypt\footnote{https://github.com/bfh-evg/unicrypt}
 because it is open source, well tested and has all the functionality 
 we needed with nice APIs except construction and verification of 
 honest decryption zero-knowledge-proof.
@@ -1289,9 +1288,8 @@ machine code level such as for example CakeML~\cite{Kumar:2014:CVI}.
 
 \smallskip\noindent\emph{Modelling Assumptions.} In our modelling of
 the cryptographic primitives, in particular the zero knowledge
-proofs, we have assumed that zero knowledge proofs can be verified,
-whereas in reality zero-knowledge proofs just confirm facts with
-very high probability which we have deliberately  ignored. As a
+proofs, we assumed certain things which in reality only hold with
+very high probability. As a
 consequence our correctness assertions only hold to the level
 of probability that is guaranteed by zero knowledge proofs.
 

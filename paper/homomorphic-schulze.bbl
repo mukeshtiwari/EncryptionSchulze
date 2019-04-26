@@ -30,6 +30,26 @@ Matthew Bernhard, Josh Benaloh, J.~Alex Halderman, Ronald~L. Rivest, Peter
   E-Vote-ID 2017}, volume 10615 of {\em Lecture Notes in Computer Science},
   pages 84--109. Springer, 2017.
 
+\bibitem{Bertot:2004:ITP}
+Yves Bertot, Pierre Cast{\'e}ran, G{\'e}rard Huet, and Christine
+  Paulin-Mohring.
+\newblock {\em Interactive theorem proving and program development : Coq'Art :
+  the calculus of inductive constructions}.
+\newblock Texts in theoretical computer science. Springer, 2004.
+
+\bibitem{DBLP:conf/crypto/ChaumP92}
+David Chaum and Torben~P. Pedersen.
+\newblock Wallet databases with observers.
+\newblock In {\em {CRYPTO}}, volume 740 of {\em Lecture Notes in Computer
+  Science}, pages 89--105. Springer, 1992.
+
+\bibitem{DBLP:conf/crypto/Gamal84}
+Taher~El Gamal.
+\newblock A public key cryptosystem and a signature scheme based on discrete
+  logarithms.
+\newblock In {\em {CRYPTO}}, volume 196 of {\em Lecture Notes in Computer
+  Science}, pages 10--18. Springer, 1984.
+
 \bibitem{Goldreich:1991:ACM}
 Oded Goldreich, Silvio Micali, and Avi Wigderson.
 \newblock Proofs that yield nothing but their validity for all languages in
@@ -118,25 +138,17 @@ Markus Schulze.
   {C}ondorcet-consistent single-winner election method.
 \newblock {\em Social Choice and Welfare}, 36(2):267--303, 2011.
 
-<<<<<<< HEAD
 \bibitem{DBLP:conf/africacrypt/TereliusW10}
 Bj{\"{o}}rn Terelius and Douglas Wikstr{\"{o}}m.
 \newblock Proofs of restricted shuffles.
 \newblock In {\em {AFRICACRYPT}}, volume 6055 of {\em Lecture Notes in Computer
   Science}, pages 100--113. Springer, 2010.
 
-=======
->>>>>>> ba7d2a3af405b6e37fb2ce314eff2f33653dbeb9
 \bibitem{Wikstrom:2009:CPS}
 Douglas Wikstr\"{o}m.
 \newblock A commitment-consistent proof of a shuffle.
 \newblock In {\em Proceedings of the 14th Australasian Conference on
   Information Security and Privacy}, ACISP '09, pages 407--421, Berlin,
   Heidelberg, 2009. Springer-Verlag.
-
-\bibitem{Yi:2014:HEA}
-Xun Yi, Russell Paulet, and Elisa Bertino.
-\newblock {\em Homomorphic Encryption and Applications}.
-\newblock Briefs in Computer Science. Springer, 2014.
 
 \end{thebibliography}
