@@ -457,15 +457,10 @@ to verify that $v$ is indeed a row permutation of $u$ using some permutation
 whose commitment is $c_{\pi}$. Shuffling 
 introduces re-encryption, so it is impossible to correlate the output
 ballot $v$ with input ballot $u$.  We take $v$ and shuffle each column of it 
-<<<<<<< HEAD
-by $\pi$ producing ballot $w$, and construct a zero knowledge proof in the same 
-way as the last step. We achieve the needed functionality described in this step
-by primitives listed in second point, i.e. 
-=======
 by $\pi$ producing ballot $w$, and construct a zero knowledge proof 
-analogous to last step. We achieve the functionality described in this step
-by primitives 
->>>>>>> a8c8554cfa27d252ce597a503c29454785615208
+analogous to last step
+way as the last step. We achieve the needed functionality described in this step
+by primitives
 generating permutation, generating  Pedersen's 
 commitment of permutation, construction of 
 zero-knowledge-proof of Pedersen's commitment, verification of 
@@ -485,8 +480,8 @@ addition function (In our case, homormorphic
 In summary, the cryptographic primitives needed are: 
 \begin{itemize} 
 \item encryption, decryption, construction of honest decryption
-<<<<<<< HEAD
-     zero-knowledge-proofs, and verisfication of zero-knowledge-proofs. 
+
+     zero-knowledge-proofs, and verification of zero-knowledge-proofs. 
 \item generating permutations, generating Pedersen's 
      commitments \cite{Pederson} of permutation, construction of 
      zero-knowledge-proofs of Pedersen's commitments, verification of 
@@ -494,16 +489,14 @@ In summary, the cryptographic primitives needed are:
      by a given permutation \cite{Wikstrom:2009:CPS}, 
      generating zero-knowledge-proofs of (commitment consistent) shuffle, 
      and verification of zero-knowledge-proofs of shuffle.
-=======
-     zero-knowledge-proof, and verification of zero-knowledge-proof. 
-\item generating permutation, generating  Pedersen's 
-     commitment of permutation, construction of 
-     zero-knowledge-proof of Pedersen's commitment, verification of 
-     zero-knowledge-proof of Pedersen's commitment, shuffling a array 
+
+\item generating permutations, generating  Pedersen's 
+     commitments of permutations, construction of 
+     zero-knowledge-proofs of Pedersen's commitments, verification of 
+     zero-knowledge-proofs of Pedersen's commitments, shuffling an array 
      by a given permutation, 
      generating zero-knowledge-proof of (commitment consistent) shuffle, 
      and verification of zero-knowledge-proof of shuffle.
->>>>>>> a8c8554cfa27d252ce597a503c29454785615208
 \item  update the margin matrix (homormorphic addition primitive)
 \end{itemize}
 
@@ -1008,29 +1001,12 @@ The meaning of
 one-to-one relationship between list of (plaintext)ballot $bs$ and
 (encrypted)ballot $ebs$ is that all the ballots in $bs$ are decryption
 of ballots in $ebs$. This assumption leads to fact that
-<<<<<<< HEAD
 ballot validity is not affected by encryption/decryption, because 
 encryption/decryption do not modify the value %, or introduce cycles, 
 but simply transform them. What it means is, whenever there is a (plaintext)ballot valid in 
 $bs$ then corresponding (encrypted)ballot is valid in $ebs$, and vice-versa.
 Similarly, whenever there is an invalid ballot in $bs$ then 
 corresponding ballot in $ebs$ is also invalid, and vice-versa.
-=======
-ballot validity is not affected by encryption or decryption, because 
-they do not modify the value or introduce 
-cycle in ballot, but simply transform them. 
-A natural consequence of this is, whenever there is a 
-(plaintext)ballot valid in 
-$bs$ then corresponding (encrypted)ballot is valid in $ebs$, and vice-versa.
-Similarly, whenever there is invalid ballot in $bs$ then 
-corresponding ballot in $ebs$ is also invalid, and vice-versa. This 
-leads to fact that when a (plaintext)ballot from $bs$ contributes to
-(plaintext)margin, i.e. it's valid, then corresponding 
-(encrypted)ballot in $ebs$ also contributes to (encrypted)margin, and 
-when a (plaintext)ballot from $bs$ does not contribute to
-(plaintext)margin, i.e. it's invalid, then corresponding 
-(encrypted)ballot in $ebs$ also does not contribute to (encrypted)margin.
->>>>>>> a8c8554cfa27d252ce597a503c29454785615208
 Finally, the idea for proof that they both produce same winner(s) and 
 loser(s) hinges on the 
 fact that fully constructed margin using ballot $bs$ will be same as 
