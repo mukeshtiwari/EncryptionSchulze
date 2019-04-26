@@ -350,30 +350,33 @@ ballot is not valid.
   
 %(* Explanation of Why do we need construction and verification 
 %of zero-knowledge-proof ?*)
-Before we move forward to explain Cryptographic primitives,
+Before we explain the Cryptographic primitives,
 we would like to highlight one crucial fact that  whenever 
 there is primitive for constructing a zero-knowledge-proof, 
 there is corresponding primitive to verify the constructed 
 zero-knowledge-proof.
 The verification primitive takes zero-knowledge-proof with some 
 other public parameters (depending on context) 
-and returns a boolean value which certifies the credentials of constructed 
+and returns a Boolean value which certifies the credentials of constructed 
 zero-knowledge-proof. In short, if the verification primitive returns 
-true, then we trust that zero-knowledge-proof is constructed honestly, 
-otherwise not. At this point, the natural question is that
-why do we need these two primitives in conjugation ? If our purpose 
-is to just count (encrypted)ballots, then we only need 
-construction primitive
+true, then we trust that the zero-knowledge-proof is constructed honestly, 
+otherwise we do not. 
+
+At this point, the natural question is that
+why do we need these two primitives in conjugation? If our purpose 
+is to just count (encrypted) ballots, then we only need 
+the construction primitive
 to generate the zero-knowledge-proof evidence of counting which can be
 checked by independent verifier for attesting the outcome.
 However, in our formalization we have formally 
 verified the outcome of homomorphic counting 
-on (encrypted)ballots against the outcome of (plaintext)ballots
-counting\cite{Pattinson:2017:SVE} assuming that all (encrypted)ballots 
-decrypts to (plaintext)ballots. During this process we need to verify that 
-all zero-knowledge-proofs were constructed honestly, and this step 
-is precisely the reason for verification primitive, hence they 
-always come into pair of construction and verification.
+on (encrypted) ballots against the outcome of (plaintext) ballots
+counting \cite{Pattinson:2017:SVE} assuming that all (encrypted) ballots 
+decrypts to (plaintext) ballots. During this process, we need to verify that 
+all zero-knowledge-proofs were constructed honestly. This step 
+is precisely the reason that we need verification primitive.  
+%hence they 
+%always come as a pair of construction and verification.
 %
 % However, 
 %we have formally verified the outcome of (encrypted)ballots, $ebs$, 
@@ -387,8 +390,8 @@ always come into pair of construction and verification.
 %always come into pair of construction and verification. 
 
    
-Now, we focus on the  cryptographic primitives needed to implement 
-the functionality described in previous section in more detail. 
+Now we focus on the  cryptographic primitives needed to implement 
+the functionality described in previous section. 
 In order to encrypt and decrypt a value with 
 evidence of correct decryption, we need primitives for encryption, 
 decryption, construction of
@@ -407,13 +410,13 @@ honest decryption zero-knowledge-proof.
 
 
 The next operation, witnessing the validity of ballot, 
-is more involved, so we need to make 
+is more involved, therefore we need to make 
 sure that the operations performed during this phase are verifiable. 
 Recall that witnessing 
 the validity of a ballot begins with shuffling its rows and columns 
 by the same permutation, which
-we don't want to reveal to achieve ballot secrecy, and follows with 
-decryption  of obtained shuffled ballot, so 
+we do not want to reveal to achieve ballot secrecy, and follows with 
+decryption  of the obtained shuffled ballot, so 
 we need to produce evidence 
 to make sure that the operation performed in each step 
 is verifiable. We achieve secrecy of the permutation and 
@@ -421,8 +424,8 @@ verifiability that it's used in shuffling by combining
 Pedersen's commitment \cite{Pederson} scheme with a zero knowledge proof.
 In nutshell, Pedersen commitment scheme has the following properties. 
 \begin{itemize}
-\item Hiding: The commitment reveals no information about what was commited to.
-\item Binding: A dishonest party cannot open his commitment in more  
+\item Hiding: the commitment reveals no information about what was commited to.
+\item Binding: a dishonest party cannot open his commitment in more  
 	 	than one way, i.e. he should not be able open to a value 
 	 	different from the one he committed to.
 \end{itemize}
@@ -430,9 +433,10 @@ In nutshell, Pedersen commitment scheme has the following properties.
 Combination of Pedersen's commitment scheme 
 with a zero knowledge proof leads to a similar two step protocol (also known 
 as commitment-consistent proof of shuffle)\cite{Wikstrom:2009:CPS}.
+
 \begin{itemize}
-\item We commit to a secret permutation and publish the commitment (hiding).
-\item We use zero knowledge proof to show that shuffling has used 
+\item Commit to a secret permutation and publish the commitment (hiding).
+\item Use zero knowledge proof to show that shuffling has used 
       the same permutation which we committed to in previous step (binding).
 \end{itemize}  
 
@@ -443,38 +447,45 @@ commitment scheme
 and publishing  the commitment $c_{\pi}$. However, for the binding step, rather 
 than opening $\pi$ we generate a zero knowledge proof, $zkp_{\pi}$, 
 using $\pi$ and $c_{\pi}$, which can 
-be  used to prove that $c_{\pi}$ is indeed a commitment of some permutation
-that is used in the (commitment consistent) shuffling 
+be  used to prove that $c_{\pi}$ is indeed the commitment of some permutation
+used in the (commitment consistent) shuffling 
  without being opened \cite{Wikstrom:2009:CPS}. Now that we have a way 
- to hide $\pi$, we use it to shuffle each row of 
-ballot, say $u$, producing ballot $v$, and construct a zero knowledge proof 
+ to hide $\pi$, we use it to shuffle each row a of 
+ballot $u$, producing ballot $v$. We construct a zero knowledge proof 
 of this operation using $u$, $v$, $\pi$, and $c_{\pi}$, which can be used 
 to verify that $v$ is indeed a row permutation of $u$ using some permutation 
 whose commitment is $c_{\pi}$. Shuffling 
-introduces re-encryption, so there is no way to correlate the output
+introduces re-encryption, so it is impossible to correlate the output
 ballot $v$ with input ballot $u$.  We take $v$ and shuffle each column of it 
+<<<<<<< HEAD
 by $\pi$ producing ballot $w$, and construct a zero knowledge proof in the same 
 way as the last step. We achieve the needed functionality described in this step
 by primitives listed in second point, i.e. 
+=======
+by $\pi$ producing ballot $w$, and construct a zero knowledge proof 
+analogous to last step. We achieve the functionality described in this step
+by primitives 
+>>>>>>> a8c8554cfa27d252ce597a503c29454785615208
 generating permutation, generating  Pedersen's 
-commitment \cite{Pederson} of permutation, construction of 
+commitment of permutation, construction of 
 zero-knowledge-proof of Pedersen's commitment, verification of 
 zero-knowledge-proof of Pedersen's commitment, shuffling a array 
-by a given permutation \cite{Wikstrom:2009:CPS}, 
+by a given permutation, 
 generating zero-knowledge-proof of (commitment consistent) shuffle, 
 and verification of zero-knowledge-proof of shuffle.
 We decrypt the ballot $w$ to evidence validity, and to make this step
- verifiable, we reuse the primitives developed in
- encryption and decryption step.
+ verifiable, we reuse the primitives developed in the
+ previous, i.e. encryption/decryption step.
 
 
 Finally, we need primitive to update the margin which is simple homomorphic
 addition function (In our case, homormorphic 
  addition function is multiplying two large numbers modulo a large prime 
  number).
-In summary, the cryptographic primitives needed are 
+In summary, the cryptographic primitives needed are: 
 \begin{itemize} 
 \item encryption, decryption, construction of honest decryption
+<<<<<<< HEAD
      zero-knowledge-proofs, and verisfication of zero-knowledge-proofs. 
 \item generating permutations, generating Pedersen's 
      commitments \cite{Pederson} of permutation, construction of 
@@ -483,6 +494,16 @@ In summary, the cryptographic primitives needed are
      by a given permutation \cite{Wikstrom:2009:CPS}, 
      generating zero-knowledge-proofs of (commitment consistent) shuffle, 
      and verification of zero-knowledge-proofs of shuffle.
+=======
+     zero-knowledge-proof, and verification of zero-knowledge-proof. 
+\item generating permutation, generating  Pedersen's 
+     commitment of permutation, construction of 
+     zero-knowledge-proof of Pedersen's commitment, verification of 
+     zero-knowledge-proof of Pedersen's commitment, shuffling a array 
+     by a given permutation, 
+     generating zero-knowledge-proof of (commitment consistent) shuffle, 
+     and verification of zero-knowledge-proof of shuffle.
+>>>>>>> a8c8554cfa27d252ce597a503c29454785615208
 \item  update the margin matrix (homormorphic addition primitive)
 \end{itemize}
 
@@ -970,26 +991,46 @@ Lemma pschulze_winners (group : Group)
 \end{lstlisting}
 
 
-One of key achievements of our formalization is,
+One of key achievements of our formalization is that
 not only we provide the tally sheet  
 to verify the outcome, but we also provide 
 proof of correctness against fully verified implementation of 
-Schulze method \cite{Pattinson:2017:SVE} by using the 
+Schulze method\cite{Pattinson:2017:SVE} by using the 
 axioms on cryptographic primitives. Our proof of correctness
-states that we produce same set of winner(s) by two computations 
+states that we produce same set of winner(s) and loser(s), i.e. same boolean 
+function $f$, by two computations 
 when there is one-to-one relation between list of (plaintext)ballots 
-$bs$ used  in fully verified computation (\textit{Couns bs (winners f)}), 
+$bs$ used  in fully verified computation 
+(\textit{Couns bs (winners f)})\cite{Pattinson:2017:SVE}, 
 and list of (encrypted)ballots $ebs$ used in axiomatic computation 
-(\textit{ECount group ebs (winners f)}). The meaning of 
+(\textit{ECount group ebs (winners f)}). 
+The meaning of 
 one-to-one relationship between list of (plaintext)ballot $bs$ and
-(encrypted)ballot $ebs$ is, all the ballots in $bs$ are decryption
+(encrypted)ballot $ebs$ is that all the ballots in $bs$ are decryption
 of ballots in $ebs$. This assumption leads to fact that
+<<<<<<< HEAD
 ballot validity is not affected by encryption/decryption, because 
 encryption/decryption do not modify the value %, or introduce cycles, 
 but simply transform them. What it means is, whenever there is a (plaintext)ballot valid in 
 $bs$ then corresponding (encrypted)ballot is valid in $ebs$, and vice-versa.
 Similarly, whenever there is an invalid ballot in $bs$ then 
 corresponding ballot in $ebs$ is also invalid, and vice-versa.
+=======
+ballot validity is not affected by encryption or decryption, because 
+they do not modify the value or introduce 
+cycle in ballot, but simply transform them. 
+A natural consequence of this is, whenever there is a 
+(plaintext)ballot valid in 
+$bs$ then corresponding (encrypted)ballot is valid in $ebs$, and vice-versa.
+Similarly, whenever there is invalid ballot in $bs$ then 
+corresponding ballot in $ebs$ is also invalid, and vice-versa. This 
+leads to fact that when a (plaintext)ballot from $bs$ contributes to
+(plaintext)margin, i.e. it's valid, then corresponding 
+(encrypted)ballot in $ebs$ also contributes to (encrypted)margin, and 
+when a (plaintext)ballot from $bs$ does not contribute to
+(plaintext)margin, i.e. it's invalid, then corresponding 
+(encrypted)ballot in $ebs$ also does not contribute to (encrypted)margin.
+>>>>>>> a8c8554cfa27d252ce597a503c29454785615208
 Finally, the idea for proof that they both produce same winner(s) and 
 loser(s) hinges on the 
 fact that fully constructed margin using ballot $bs$ will be same as 
@@ -1117,59 +1158,50 @@ https://github.com/Julow/ocaml-java} which provides
  $ij$
  
 
-\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-M: AA(13.., 10..) AB(90.., 14..) 
-AC(11.., 23..) BA(16.., 13..) BB(79.., 46..) BC(12.., 14..)
-CA(50.., 53..) CB(70.., 68..) CC(23.., 82..), 
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\scriptsize]
+M: AA(13.., 10..) AB(90.., 14..)  AC(11.., 23..) BA(16.., 13..) 
+BB(79.., 46..) BC(12.., 14..) CA(50.., 53..) CB(70.., 68..) CC(23.., 82..), 
 D: [AA: 0 AB: 0 AC: 0 BA: 0 BB: 0 BC: 0 CA: 0 CB: 0 CC: 0], 
 Zero-Knowledge-Proof-of-Honest-Decryption: [..]
--------------------------------------------------------------
-V: [AA(42.., 15..) AB(63.., 32..) AC(70, 44..) BA(47.., 34..) 
-BB(16.., 28..) BC(39.., 16..) CA(19.., 13..) CB(57.., 12..) 
-CC(19.., 89..),..], I:  [], 
-M: AA(12.., 11..) AB(13.., 66..) AC(16.., 14.) BA(48.., 31..) 
-BB(15.., 52..) BC(15.., 68..) CA(39.., 69..) CB(12.., 78..)
-CC(10.., 40..),
-Row-Permuted-Ballot: AA(53.., 16..) AB(23.., 44..) 
-AC(72.., 47..) BA(10.., 19..) BB(74.., 16..) BC(20.., 60..) 
-CA(44.., 10..) CB(12.., 16..) CC(59.., 98..),
-Column-Permuted-Ballot: AA(81.., 41..) AB(17.., 14..) 
-AC(10.., 14..) BA(37.., 12..) BB(14.., 66..) BC(10.., 13..)
-CA(12.., 13..) CB(14.., 16..) CC(12.., 10..),
-Decryption-of-Permuted Ballot: AA0 AB-1 AC1 BA1 BB0 BC1 CA-1 
-CB-1 CC0,
+------------------------------------------------------------------------------
+V: [AA(42.., 15..) AB(63.., 32..) AC(70, 44..) BA(47.., 34..) BB(16.., 28..)
+BC(39.., 16..) CA(19.., 13..) CB(57.., 12..) CC(19.., 89..),..], I:  [], 
+M: AA(12.., 11..) AB(13.., 66..) AC(16.., 14.) BA(48.., 31..) BB(15.., 52..)
+BC(15.., 68..) CA(39.., 69..) CB(12.., 78..) CC(10.., 40..),
+Row-Permuted-Ballot: AA(53.., 16..) AB(23.., 44..) AC(72.., 47..) 
+BA(10.., 19..) BB(74.., 16..) BC(20.., 60..) CA(44.., 10..) CB(12.., 16..)
+CC(59.., 98..),
+Column-Permuted-Ballot: AA(81.., 41..) AB(17.., 14..) AC(10.., 14..) 
+BA(37.., 12..) BB(14.., 66..) BC(10.., 13..) CA(12.., 13..) CB(14.., 16..)
+CC(12.., 10..),
+Decryption-of-Permuted Ballot: AA0 AB-1 AC1 BA1 BB0 BC1 CA-1 CB-1 CC0,
 Zero-Knowledge-Proof-of-Row-Permutation: [Tuple[...]], 
 Zero-Knowledge-Proof-of-Column-Permutation: [Tuple[..]], 
 Zero-Knowledge-Proof-of-Decryption: [Triple[..]], 
 Permutation-Commitment: Triple[..]
 Zero-Knowledge-Proof-of-Commitment: Tuple[..]
---------------------------------------------------------------
+------------------------------------------------------------------------------
 .
 .
 .
---------------------------------------------------------------
-V: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) 
-BA(13.., 31..) BB(27.., 82..) BC(31.., 50..) CA(16.., 11..) 
-CB(74.., 15..) CC(26.., 36..)], I: [],
-M: AA(86.., 38..) AB(21.., 14..) AC(16.., 25..) BA(16.., 22..) 
-BB(18.., 15..) BC(11.., 63..) CA(15.., 34..) CB(76.., 18..) 
-CC(11.., 10..), 
+------------------------------------------------------------------------------
+V: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) BA(13.., 31..) BB(27.., 82..)
+BC(31.., 50..) CA(16.., 11..) CB(74.., 15..) CC(26.., 36..)], I: [],
+M: AA(86.., 38..) AB(21.., 14..) AC(16.., 25..) BA(16.., 22..) BB(18.., 15..)
+BC(11.., 63..) CA(15.., 34..) CB(76.., 18..) CC(11.., 10..), 
 Row-Permuted-Ballot: .., Column-Permuted-Ballot: .., 
-Decryption-of-Permuted-Ballot: AA0 AB-10 AC1 BA10 BB0 BC1 CA-1 
-CB-1 CC0,
+Decryption-of-Permuted-Ballot: AA0 AB-10 AC1 BA10 BB0 BC1 CA-1 CB-1 CC0,
 Zero-Knowledge-Proof-of-Row-Permutation: [..],
 Zero-Knowledge-Proof-of-Column-Permutation: [..], 
 Zero-Knowledge-Proof-of-Decryption: [..], 
 Permutation-Commitment: Triple[..], 
 Zero-Knowledge-Proof-of-Commitment: Tuple[..]
---------------------------------------------------------------
-V: [], I: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) 
-BA(13.., 31..) BB(27.., 82..)
-BC(31.., 50..) CA(16.., 11..) CB(74.., 15..) CC(26.., 36..)], 
-M: .., 
-D: [AA: 0 AB: 4 AC: 4 BA: -4 BB: 0 BC: 4 CA: -4 CB: -4 CC: 0],
+------------------------------------------------------------------------------
+V: [], I: [AA(36.., 10..) AB(20.., 13..) AC(75.., 43..) BA(13.., 31..) 
+BB(27.., 82..) BC(31.., 50..) CA(16.., 11..) CB(74.., 15..) CC(26.., 36..)], 
+M: .., D: [AA: 0 AB: 4 AC: 4 BA: -4 BB: 0 BC: 4 CA: -4 CB: -4 CC: 0],
 Zero-Knowledge-Proof-of-Decryption: [..]
---------------------------------------------------------------
+------------------------------------------------------------------------------
 D: [AA: 0 AB: 4 AC: 4 BA: -4 BB: 0 BC: 4 CA: -4 CB: -4 CC: 0]
 winning: A
    for B: path A --> B of strength 4, 5-coclosed set: 
@@ -1245,8 +1277,13 @@ highest amount of ballot we counted was 10,000 (not included in graph), and
 it ran for 25 hours. Clearly, it is not very efficient, and the reason we 
 suspect is a lot of communication between OCaml runtime system 
 and Java run time system.
+%\begin{wrapfigure}[7]{r}{.5\textwidth} 
+%    \begin{center}
+%        \includegraphics[width=60mm]{PlotVer3.png}
+%    \end{center}
+%\end{wrapfigure}
 \begin{center}
-\includegraphics[scale=0.50]{PlotVer3.png}
+\includegraphics[scale=0.40]{PlotVer3.png}
 
 \end{center}
 
