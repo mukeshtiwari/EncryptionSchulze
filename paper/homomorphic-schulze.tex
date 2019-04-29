@@ -711,39 +711,6 @@ verification data is that the former can be simply be inspected
 data (here  in the form of a zero knowledge proof).
 \footnote{DP: make this clearer}
 
-Schematically, we have the following representation with
-data in first column, and 
-assertions about the data in second column.
-\begin{mdframed}[]
-Ecax
-\begin{center}
-\begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
-\begin{itemize}
-  \item[*] cast ballots $bs$, and uncounted ballots $us$
-  \item[*] encrypted zero margin matrix $encm$, 
-      its decryption (decrypted zero margin matrix) $decm$, and 
-      zero-knowledge proof $zkpdec$ of honest decryption
-  \end{itemize}
-  &
-  \begin{itemize}
-  \item[*] uncounted 
-	ballots are equal to cast ballots, i.e. $us$ = $bs$
-  \item[*] honest decryption verification 
-	primitive  verifies the fact that $decm$ is honest 
-	decryption of $encm$  using $zkpdec$, i.e. it returns true
-%	, i.e. \textit{
-%(forall c d, verify\_zero\_knowledge\_decryption\_proof 
-%   group (decm c d) (encm c d) (zkpdec c d) = true)}
-   \item[*]all the entries in $decm$ are zero
-%   , i.e. \textit{
-%      (forall c d : cand, decm c d = 0)}
-\end{itemize}
-\end{tabular}
-\begin{mathpar} 
-\inferrule* [left=Ecax] { } {$ECount group bs (epartial (us, []) encm)$}
-\end{mathpar}
-\end{center}
-\end{mdframed}
 
 The translation of high level representation into Coq representation
 is now easy, and we arrive at the following Coq code.
@@ -777,59 +744,6 @@ evidenced. As before, we have:
   ballot is indeed valid.
 \end{description}
 
-\noindent
-Schematically, we have  the following, again with the data on the
-left, and the correctness conditions on the right.
-\begin{mdframed}[nobreak=true]
-Ecvalid
-\begin{center}
-\begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
-\begin{itemize}
-  \item[*] commitment of a (secret) permutation $cpi$, and 
-  zero-knowledge-proof $zkpcpi$ of this commitment
-  \item[*] ballot $v$ whose each row is permutation of corresponding row of 
-      $u$, and zero-knowledge-proof of this fact $zkppermuv$. Similarly,
-      ballot $w$ whose each column is permutation of corresponding column 
-      of $v$ by same (secret) permutation, and zero-knowledge-proof of 
-      this fact $zkppermvw$
-  \item[*]ballot $b$ which is decryption of ballot $w$, and 
-  zero-knowledge-proof of this fact $zkpdecw$  
-  \item[*] old margin matrix $m$, and updated margin matrix $nm$
-  \end{itemize}
-  &
-  \begin{itemize}
-  \item[*] permutation commitment primitive verifies 
-  %\textit{$verify\_permutation\_commitment$} verifies 
-      the claim (returns true) that  $cpi$ is commitment of a 
-      (secret) permutation whose zero-knowlege-proof is $zkpcpi$  
-  \item[*] shuffle verification primitive verifies the claim 
-  %\textit{$verify\_row\_permutation\_ballot$} verifies the claim
-      that each row of ballot $v$ is permutation of corresponding 
-      row of ballot $u$ by same permutation whose commitment is $cpi$
-      by using the zero-knowledge-proof, $zkppermuv$. Similarly,
-      it verifies the claim for 
-      %$verify\_col\_permutation\_ballot$ verifies the claim 
-      ballot $v$ and $w$, but for columns. 
-  \item[*] honest decryption verification primitive
-  %\textit{$verify\_zero\_knowledge\_decryption\_proof$} 
-  verifies the claim
-      that ballot $b$ is honest decryption of ballot $w$
-  \item[*] ballot validity primitive verifies that ballot $b$ is valid 
-%  $matrix\_ballot\_valid$ $b$ verifies that ballot $b$ is valid, 
-  \item[*] update margin $nm$ is equal to homomorphic addition of 
-           old margin $m$ and ballot $u$
-%  $homomorphic\_addition$ ensures that $nm$ is homomophic
-%      addition of $u$ and $m$.
-    
-\end{itemize}
-\end{tabular}
-\begin{mathpar} 
-\inferrule* [left=Ecvalid]
-{$ECount group bs (epartial (u :: us, inbs) m)$} 
-{$ECount group bs (epartial (us, inbs) nm)$}
-\end{mathpar}
-\end{center}
-\end{mdframed}
 
 We elide the description of the third constructor that is applied
 when an invalid ballot is being encountered (here, the only
@@ -847,30 +761,6 @@ Also here, we have
   verifies, i.e. the given decrypted margin is indeed the decryption
   of the (last) homomorphically computed margin matrix.
 \end{description} 
-Schematically:
-\begin{mdframed}[nobreak=true]
-Ecdecrypt
-\begin{center}
-\begin{tabular}{p{0.5\textwidth}  p{0.5\textwidth}}
-\begin{itemize}
-  \item[*] fully constructed encrypted zero margin matrix $encm$, 
-      its decryption (decrypted zero margin matrix) $decm$, and 
-      zero-knowledge proof $zkpdec$ of honest decryption
-  \end{itemize}
-  &
-  \begin{itemize}
-  \item[*] honest decryption verification primitive verifies the 
-  fact that $decm$ is honest decryption of $encm$ using 
-  zero-knowledge-proof $zkpdec$, i.e. it returns true
-\end{itemize}
-\end{tabular}
-\begin{mathpar} 
-\inferrule* [left=Ecdecrypt]
-   { $ECount group bs (epartial ([], inbs) encm)$} 
-   { $ECount group bs (edecrypt decm)$}
-\end{mathpar}
-\end{center}
-\end{mdframed}
 
 The last constructor finally declares the winners of the election,
 and we have:
@@ -888,25 +778,6 @@ This last part is identical to our previous formalisation of the
 Schulze Method (for plaintext ballots), and we refer to 
 \cite{Pattinson:2017:SVE} for more details.
 
-\begin{mdframed}[]
-Ecfin
-\begin{mathpar} 
-\inferrule* [left=Ecfin]
-   { $ECount group bs (edecrypt dm)$} 
-   { $ECount group bs (ewinners w)$}
-\end{mathpar}
-\end{mdframed}
-%\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-%ecfin dm (f : cand -> bool) 
-% (d : forall c, (wins_type dm c) + (loses_type dm c)):
-% ECount group bs (edecrypt dm) ->
-% (forall c, f c = true <-> (exists x, d c = inl x)) ->
-% (forall c, f c = false <-> (exists x, d c = inr x)) ->
-% ECount group bs (ewinners f). 
-%\end{lstlisting}
-%
-%(* Why do we need to exhibit boolean function ? because all Schulze 
-%   election has winner, and we capture this notion as boolean function  *)
 
 \section{Correctness by Construction and Verification}
 \label{sec:correct}
