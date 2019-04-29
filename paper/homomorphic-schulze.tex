@@ -722,8 +722,7 @@ ecax (us : list eballot) (encm : cand -> cand -> ciphertext)
    group (decm c d) (encm c d) (zkpdec c d) = true) -> 
  ECount group bs (epartial (us, []) encm)
 \end{lstlisting}
-\footnote{DP: the primitives displayed here (verify zkp) should be
-amongst those that are explained in code also earlier}
+
 
 The constructor \texttt{ecvalid} represents the effect of counting a
 valid ballot. Here the crucial aspect is that validity needs to be
@@ -923,27 +922,28 @@ correspondence has two directions, and both assume that we are given
 two lists of ballots that are the encryption (resp. decryption) of
 one another. 
 
-The first theorem, \texttt{insert name here}, reproduced below shows
+The first theorem, \texttt{plaintext\_schulze\_to\_homomorphic}, 
+reproduced below shows
 that every winner that can be determined using plaintext counting
 can also be evidenced on the basis of encrypted ballots, whereas
-Theorem \texttt{insert name here} establishes the opposite.
+Theorem \newline \texttt{homomorphic\_schulze\_to\_plaintext} establishes the opposite.
 
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-  Lemma plaintext_schluze_to_homomorphic 
-  (group : Group) (bs : list ballot): 
-  forall (pbs : list pballot) (ebs : list eballot) 
-  (w : cand -> bool), (pbs = map (fun x => (fun c d => 
-  decrypt_message group privatekey (x c d))) ebs) ->
-  (mapping_ballot_pballot bs pbs) -> 
-  Count bs (winners w) -> ECount group ebs (ewinners w).
+  Lemma plaintext_schulze_to_homomorphic 
+   (group : Group) (bs : list ballot): 
+   forall (pbs : list pballot) (ebs : list eballot) 
+   (w : cand -> bool), (pbs = map (fun x => (fun c d => 
+   decrypt_message group privatekey (x c d))) ebs) ->
+   (mapping_ballot_pballot bs pbs) -> 
+   Count bs (winners w) -> ECount group ebs (ewinners w).
       
   Lemma homomorphic_schulze_to_plaintext 
-  (group : Group) (bs : list ballot):
-  forall (pbs : list pballot) (ebs : list eballot) 
-  (w : cand -> bool) (pbs = map (fun x => (fun c d => 
-  decrypt_message group privatekey (x c d))) ebs) ->
-  (mapping_ballot_pballot bs pbs) ->
-  ECount grp ebs (ewinners w) -> Count bs (winners w).
+   (group : Group) (bs : list ballot):
+   forall (pbs : list pballot) (ebs : list eballot) 
+   (w : cand -> bool) (pbs = map (fun x => (fun c d => 
+   decrypt_message group privatekey (x c d))) ebs) ->
+   (mapping_ballot_pballot bs pbs) ->
+   ECount grp ebs (ewinners w) -> Count bs (winners w).
 \end{lstlisting}
 
 
@@ -1001,7 +1001,7 @@ primitives need to be supplied to fill the holes and indeed be able
 to compile and execute the extracted program.  
 
 To fill this hole, we implement the cryptoraphic primitives with
-help of the Unicrypt library. 
+help of the Unicrypt library\cite{LocherH14}. 
 \footnote{https://github.com/bfh-evg/unicrypt} \footnote{DP: turn
 into a proper reference}
 Unicrypt is a freely available library, written in Java,  that provides nearly all of
