@@ -6,8 +6,6 @@ Database file #1: all2.bib
 Database file #2: delta2.bib
 You've used 23 entries,
             2118 wiz_defined-function locations,
-            705 strings with 9226 characters,
-and the built_in function-call counts, 10671 in all, are:
 = -- 1086
 > -- 474
 < -- 26
@@ -20,6 +18,32 @@ call.type$ -- 23
 change.case$ -- 135
 chr.to.int$ -- 0
 cite$ -- 23
+<<<<<<< HEAD
+duplicate$ -- 439
+empty$ -- 830
+format.name$ -- 159
+if$ -- 2348
+int.to.chr$ -- 0
+int.to.str$ -- 23
+missing$ -- 24
+newline$ -- 117
+num.names$ -- 66
+pop$ -- 160
+preamble$ -- 1
+purify$ -- 114
+quote$ -- 0
+skip$ -- 343
+stack$ -- 0
+substring$ -- 694
+swap$ -- 186
+text.length$ -- 24
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 88
+warning$ -- 0
+while$ -- 109
+width$ -- 25
+write$ -- 279
 duplicate$ -- 447
 empty$ -- 844
 format.name$ -- 154

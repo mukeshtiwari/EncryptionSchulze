@@ -550,20 +550,38 @@ towards El Gamal \cite{DBLP:conf/crypto/Gamal84}).
 The first part of our formailsation concerns the cryptographic
 primitives that we collect in a separate module. Below is an example
 of the generation / verification primitives for decryption, together
-with a coherence axiom.
-
+with a coherence axiom. 
+\newline\textbf{Decryption Primitive:}
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-Definition plaintext := Z.
-Variable ciphertext : Type. 
-
-Definition eballot := cand -> cand -> ciphertext.
-Definition pballot := cand -> cand -> plaintext.
-
+Variable decrypt_message : 
+    Group -> Prikey -> ciphertext ->  plaintext.
+\end{lstlisting}
+\textbf{ZKP Construction Primitive for honest decryption:}
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+Variable construct_zero_knowledge_decryption_proof :
+    Group -> Prikey -> ciphertext -> DecZkp.
+\end{lstlisting}
+\pagebreak\textbf{ZKP Verification Primitive for honest decryption:}
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+Axiom verify_zero_knowledge_decryption_proof :
+    Group -> plaintext -> ciphertext -> DecZkp -> bool.
+\end{lstlisting}
+\textbf{Coherence Axioms:}
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 Axiom decryption_left_inverse (group : Group) 
  (privatekey : Prikey) : forall  (pt : plaintext),
  decrypt_message group privatekey 
  (encrypt_message group pt) = pt.
+ 
+Axiom verify_honest_decryption_zkp :
+ forall (group : Group) (pt : plaintext) 
+ (ct : ciphertext) (privatekey : Prikey) 
+ (H : pt = decrypt_message group privatekey ct),
+ verify_zero_knowledge_decryption_proof
+  group pt ct (construct_zero_knowledge_decryption_proof
+                group privatekey ct) = true.
 \end{lstlisting}
+    
 \footnote{DP: separate ballots from decryption. Give example of ZKP
 generation / verification}.
 
