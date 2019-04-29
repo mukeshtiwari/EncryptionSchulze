@@ -30,6 +30,13 @@ Matthew Bernhard, Josh Benaloh, J.~Alex Halderman, Ronald~L. Rivest, Peter
   E-Vote-ID 2017}, volume 10615 of {\em Lecture Notes in Computer Science},
   pages 84--109. Springer, 2017.
 
+\bibitem{Bertot:2004:ITP}
+Yves Bertot, Pierre Cast{\'e}ran, G{\'e}rard Huet, and Christine
+  Paulin-Mohring.
+\newblock {\em Interactive theorem proving and program development : Coq'Art :
+  the calculus of inductive constructions}.
+\newblock Texts in theoretical computer science. Springer, 2004.
+
 \bibitem{Goldreich:1991:ACM}
 Oded Goldreich, Silvio Micali, and Avi Wigderson.
 \newblock Proofs that yield nothing but their validity for all languages in
@@ -78,6 +85,13 @@ Pierre Letouzey.
   volume 2646 of {\em Lecture Notes in Computer Science}, pages 200--219.
   Springer, 2003.
 
+\bibitem{Letouzey:2008:ECO}
+Pierre Letouzey.
+\newblock Extraction in {C}oq: An overview.
+\newblock In Arnold Beckmann, Costas Dimitracopoulos, and Benedikt L{\"o}we,
+  editors, {\em Proc. CiE 2008}, volume 5028 of {\em Lecture Notes in Computer
+  Science}, pages 359--369. Springer, 2008.
+
 \bibitem{Pattinson:2015:VCM}
 Dirk Pattinson and Carsten Sch{\"{u}}rmann.
 \newblock Vote counting as mathematical proof.
@@ -101,7 +115,7 @@ Torben~Pryds Pedersen.
 
 \bibitem{Rivest:2008:PTRS}
 Ronald~L Rivest.
-\newblock On the notion of ‘software independence’in voting systems.
+\newblock On the notion of √îsoftware independence√ïin voting systems.
 \newblock {\em Philosophical Transactions of the Royal Society A: Mathematical,
   Physical and Engineering Sciences}, 366(1881):3759--3767, 2008.
 
@@ -117,6 +131,12 @@ Markus Schulze.
 \newblock A new monotonic, clone-independent, reversal symmetric, and
   {C}ondorcet-consistent single-winner election method.
 \newblock {\em Social Choice and Welfare}, 36(2):267--303, 2011.
+
+\bibitem{DBLP:conf/africacrypt/TereliusW10}
+Bj{\"{o}}rn Terelius and Douglas Wikstr{\"{o}}m.
+\newblock Proofs of restricted shuffles.
+\newblock In {\em {AFRICACRYPT}}, volume 6055 of {\em Lecture Notes in Computer
+  Science}, pages 100--113. Springer, 2010.
 
 \bibitem{Wikstrom:2009:CPS}
 Douglas Wikstr\"{o}m.

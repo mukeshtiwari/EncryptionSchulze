@@ -4,44 +4,44 @@ The top-level auxiliary file: homomorphic-schulze.aux
 The style file: plain.bst
 Database file #1: all2.bib
 Database file #2: delta2.bib
-You've used 20 entries,
+You've used 23 entries,
             2118 wiz_defined-function locations,
-            684 strings with 8652 characters,
-and the built_in function-call counts, 9292 in all, are:
-= -- 937
-> -- 436
-< -- 20
-+ -- 168
-- -- 142
-* -- 663
-:= -- 1425
-add.period$ -- 74
-call.type$ -- 20
-change.case$ -- 120
+            704 strings with 9235 characters,
+and the built_in function-call counts, 10602 in all, are:
+= -- 1071
+> -- 490
+< -- 24
++ -- 188
+- -- 159
+* -- 753
+:= -- 1621
+add.period$ -- 86
+call.type$ -- 23
+change.case$ -- 135
 chr.to.int$ -- 0
-cite$ -- 20
-duplicate$ -- 379
-empty$ -- 723
-format.name$ -- 142
-if$ -- 2051
+cite$ -- 23
+duplicate$ -- 439
+empty$ -- 830
+format.name$ -- 159
+if$ -- 2348
 int.to.chr$ -- 0
-int.to.str$ -- 20
-missing$ -- 20
-newline$ -- 102
-num.names$ -- 58
-pop$ -- 140
+int.to.str$ -- 23
+missing$ -- 24
+newline$ -- 117
+num.names$ -- 66
+pop$ -- 160
 preamble$ -- 1
-purify$ -- 101
+purify$ -- 114
 quote$ -- 0
-skip$ -- 298
+skip$ -- 343
 stack$ -- 0
-substring$ -- 615
-swap$ -- 159
-text.length$ -- 20
+substring$ -- 694
+swap$ -- 186
+text.length$ -- 24
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 78
+type$ -- 88
 warning$ -- 0
-while$ -- 96
-width$ -- 22
-write$ -- 242
+while$ -- 109
+width$ -- 25
+write$ -- 279
