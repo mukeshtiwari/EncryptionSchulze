@@ -98,13 +98,6 @@ Pierre Letouzey.
   volume 2646 of {\em Lecture Notes in Computer Science}, pages 200--219.
   Springer, 2003.
 
-\bibitem{Letouzey:2008:ECO}
-Pierre Letouzey.
-\newblock Extraction in {C}oq: An overview.
-\newblock In Arnold Beckmann, Costas Dimitracopoulos, and Benedikt L{\"o}we,
-  editors, {\em Proc. CiE 2008}, volume 5028 of {\em Lecture Notes in Computer
-  Science}, pages 359--369. Springer, 2008.
-
 \bibitem{Pattinson:2015:VCM}
 Dirk Pattinson and Carsten Sch{\"{u}}rmann.
 \newblock Vote counting as mathematical proof.
