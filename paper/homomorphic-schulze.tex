@@ -568,11 +568,6 @@ Axiom verify_zero_knowledge_decryption_proof :
 \end{lstlisting}
 \textbf{Coherence Axioms:}
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-Axiom decryption_left_inverse (group : Group) 
- (privatekey : Prikey) : forall  (pt : plaintext),
- decrypt_message group privatekey 
- (encrypt_message group pt) = pt.
- 
 Axiom verify_honest_decryption_zkp :
  forall (group : Group) (pt : plaintext) 
  (ct : ciphertext) (privatekey : Prikey) 
@@ -582,28 +577,37 @@ Axiom verify_honest_decryption_zkp :
                 group privatekey ct) = true.
 \end{lstlisting}
     
-\footnote{DP: separate ballots from decryption. Give example of ZKP
-generation / verification}.
+%\footnote{DP: separate ballots from decryption. Give example of ZKP
+%generation / verification}.
+%
+%{\tt --------------------------------------------------------------
+%}
 
-{\tt --------------------------------------------------------------
-}
-
-
-Some comments are in order.  We represent plain text by the Coq data
+\noindent
+We represent plain text by the Coq data
 type of integers (as this is the information that is to be
 encrypted), but leave ciphertext as an abstract type, to be
-instantiated later.  
-
-{\tt DP: some detail about verification / generation primitives.
-Possibly honest decryption, as it is easier?}
-
+instantiated later. Honest decryption ZKP construction primitive
+takes a element of Group, private key, cipher text
+and returns element of DecZkp (abstract type which represents 
+decryption zero knowledge proof). 
+An element of a \texttt{Group} is 
+a triplet of large prime number, group generator and public key. 
+Honest decryption verification primitive verifies the claim about 
+constructed zero knowledge proof, i.e. it takes the group, 
+plaintext, ciphertext, decryption zero knowledge proof, and returns true 
+or false. A true value means claim is legitimate, otherwise bogus.      
 For ballots, we assume a type \texttt{cand} of candidates, and
 represent plaintext and encrypted ballots as two-argument functions
 that take integers, and ciphertexts, as values. 
 
-  {\tt DP: ballots here.}
-
-
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+ Definition plaintext := Z.
+ Variable ciphertext : Type.
+ Definition pballot := cand -> cand -> plaintext.
+ Definition eballot := cand -> cand -> ciphertext.
+\end{lstlisting}
+ 
   \noindent
   We now turn to the representation of certificates, and indeed to the
   definition of what it means to (a) count encrypted votes correctly
