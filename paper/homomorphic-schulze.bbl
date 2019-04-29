@@ -37,6 +37,19 @@ Yves Bertot, Pierre Cast{\'e}ran, G{\'e}rard Huet, and Christine
   the calculus of inductive constructions}.
 \newblock Texts in theoretical computer science. Springer, 2004.
 
+\bibitem{DBLP:conf/crypto/ChaumP92}
+David Chaum and Torben~P. Pedersen.
+\newblock Wallet databases with observers.
+\newblock In {\em {CRYPTO}}, volume 740 of {\em Lecture Notes in Computer
+  Science}, pages 89--105. Springer, 1992.
+
+\bibitem{DBLP:conf/crypto/Gamal84}
+Taher~El Gamal.
+\newblock A public key cryptosystem and a signature scheme based on discrete
+  logarithms.
+\newblock In {\em {CRYPTO}}, volume 196 of {\em Lecture Notes in Computer
+  Science}, pages 10--18. Springer, 1984.
+
 \bibitem{Goldreich:1991:ACM}
 Oded Goldreich, Silvio Micali, and Avi Wigderson.
 \newblock Proofs that yield nothing but their validity for all languages in
@@ -144,10 +157,5 @@ Douglas Wikstr\"{o}m.
 \newblock In {\em Proceedings of the 14th Australasian Conference on
   Information Security and Privacy}, ACISP '09, pages 407--421, Berlin,
   Heidelberg, 2009. Springer-Verlag.
-
-\bibitem{Yi:2014:HEA}
-Xun Yi, Russell Paulet, and Elisa Bertino.
-\newblock {\em Homomorphic Encryption and Applications}.
-\newblock Briefs in Computer Science. Springer, 2014.
 
 \end{thebibliography}
