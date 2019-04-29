@@ -613,11 +613,11 @@ that take integers, and ciphertexts, as values.
   rise to a (dependent, inductive) type \texttt{ECount}, parameterised
   by the ballots being counted.
 
-  \begin{verbatim}
+  \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
   Inductive ECount (group : Group) 
    (bs : list eballot) : EState -> Type :=
    | ... 
-  \end{verbatim}
+  \end{lstlisting}
 
   Given a list \texttt{bs} of ballots, \texttt{ECount bs} is a
   dependent inductive type. In this case, given a state of counting
@@ -627,13 +627,13 @@ that take integers, and ciphertexts, as values.
   according to the method}.  The states itself are represented by
   the type \texttt{EState} :
 
-\begin{verbatim}
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 Inductive EState : Type :=
  | epartial : (list eballot * list eballot) ->
              (cand -> cand -> ciphertext) -> EState
  | edecrypt : (cand -> cand -> plaintext) -> EState
  | ewinners : (cand -> bool) -> EState.
-\end{verbatim}
+\end{lstlisting}
 
 where
 \begin{itemize}
@@ -924,19 +924,23 @@ that every winner that can be determined using plaintext counting
 can also be evidenced on the basis of encrypted ballots, whereas
 Theorem \texttt{insert name here} establishes the opposite.
 
-\begin{verbatim}
-  Lemma final_correctness (group : Group) (bs : list ballot): 
-    forall (pbs : list pballot) (ebs : list eballot) (w : cand -> bool),
-      (pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs) ->
-      (mapping_ballot_pballot bs pbs) ->
-    Count bs (winners w) -> ECount group ebs (ewinners w).
+\begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
+  Lemma plaintext_schluze_to_homomorphic 
+  (group : Group) (bs : list ballot): 
+  forall (pbs : list pballot) (ebs : list eballot) 
+  (w : cand -> bool), (pbs = map (fun x => (fun c d => 
+  decrypt_message group privatekey (x c d))) ebs) ->
+  (mapping_ballot_pballot bs pbs) -> 
+  Count bs (winners w) -> ECount group ebs (ewinners w).
       
-  Lemma final_correctness_rev (grp : Group) (bs : list ballot):
-    forall (pbs : list pballot) (ebs : list eballot) (w : cand -> bool)
-      (pbs = map (fun x => (fun c d => decrypt_message grp privatekey (x c d))) ebs) ->
-      (mapping_ballot_pballot bs pbs) ->
-    ECount grp ebs (ewinners w) -> Count bs (winners w).
-\end{verbatim}
+  Lemma homomorphic_schulze_to_plaintext 
+  (group : Group) (bs : list ballot):
+  forall (pbs : list pballot) (ebs : list eballot) 
+  (w : cand -> bool) (pbs = map (fun x => (fun c d => 
+  decrypt_message group privatekey (x c d))) ebs) ->
+  (mapping_ballot_pballot bs pbs) ->
+  ECount grp ebs (ewinners w) -> Count bs (winners w).
+\end{lstlisting}
 
 
 The theorems above feature a third type of ballot that is the basis
