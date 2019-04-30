@@ -17,7 +17,7 @@
 \newcommand{\st}{\mathsf{st}}
 \newcommand{\str}{\mathsf{str}}
 \newcommand{\encb}{\mathit{eb}}
-\newcommand{\EncB}{\mathit{EM}}
+\newcommand{\EncB}{\mathit{EB}}
 \newcommand{\encm}{\mathit{em}}
 \newcommand{\CT}{\mathbb{CT}}
 \newcommand{\dec}{\mathsf{dec}}
@@ -85,7 +85,7 @@ no information that a possible coercer could use to verify how that voter had vo
 
 End to end verifiability and the related notation of software independence~\cite{Rivest:2008:PTRS}
  have been claimed properties for many voting schemes.
- K{\"u}usters, Truderung and Vogt~\cite{Kusters:2010:CCS} 
+ K{\"u}sters, Truderung and Vogt~\cite{Kusters:2010:CCS} 
  gave
  a cryptographic formulation whose value is highlighted by the attacks it revealed against established voting 
  schemes~\cite{Kusters:2012:SP}.
@@ -116,7 +116,7 @@ how it can be implemented in a theorem prover to
 guarantee both provably correct and verifiable counting on the basis
 of encrypted ballots, relative to an axiomatisation of the
 cryptographic primitives. We then obtain, via program extraction, a
-provably correct implementation of the vote counting, that we turn
+provably correct implementation of vote counting, that we turn
 into executable code by providing implementations of the primitives
 based on a standard cryptographic library. We conclude by presenting
 experimental results, and discuss trust the trust base, security and
@@ -162,22 +162,23 @@ scenarios.
 
   In previous work \cite{Pattinson:2017:SVE} we have demonstrated
   how to achieve verifiability of counting plaintext ballots by
-  producing a verifiable \emph{certificate} of the count. The
+  producing a verifiable \emph{certificate} of the count, where
+  ballot privacy and receipt freeness are not addressed. The
   certificate has two parts: The first part witnesses the
-  computation of the margin function where each line of the
-  certificate amounts to updating the margin function by a single
+  computation of the margin matrix where each line of the
+  certificate amounts to updating the margin matrix by a single
   ballot. The second part witnesses the determination of winners
-  based on the margin function. In the first phase, i.e. the
-  computation of the margin function, we perform the following
+  based on the margin matrix. In the first phase, i.e. the
+  computation of the margin matrix, we perform the following
   operations for every ballot:
   \begin{enumerate}
     \item if the ballot is informal it will be discarded
-    \item if the ballot is formal, the margin function will be
+    \item if the ballot is formal, the margin matrix will be
     updated
   \end{enumerate}
   The certificate then contains one line for each ballot and thus
   allows to independently verify the computation of the margin
-  function. Based on the final margin function, the second part of
+  matrix. Based on the final margin matrix, the second part of
   the certificate presents verifiable evidence for the computation
   of winners. Specifically, if a candidate $w$ is a winner, it
   includes:
@@ -266,7 +267,7 @@ the margin matrix is simple, that is
 where $B$ is the multi-set of ballots (in matrix form), and can
 moreover be transferred to the encrypted setting in a straight
 forward way: if ballots are matrices $e(x,y)$ where $e(x,y)$ is the
-encryption of an integer, then
+encryption of an integer in $\lbrace -1, 0, 1 \rbrace$, then
 \begin{equation}\label{eqn:enc-mm}
 \encm = \bigoplus_{\encb \in \EncB} \encb(x, y) 
 \end{equation}
@@ -335,9 +336,9 @@ ciphertext ballot $\encb$ contains
 correctness
 \item decryption of the  shuffle, together with a ZKP of
 correctness
-\item \label{it:upd-marg} the updated margin function, if the decrypted ballot
+\item \label{it:upd-marg} the updated margin matrix, if the decrypted ballot
 was valid, and
-\item the unchanged margin function, if the decrypted
+\item the unchanged margin matrix, if the decrypted
 ballot is not valid.
 \setcounter{mycnt}{\value{enumi}}
 \end{enumerate}
@@ -360,7 +361,7 @@ compute the (encrypted) margin matrix according to Equation
 other primitives fall into one of three categories.
 \emph{Verification primitives} are used to syntactically define
 the type of valid certificates. For example, when publishing the
-decrypted margin function in Item \ref{it:pub-dm} above, we require
+decrypted margin matrix in Item \ref{it:pub-dm} above, we require
 that the zero knowledge proof in fact evidences correct decryption.
 To
 guarantee this, we need a verification primitive that -- given
@@ -387,8 +388,10 @@ an array of ciphertexts and produce a zero knolwedge proof that
 evidences the correctness of the shuffle, our requirement dictates
 that every row and colum of the (matrix) ballot is
 shuffled with the \emph{same} (secret) permutation.  In other words,
-we need to retain the identity of the permutation over multiple
-shuffles.  We achieve this by
+we need to retain the identity of the permutation to guarantee that
+each row and column of a ballot have been shuffled by the same
+permutation.
+We achieve this by
 committing to a permutation using Pedersen's commitment scheme
 \cite{Pederson}.
 In a nutshell, the Pedersen commitment scheme has the following properties. 
@@ -401,8 +404,8 @@ permutation
 
 \noindent
 A combination of Pedersen's commitment scheme 
-with a zero knowledge proof leads to a similar two step protocol (also known 
-as commitment-consistent proof of shuffle)\cite{Wikstrom:2009:CPS}.
+with a zero knowledge proof leads to a similar two step protocol, also known 
+as commitment-consistent proof of shuffle \cite{Wikstrom:2009:CPS}.
 
 \begin{itemize}
 \item Commit to a secret permutation and publish the commitment (hiding).
@@ -431,8 +434,8 @@ therefore:
   \item generate a (secret) permutation and publish a commitment to this
   permutation, together with a zero knowledge proof that evidences commitment
   to a permutation
-  \item for each row of the ballot, publish a shuffle the row with
-  the committed to permutation, together with a zero knowledge proof
+  \item for each row of the ballot, publish a shuffle of the row with
+  the permutation committed to, together with a zero knowledge proof
   that witnesses shuffle correctness
   \item for each column of the row shuffled ballot, publish a
   shuffle the column, also together with a zero knowledge proof of
@@ -704,7 +707,9 @@ The first constructor, as well as all the others, require
   \item[verification data] a zero knowledge proof that the encrypted
   homomorphic margin is indeed an encryption of the zero margin
   \item[correctness constraints] here, the constuctor may only be applied if
-  the list of uncounted ballots is equal to the list of ballots cast
+  the list of uncounted ballots is equal to the list of ballots
+  cast, and the fact that the zero knowledge proofs indeed verify
+  that the intitial margin matrix is identically zero.
 \end{description}
 
 \noindent
@@ -746,14 +751,15 @@ evidenced. As before, we have:
 \end{description}
 
 
+\noindent
 We elide the description of the third constructor that is applied
-when an invalid ballot is being encountered (here, the only
+when an invalid ballot is being encountered (the only
 difference is that the margin matrix is not being updated). 
 Counting finishes when there are no more uncounted ballots, in
 which case the next step is to publish the decrypted margin matrix.
 Also here, we have
 \begin{description}
-  \item[state data] the decrypted margin function, plus evidence
+  \item[state data] the decrypted margin matrix, plus evidence
   that a state with no more uncounted ballots has been obtained
   correctly
   \item[verification data] a zero knowledge proof that demonstrates
@@ -763,6 +769,7 @@ Also here, we have
   of the (last) homomorphically computed margin matrix.
 \end{description} 
 
+\noindent
 The last constructor finally declares the winners of the election,
 and we have:
 \begin{description}
@@ -799,6 +806,7 @@ correct) count, we can proceed in either of two ways:
   of the type \texttt{ECount bs (winners w)}.
 \end{enumerate}
 
+\noindent
 Under the proofs-as-programs interpretation of constructive type
 theory, both amount to the same. We chose the latter approach, and
 our first main theorem formally states that all elections can be
@@ -888,7 +896,7 @@ existence proofs. In particular, we extract the proof of the Theorem
 \texttt{pschulze\_winners}, given in Section \ref{sec:correct} to a
 program that delivers not only provably correct counts, but also
 verifiable evidence.  Give a set of encrypted ballots and a \texttt{Group}
-that forms the basis of operations, we obtain a program that
+that forms the basis of cryptographic operations, we obtain a program that
 delivers not only a set of winners, but additionally independently  verifiable
 evidence of the correctness of the count. 
 
@@ -918,46 +926,27 @@ primitives need to be supplied to fill the holes and indeed be able
 to compile and execute the extracted program.  
 
 To fill this hole, we implement the cryptoraphic primitives with
-help of the Unicrypt library\cite{LocherH14}.
-Unicrypt is a freely available library, written in Java,  that provides nearly all of
+help of the UniCrypt library\cite{LocherH14}.
+UniCrypt is a freely available library, written in Java,  that provides nearly all of
 the required functionality, with the exception of honest decryption
 zero knowledge proofs.  We extract our proof development into OCaml
-and use Java/OCaml bindings 
-OCaml-Java library \cite{OCamlJava} to make the UniCrypt
-functionality available to our OCaml executive. Due to differences
+and use Java/OCaml bindings~\cite{OCamlJava} to make the UniCrypt
+functionality available to our OCaml program. Due to differences
 in the type structure between Java and OCaml, mainly in the context
 of sub-typing, this was done in the form of an OCaml wrapper around
 Java data structures. 
- %%% DP: I don't understand what follows below? %%%%
-% OCaml-Java library certainly helped us a lot in providing basic 
-% support to call Java function from OCaml program, but it was not 
-% sufficient for
-% our purpose. The reason was Unicrypt's clean abstraction of 
-% algebraic structures used in cryptography. These abstractions followed 
-% Java design principals, and the one we found, among many, was subtyping.
-% If a class A (SafePrime) extends a class B (Prime) then 
-% A (SafePrime) is subtype of B (Prime), 
-% and we can always pass object of class A (SafePrime) at 
-% the places where it's asking for object of class B (Prime). 
-% Subtyping, and many other abstraction principals imposed 
-% proper construction of data structure in OCaml program 
-% before passing it to Java function and  
-% required us to
-% write binding for both classes, A and B, in OCaml. We ended up writing a
-% OCaml wrapper for these algebraic structures. We would like to point out
-% that abstractions of Unicrypt forced us to make our wrapper 
-% nice and clean.
-% 
  After instantiating the  
  cryptographic primitives in the extracted OCaml code with wrapper
  code that calls UniCrypt
  we tested the executable on a three candidate elections between
  candidates \texttt{A}, \texttt{B} and \texttt{C}.
- which produces the tally sheet given below. In other words, 
+ The computation produces a tally sheet that is schematically given
+ below:
  it is trace of computation which can be used as a checkable record to verify
- the outcome of election.  We present a schematic version of this
- trace where we elide cryptographic detail. A typical certificate
- would be obtained from the type \texttt{ECount} where the head
+ the outcome of election. We elide the cryptographic detail, e.g.
+ the concrete representation of zero knowledge proofs.
+ A certificate
+ is be obtained from the type \texttt{ECount} where the head
  of the certificate corresponds to the base case of the inductive
  type, here \texttt{ecax}. Below, \texttt{M} is encrypted margin
  matrix, \texttt{D} is its decrypted equivalent, required to be
@@ -968,13 +957,14 @@ Java data structures.
  their entries prefixed by a pair of candidates, e.g. the ellipsis
  in \texttt{AB(...)} denotes the matrix entry at row \texttt{A} and
  column \texttt{B}.
+
  {\small
  \begin{verbatim}
  M: AB(rel-marg-of-A-over-B-enc), AC(rel-marg-of-A-over-C-enc), ... 
  D: AB(0)                       , AC(0)                       , ...
  Z: AB(zkp-for-rel-marg-A-B)    , AC(zkp-for-rel-marg-A-B)    , ...
  \end{verbatim}}
- %
+ 
  \mbox{}\\[-5ex]
  Note that one can verify the fact that the initial encrypted margin
  is in fact the zero margin by just verifying the zero knowledge
@@ -984,6 +974,7 @@ Java data structures.
  certificate would continue by exhibiting the state and verification
  data contained in the \texttt{ecvalid} constructor which can be
  displayed schematically as follows:
+
  {\small\begin{verbatim}
  V: AB(ballot-entry-A-B) , AC(ballot-entry-A-C), ...
  C: permutation-commitment
@@ -996,6 +987,7 @@ Java data structures.
  Z: AB(zkp-for-dec-A-B)  , AC(zkp-for-dec-A-C) , ...
  M: AB(new-marg-A-B)     , AC(new-marg-A-C)    , ...
  \end{verbatim}}
+
  \mbox{}\\[-5ex]
  Here \texttt{V} is the list of ballots to be counted, where we only
  diplay the first element. We
@@ -1020,12 +1012,14 @@ Java data structures.
  are counted, the only applicable constructor is \texttt{ecdecrypt},
  the data content of which would continue a certificate
  schematically as follows:
+
  {\small\begin{verbatim}
  V: []
  M: AB(fin-marg-A-B), AC(fin-marg-A-C), ...
  D: AB(dec-marg-A-B), AC(dec-marg-A-C), ...
  Z: AB(zkp-dec-A-B) , AC(zkp-dec-A-C) , ...
  \end{verbatim}}
+
  \mbox{}\\[-5ex]
  Here the first line indicates that there are no more ballots to be
  counted, \texttt{M} is the final encrupted margin matrix,
@@ -1035,11 +1029,13 @@ Java data structures.
  The certificate would end with the determination of winners based
  on the encrypted margin, and would end with the content of the
  \texttt{ecfin} constructor
+
  {\small\begin{verbatim}
  winning: A, <evidence that A wins against B and C>
  losing:  B, <evidence that B loses against A and C>
  losing:  C, <evidence that C loses against A and B>
  \end{verbatim}}
+
  \mbox{}\\[-5ex]
  where the notion of evidence for winning and losing is as in the
  plaintext version of the protocol \cite{Pattinson:2017:SVE}.
@@ -1088,7 +1084,7 @@ evidence once implementations for the cryptographic primitives are
 supplied.
 
 In a second step, we have supplied an implementation of these
-primitives, largely based on the Unicrypt Library. Our expertiments
+primitives, largely based on the UniCrypt Library. Our expertiments
 have demonstrated that this approach is feasible, but quite clearly
 much work is still needed to improve efficiency. 
 
@@ -1099,14 +1095,14 @@ executable and the formal proofs. First and foremost, this is of
 course the implementation of the cryptographic primitives in an
 external (and unverified) library. We have minimised this gap by
 basing our implementation on a purpose-specific existing library
-(Unicrypt) to which we relegate most of the functionality. Another
+(UniCrypt) to which we relegate most of the functionality. Another
 gap is the extraction mechanism of the Coq theorem prover which does
 not come with formal correctness guarantees that reach down to the
 machine code level such as for example CakeML~\cite{Kumar:2014:CVI}.
 
 \smallskip\noindent\emph{Modelling Assumptions.} In our modelling of
 the cryptographic primitives, in particular the zero knowledge
-proofs, we assumed certain things which in reality only hold with
+proofs, we assumed properties which in reality only hold with
 very high probability. As a
 consequence our correctness assertions only hold to the level
 of probability that is guaranteed by zero knowledge proofs.
@@ -1118,7 +1114,7 @@ show that the cryptographic layer adds significant overhead compared
 to plaintext tallying \cite{Pattinson:2017:SVE}.  Our present
 hypothesis is that this overhead is created by the various layers of
 bindings between the executable (extracted into OCaml) and the
-Unicrypt library (implemented in Java) as each appears to be very
+UniCrypt library (implemented in Java) as each appears to be very
 efficient individually. 
 
 \smallskip\noindent\emph{Future Work.} Our axiomatisation of the
