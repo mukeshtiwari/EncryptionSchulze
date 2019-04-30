@@ -1,0 +1,4 @@
+To run this software, you need latest version of Coq, OCaml and Java run time. You can run it on the ballots distributed with this software by 
+> make runlinux < ballot_100.txt. 
+You can run the benchmarks by running
+> make bench
