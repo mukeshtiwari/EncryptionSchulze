@@ -1041,9 +1041,11 @@ Java data structures.
  where the notion of evidence for winning and losing is as in the
  plaintext version of the protocol \cite{Pattinson:2017:SVE}.
 
-\begin{wrapfigure}{R}{5cm}
+\begin{wrapfigure}{R}{7.4cm}
 \centering
+\vspace*{-1cm}
 \includegraphics[scale=0.40]{PlotVer3.png}
+\vspace*{-1cm}
 \end{wrapfigure}
  We note that the schematic persentation of the certificate above is
  nothing but a representation of the data contained in the extracted
@@ -1053,11 +1055,15 @@ Java data structures.
  string conversion on the type \texttt{ECount}.
 
 %%% DP: I don't understand this ... ? %%%%
-Even though we produce the tally by formally verified code, election 
-auditor has no information about how it was produced. This adds extra layer
-of confidence in election, because the tally can be audited by pool
-of scrutineers to certify the outcome of election regardless of how the tally 
-was produced.
+
+The fact that the certificate was produced using formally verified
+code implies that (modulo correctness of the implementation of the
+cryptographic primitives) all certificates necessarily verify.
+\emph{Verifiability} ensures that external stakeholders can convince
+themselves in a hardware/software independent way of the correctness
+of the count, whereas producing certiciates using \emph{verified}
+code ensures that election authorities always produce correct, and
+verifiable, results.
 
 
 We have run our experiment on an  Intel  i7  2.6  GHz  Linux  desktop  computer
