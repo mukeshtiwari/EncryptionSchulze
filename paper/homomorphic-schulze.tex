@@ -494,8 +494,7 @@ plaintext counting. We discuss this part only briefly, for completness,
 \cite{Pattinson:2017:SVE}. For each of the winners $w$ and each
 candidate $c$ we publish
 \begin{itemize}
-\item a natural number $k(w, x)$
-\item a path $w = x_0, \dots, x_n = x$ of strength $k$
+\item a natural number $k(w, x)$ and a path $w = x_0, \dots, x_n = x$ of strength $k$
 \item a set $C(w, x)$ of pairs of candidates that is $k$-coclosed
 and contains $(x, w)$
 \end{itemize}
@@ -1066,19 +1065,28 @@ Java data structures.
 %verifiable, results.
 
 
-We have run our experiment on an  Intel  i7  2.6  GHz  Linux  desktop  computer
+To demonstrate proof of concept, 
+we have run our experiment on an  Intel  i7  2.6  GHz  Linux  desktop  computer
 with  8GB  of  RAM for three candidates and randomly generated ballots. The 
-highest amount of ballot we counted was 10,000 (not included in graph), and 
-it ran for 25 hours. Clearly, it is not very efficient, and the reason is, 
-each function call from OCaml to Java is inherently memory bounded. Each 
-function call from OCaml is a sequence consists of 
-creating a Java runtime instance,
-conversion of OCaml data structure into Java data structure, 
+largest  amount of ballot we counted was 10,000 (not included in
+graph), with a runtime of 25 hours. A more detailed analysis reveals
+that the bottleneck are the bindings between OCaml and Java. More
+specifically, producing the cryptographic evidence using the
+UniCrypt Library for 10,000 ballots takes about 10 minutes, and the
+subsequent computation (which is the same as for the plaintext
+count) takes neglegible time. This is consistent with the mechanism
+employed by the bindings:
+each function call from OCaml to Java is inherently memory bounded
+and creates an instance of the Java runtime, 
+the conversion of OCaml data structures into Java data
+structures, 
 computation by respective Java function producing result,
 converting the result back into OCaml data structure, and finally destroying 
-the Java runtime instance when the function returns. The result can be
-improved substantially if the library used for cryptographic purpose 
-were also implemented in OCaml.
+the Java runtime instance when the function returns. While the proof
+of concept using OCaml/Java bindings falls short of being
+practically feasible, our timing analysis substantiates that
+feasibility can be achieved by eliminating the overhead of the
+bindings. 
 
 \section{Analysis}
 
