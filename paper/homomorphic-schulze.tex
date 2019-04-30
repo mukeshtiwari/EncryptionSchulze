@@ -813,7 +813,7 @@ counted according to the Schulze Method (with encrypted ballots),
 i.e. a winner can always be found. Formally, our main theorem takes
 the following form:
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
-Lemma pschulze_winners (group : Group) 
+Lemma encryption_schulze_winners (group : Group) 
  (bs : list eballot) : existsT (f : cand -> bool), 
  ECount group bs (ewinners f).
 \end{lstlisting}
