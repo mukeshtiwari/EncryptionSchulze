@@ -570,7 +570,7 @@ Axiom verify_honest_decryption_zkp (group: Group):
   forall (pt : plaintext) (ct : ciphertext) (pk : Prikey),
   (pt = decrypt_message group pk ct) ->
   verify_zero_knowledge_decryption_proof group pt ct 
-  construct_zero_knowledge_decryption_proof group pk ct) 
+  (construct_zero_knowledge_decryption_proof group pk ct) 
   = true.
   
 
@@ -680,7 +680,7 @@ This is readily translated to the following Coq code:
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 Inductive EState : Type :=
  | epartial : (list eballot * list eballot) ->
-             (cand -> cand -> ciphertext) -> EState
+              (cand -> cand -> ciphertext) -> EState
  | edecrypt : (cand -> cand -> plaintext) -> EState
  | ewinners : (cand -> bool) -> EState.
 \end{lstlisting}
