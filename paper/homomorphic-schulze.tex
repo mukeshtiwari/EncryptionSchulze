@@ -721,7 +721,7 @@ The main difference between the correctness condition, and the
 verification data is that the former can be simply be inspected
 (here by comparing lists) whereas the latter requires additional
 data (here  in the form of a zero knowledge proof).
-\footnote{DP: make this clearer}
+%\footnote{DP: make this clearer}
 
 
 The translation of high level representation into Coq representation
@@ -850,8 +850,9 @@ one another.
 
 The first theorem, \texttt{plaintext\_schulze\_to\_homomorphic}, reproduced below shows
 that every winner that can be determined using plaintext counting
-can also be evidenced on the basis of encrypted ballots, whereas
-Theorem \texttt{homomorphic\_schulze\_to\_plaintext} establishes the opposite.
+can also be evidenced on the basis of encrypted ballots. The
+converse of this is established by 
+Theorem \texttt{homomorphic\_schulze\_to\_plaintext}.
 
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
   Lemma plaintext_schulze_to_homomorphic 
