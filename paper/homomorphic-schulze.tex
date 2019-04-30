@@ -1132,12 +1132,11 @@ of probability that is guaranteed by zero knowledge proofs.
 \smallskip\noindent\emph{Scalability.} We have analysed the
 feasibility of the extracted code by counting an increasing number
 of ballots. While this demonstrates a proof of concept, our results
-show that the cryptographic layer adds significant overhead compared
-to plaintext tallying \cite{Pattinson:2017:SVE}.  Our present
-hypothesis is that this overhead is created by the various layers of
-bindings between the executable (extracted into OCaml) and the
-UniCrypt library (implemented in Java) as each appears to be very
-efficient individually. 
+show that the bindings used to couple the cryptographic layer with
+our code adds significant overhead compared
+to plaintext tallying \cite{Pattinson:2017:SVE}. Given that both
+parts are practically efficient by themselves, scalability is merely
+the question of engineering a more efficient coupling. 
 
 \smallskip\noindent\emph{Future Work.} Our axiomatisation of the
 needed cryptographic primitives lays the foundation of creating a
