@@ -1056,22 +1056,29 @@ Java data structures.
 
 %%% DP: I don't understand this ... ? %%%%
 
-The fact that the certificate was produced using formally verified
-code implies that (modulo correctness of the implementation of the
-cryptographic primitives) all certificates necessarily verify.
-\emph{Verifiability} ensures that external stakeholders can convince
-themselves in a hardware/software independent way of the correctness
-of the count, whereas producing certiciates using \emph{verified}
-code ensures that election authorities always produce correct, and
-verifiable, results.
+%The fact that the certificate was produced using formally verified
+%code implies that (modulo correctness of the implementation of the
+%cryptographic primitives) all certificates necessarily verify.
+%\emph{Verifiability} ensures that external stakeholders can convince
+%themselves in a hardware/software independent way of the correctness
+%of the count, whereas producing certiciates using \emph{verified}
+%code ensures that election authorities always produce correct, and
+%verifiable, results.
 
 
 We have run our experiment on an  Intel  i7  2.6  GHz  Linux  desktop  computer
 with  8GB  of  RAM for three candidates and randomly generated ballots. The 
 highest amount of ballot we counted was 10,000 (not included in graph), and 
-it ran for 25 hours. Clearly, it is not very efficient, and the reason we 
-suspect is a lot of communication between OCaml runtime system 
-and Java run time system.
+it ran for 25 hours. Clearly, it is not very efficient, and the reason is, 
+each function call from OCaml to Java is inherently memory bounded. Each 
+function call from OCaml is a sequence consists of 
+creating a Java runtime instance,
+conversion of OCaml data structure into Java data structure, 
+computation by respective Java function producing result,
+converting the result back into OCaml data structure, and finally destroying 
+the Java runtime instance when the function returns. The result can be
+improved substantially if the library used for cryptographic purpose 
+were also implemented in OCaml.
 
 \section{Analysis}
 
