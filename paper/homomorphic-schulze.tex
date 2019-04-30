@@ -570,25 +570,19 @@ Axiom verify_honest_decryption_zkp (group: Group):
   forall (pt : plaintext) (ct : ciphertext) (pk : Prikey),
   (pt = decrypt_message group pk ct) ->
   verify_zero_knowledge_decryption_proof group pt ct 
-  construct_zero_knowledge_decryption_proof group pk ct) 
+  (construct_zero_knowledge_decryption_proof group pk ct) 
   = true.
   
 
 \end{lstlisting}
   
-The difference between keyword \texttt{Variable} and \texttt{Axiom}
-is purely syntactic and used as scoping mechanism.
-The keyword \texttt{Variable} indicates the scope of 
-function is available in local environment (local variable), while 
-keyword \texttt{Axiom} makes it available in global environment
-(global variable). 
-
-The use of the keyword \texttt{Variable} indicates that we postulate
-the existence of a function, whereas \texttt{Axiom} specifies a
-property (here of the functions whose existence is postulated). In
+\noindent
+The difference between the keyword \texttt{Variable} and \texttt{Axiom}
+is purely syntactic, and in our case, used as a convenience for 
+extraction. In
 the above, the first two functions, \texttt{decrypt\_message} and
 \texttt{construct\_zero\_knowledge\_decryption\_proof} are
-\emph{generation} primitives, whereas the third,
+\emph{generation} primitives, whereas 
 \texttt{verify\_zero\_knowledge\_decryption\_proof} is a
 \emph{verification} primitive. We have two coherence axioms. The
 first says that if the verification of a zero knowledge proof of
@@ -687,18 +681,15 @@ This is readily translated to the following Coq code:
 \begin{lstlisting}[frame=single,basicstyle=\ttfamily\footnotesize]
 Inductive EState : Type :=
  | epartial : (list eballot * list eballot) ->
-             (cand -> cand -> ciphertext) -> EState
+              (cand -> cand -> ciphertext) -> EState
  | edecrypt : (cand -> cand -> plaintext) -> EState
  | ewinners : (cand -> bool) -> EState.
 \end{lstlisting}
 
-
-\noindent
 \noindent
 The constructors of \texttt{EState} then allow us to move from one
 state to the next, under appropriate conditions that guaratnee
 correctness of the count.
-
 
 The first constructor, \texttt{Ecax} kick-starts the count, and
 ensures that 
@@ -721,8 +712,6 @@ The main difference between the correctness condition, and the
 verification data is that the former can be simply be inspected
 (here by comparing lists) whereas the latter requires additional
 data (here  in the form of a zero knowledge proof).
-%\footnote{DP: make this clearer}
-
 
 The translation of high level representation into Coq representation
 is now easy, and we arrive at the following Coq code.
