@@ -577,15 +577,8 @@ Axiom verify_honest_decryption_zkp (group: Group):
 \end{lstlisting}
   
 The difference between keyword \texttt{Variable} and \texttt{Axiom}
-is purely syntactic and used as scoping mechanism.
-The keyword \texttt{Variable} indicates the scope of 
-function is available in local environment (local variable), while 
-keyword \texttt{Axiom} makes it available in global environment
-(global variable). 
-
-The use of the keyword \texttt{Variable} indicates that we postulate
-the existence of a function, whereas \texttt{Axiom} specifies a
-property (here of the functions whose existence is postulated). In
+is purely syntactic, and in our case, used as a convenience for 
+extraction. In
 the above, the first two functions, \texttt{decrypt\_message} and
 \texttt{construct\_zero\_knowledge\_decryption\_proof} are
 \emph{generation} primitives, whereas the third,
