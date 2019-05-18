@@ -1,4 +1,26 @@
-To run this software, you need latest version of Coq, OCaml and Java run time. You can run it on the ballots distributed with this software by 
-> make runlinux < ballot_100.txt. 
+Primary developement environment of this software is Ubuntu 14.04.5 LTS using Coq 8.8.2, Ocaml-4.06.0 and Java 1.8.0_141. 
+
+A quick way to run this software on Linux system is to just run it on the ballots distributed with this software by 
+
+> make runlinux < ballot_100.txt 
+
 You can run the benchmarks by running
+
 > make bench
+
+
+We have distributed all the required Jar files in the directory "jarfiles" by compiling the source code. You can get the 
+source code of these jarfiles from 
+> https://github.com/java-native-access/jna
+> https://github.com/square/jna-gmp/
+> https://github.com/Julow/ocaml-java
+> https://github.com/bfh-evg/unicrypt/
+
+schulze.jar is created from CryptoWrappers.java. The reson for this jar to exists is, Ocaml-java binding 
+does not support variable argument, so we could not write the Ocaml bindings for any java function which takes 
+variable argument. In our case, it is 
+EqualityPreimageProofSystem getInstance(final Function... proofFunctions)
+
+
+
+
