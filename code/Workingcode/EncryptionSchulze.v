@@ -907,7 +907,10 @@ Section Encryption.
 
   
   Section ECount.
-     
+
+    (* Start of crypto axiom. These axioms are also duplicated in 
+       Crypoaxioms.v for readability purpose. *)
+    
     (* Plain text is integer. *)
     Definition plaintext := Z.
     
