@@ -16,9 +16,9 @@ generator = 4
 publickey = 49228593607874990954666071614777776087
 privatekey = 60245260967214266009141128892124363925
 
-as group infrastructure, and hard-coded in our development for running code, but 
-this is certainly not a good idea for real election. Key management itself is a 
-topic in itself, and these values can be supplied to us by any extenal entity. 
+as a group infrastructure, and hard-coded in our development for running code, but 
+this is certainly not a good idea for real election. Key management is a 
+topic in itself, and these values can be supplied to us by any extenal entity.
 
 
 
