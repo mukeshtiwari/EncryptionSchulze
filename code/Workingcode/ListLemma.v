@@ -21,7 +21,7 @@ Notation "'existsT' x .. y , p" :=
      format "'[' 'existsT' '/ ' x .. y , '/ ' p ']'") : type_scope.
 
 
-
+(* Construct all pairs in row-wise fashion. *)
 Fixpoint all_pairs_row_t {A : Type} (l1 : list A) (l2 : list A) : list (A * A) :=
   match l1 with
   | [] => []
@@ -29,6 +29,7 @@ Fixpoint all_pairs_row_t {A : Type} (l1 : list A) (l2 : list A) : list (A * A) :
     map (fun x => (c, x)) l2 ++ all_pairs_row_t cs l2
   end.
 
+(* Correctness Lemma about all_pairs_row_t *)
 Lemma row_t_correctness :
   forall (A : Type) (a1 a2 : A) (l1 l2 : list A),
     In a1 l1 -> In a2 l2 -> In (a1, a2) (all_pairs_row_t l1 l2). 
@@ -41,9 +42,11 @@ Proof.
     +  apply in_app_iff. right. auto.
 Qed.
 
+(* Similar to all_pairs_row_t, but with same list *)
 Definition all_pairs_row {A : Type} (l : list A) : list (A * A) :=
   all_pairs_row_t l l.
 
+(* Correctness of all_pairs_row *)
 Lemma all_pairs_row_in :
   forall (A : Type) (a1 a2 : A) (l : list A),
     In a1 l -> In a2 l -> In (a1, a2) (all_pairs_row l).
@@ -53,7 +56,7 @@ Proof.
   pose proof (row_t_correctness A a1 a2 l l H1 H2); auto.
 Qed.
 
-
+(* Generates pair of candidate in column wise fashion. *)
 Fixpoint all_pairs_col_t {A : Type} (l1 : list A) (l2 : list A) : list (A * A) :=
   match l1 with
   | [] => []
@@ -61,7 +64,7 @@ Fixpoint all_pairs_col_t {A : Type} (l1 : list A) (l2 : list A) : list (A * A) :
       map (fun x => (x, c)) l2 ++ all_pairs_col_t cs l2
   end.
 
-
+(* Correctness lemma for all_pair_col_t *)
 Lemma col_t_correctness :
   forall (A : Type) (a1 a2 : A) (l1 l2 : list A),
     In a1 l1 -> In a2 l2 -> In (a2, a1) (all_pairs_col_t l1 l2). 
@@ -76,9 +79,11 @@ Proof.
        auto.
 Qed.
 
+(* Specialized version of all_pairs_col_t, l1 and l2 is instantiated with l *)
 Definition all_pairs_col {A : Type} (l : list A) : list (A * A) :=
   all_pairs_col_t l l.
 
+(* Proof of correctness *)
 Lemma all_pairs_col_in :
   forall (A : Type) (a1 a2 : A) (l : list A),
     In a1 l -> In a2 l -> In (a2, a1) (all_pairs_col l).
@@ -100,6 +105,7 @@ Fixpoint all_pairs {A: Type} (l: list A): list (A * A) :=
   end.
 
 
+(* Proof that all_pairs contains every element from l *)
 Lemma all_pairsin: forall {A : Type} (a1 a2 : A) (l : list A),
     In a1 l -> In a2 l -> In (a1, a2) (all_pairs l).
 Proof.
@@ -123,7 +129,8 @@ Proof.
     apply IHl. assumption. assumption.
   }
 Qed.
-  
+
+(* Proof that all_pairs produces (length l) * (length l) list*)
 Theorem length_all_pairs :
   forall (A : Type) (l : list A), length (all_pairs l)  = (length l * length l)%nat.
 Proof.
@@ -134,6 +141,7 @@ Proof.
   omega.
 Qed.
 
+(* Same as length_all_pairs, but for row version function *)
 Theorem length_all_pairs_t_row :
   forall (A : Type) (l1 l2 : list A) ,
     length (all_pairs_row_t l1 l2) = (length l1 * length l2)%nat.
@@ -144,6 +152,7 @@ Proof.
   apply f_equal. apply IHl1.
 Qed.
 
+(* Specialized version of length_all_pairs_t_row *)
 Theorem length_all_pairs_row :
   forall (A : Type) (l : list A),
     length (all_pairs_row l) = (length l * length l)%nat.
@@ -154,7 +163,7 @@ Proof.
 Qed.
 
 
-
+(* Column version of all_pairs *)
 Theorem length_all_pairs_t_col :
   forall (A : Type) (l1 l2 : list A) ,
     length (all_pairs_col_t l1 l2) = (length l1 * length l2)%nat.
@@ -420,6 +429,8 @@ Proof.
   destruct Ft as [x [Fin Fx]]. exists x. intuition.
 Defined.
 
+(* if filter f l returns empty list, then for every elements in list l 
+   f x = false *)
 Lemma filter_empty : forall (A : Type) (l : list A) (f : A -> bool),
     filter f l = [] <->
     (forall x, In x l -> f x = false).
@@ -437,6 +448,9 @@ Proof.
   apply H1. intros. firstorder.
 Qed.
 
+(* List l and for any function f, 
+   filter f l ++ filter (compose negb f) 
+   are permutation of each other *) 
 Lemma complementary_filter_perm A (p: A -> bool) (l: list A):
   Permutation l (filter p l ++ filter (compose negb p) l).
 Proof with auto.
@@ -447,6 +461,11 @@ Proof with auto.
   apply Permutation_cons_app...
 Qed.
 
+(* For a given list l, function f and g, 
+   with the condition that for each element in list l 
+   f x = negb (g x), then l and 
+   (filter f l ++ filter g l) are permutation of 
+   each other *)
 Lemma complementary_filter_In : forall
     (A : Type) (l : list A) (f : A -> bool) (g : A -> bool)
     (H : forall x, In x l -> f x = negb (g x)),
@@ -481,6 +500,7 @@ Proof.
   subst. assumption. apply IHl. assumption. assumption.
 Qed. *)
 
+(* Helper lemma in transitive_dec. *)
 Theorem transitive_dec_first :
   forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
          (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x y z : A),
@@ -492,7 +512,7 @@ Proof.
 Qed.
 
 
-
+(* Generalization of transitive_dec_first. Pushed one quantifier, z, inside sum type *)
 Theorem transitive_dec_second :
   forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
          (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x y: A) (l : list A),
@@ -515,7 +535,8 @@ Proof.
   intuition.
   right. intuition.
 Qed.
-  
+
+(* Pushed two quantifiers, y and z inside sumtype *)
 Theorem transitive_dec_third :
   forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
          (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (x : A) (l1 l2 : list A),
@@ -539,6 +560,8 @@ Proof.
   right. unfold not. intros. apply n. intros. apply H with y; intuition.
 Qed.
 
+(* Pushed all three, x, y and z. I am wondering if there is a easy or more general 
+   way to capture this ? *)
 Theorem transitive_dec_fourth :
   forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
          (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (l1 l2 l3 : list A),
@@ -560,6 +583,7 @@ Proof.
   apply H with y; intuition.
 Qed.
 
+(* Decidability of transitive relation *)
 Theorem transitive_dec:
   forall (A : Type) (Hcd : forall (c d : A), {c = d} + {c <> d})
          (P : A -> A -> Prop) (Hp : forall (c d : A), {P c d} + {~P c d}) (l : list A),
