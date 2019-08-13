@@ -1,0 +1,111 @@
+Dear Mukesh,
+
+We are pleased to inform you that your submission number 3
+entitled Verifiable Homomorphic Tallying for the Schulze Vote Counting Scheme has been accepted for presentation at VSTTE 2019
+and publication in the conference proceedings.
+
+All the reviews on your paper are attached below. Please incorporate
+their suggestions when preparing the camera-ready version of your
+paper, to be included in the conference proceedings. We will send
+detailed information about the preparation of the camera-ready version
+in a few days.
+
+Please consider that the strict deadline for the final version is:
+August 26th, 2019
+
+Please also note that least one of the authors of the paper must
+attend (and register for) the conference to present the paper.
+
+Thank you for submitting your work to VSTTE. We are looking forward to
+seeing you in New York,
+
+Supratik and Jorge
+
+SUBMISSION: 3
+TITLE: Verifiable Homomorphic Tallying for the Schulze Vote Counting Scheme
+
+
+----------------------- REVIEW 1 ---------------------
+SUBMISSION: 3
+TITLE: Verifiable Homomorphic Tallying for the Schulze Vote Counting Scheme
+AUTHORS: Mukesh Tiwari, Dirk Pattinson and Thomas Haines
+
+----------- Overall evaluation -----------
+SCORE: 2 (accept)
+----- TEXT:
+This work presents a complete mechanized formalisation and proof of an end-to-end verifiable voting system, the Schulze voting system. The authors then extract an OCaml program from the Coq formalization and demonstrate its usability on a reduced practical use case. The presentation is clear and the work is inspiring. The related works section should be expanded however to give a broader overview of the field of formal methods for e-voting systems. The authors may mention in particular the recent announcement by Galois and Microsoft to develop a formally verified SDK (ElectionGuard) for building end-to-end verifiable e-voting systems.
+
+typos:
+
+p 3, "The realisation of verifiable of homomorphic tallying"
+p 7, "publish a shuffle the column"
+p 7, "publish the decryption the ballot shuffled"
+p 7, "For each of the winners w and each candidate c we publish" --> c should be x here
+p 8, ",and the second"
+p 8, "our formailsation"
+p 8, "suceeds"
+p 9, "the ist of uncounted ballots"
+p 10, "conditions that guaratnee"
+p 11, "the eletion winners"
+p 13, "it is trace of computation which can be used"
+p 13, AC(zkp-for-rel-marg-A-B) should be AC(zkp-for-rel-marg-A-C)
+p 13, B(zkp-of-perm-col-C) should be B(zkp-of-perm-col-B)
+p 15, "the final encrupted margin"
+p 15, "the schematic persentation"
+p 15, "takes neglegible time"
+p 16, "Our main claim is that that"
+
+
+
+----------------------- REVIEW 2 ---------------------
+SUBMISSION: 3
+TITLE: Verifiable Homomorphic Tallying for the Schulze Vote Counting Scheme
+AUTHORS: Mukesh Tiwari, Dirk Pattinson and Thomas Haines
+
+----------- Overall evaluation -----------
+SCORE: 2 (accept)
+----- TEXT:
+The paper presents a verifiable vote tallying system. The tally system implements the Schulze method for conducting elections where each vote selects a single winner where each ballot ranks the candidates in order (with ties allowed). The challenge in implementing such voting systems is to ensure that the computed tally is accurate while ensuring receipt-freeness (this is critical to prevent coercion.) This is done in the paper by combining homomorphic encryption and Zero Knowledge Proofs. The ballots are encrypted and the tally is computed without compromising the privacy of the ballots. The process produces a proof certificate that can be published and checked. The authors create a correct by construction certificate checker in Coq and extract an ML program from the proof. The paper gives a proof of concept implementation and discusses what the proofs look like.
+
+I recommend that this paper be accepted. The case study is clearly presented and makes significant progress on a challenging problem. The paper will be of interest to the VSTTE community.
+
+
+Discussion:
+
+- I am unclear whether the voting protocol would stand up to scrutiny if presented to cryptanalysts. This would potentially be interesting follow up work.
+- The 25 hour running time for 10k ballots is somewhat concerning for whether this will be sufficiently scalable for larger elections with 100s of thousands to millions of ballots.
+
+Neither of these points significantly weaken the paper.
+
+Nitpicks:
+I suggest spell checking the paper. I found several spelling mistakes.
+- Page 8. "formailsation"
+- Page 9. "the ist of"
+- Page 10. "guaratnee"
+- Page 11. "eletion".
+- Page 15. "encrupted"
+
+Also on Page 8. "op.cit.".
+
+
+
+----------------------- REVIEW 3 ---------------------
+SUBMISSION: 3
+TITLE: Verifiable Homomorphic Tallying for the Schulze Vote Counting Scheme
+AUTHORS: Mukesh Tiwari, Dirk Pattinson and Thomas Haines
+
+----------- Overall evaluation -----------
+SCORE: 1 (weak accept)
+----- TEXT:
+This paper  presents a verifiable homomorphic tallying scheme for the Schulze
+method that allows verification of the correctness of the count.
+The scheme is encoded in Coq proof assistant and checked assuming
+correctness of encryption primitives. They are able to generate implementation
+out of the proof scripts and use to generate the verifiable and secure
+tallying scheme.
+
+It is not clear that there are any novel ideas in the scheme. The paper does not
+specifically claim novelty in that front. The core contribution is the Coq
+formalization and proving the needed properties of integrity and privacy.
+
+The paper is easy to ready and seems technically sound.
