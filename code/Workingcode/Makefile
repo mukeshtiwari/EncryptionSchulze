@@ -27,7 +27,7 @@ bench : ballot_gen Main
 		  done
 
 clean:
-	rm -rf _build *.vo *.glob *.class *.cmi *.cmx *.o *.out lib.ml lib.mli main.native main.byte 2>/dev/null || true
+	rm -rf _build *.vo *.vok *.vos *.glob *.class *.cmi *.cmx *.o *.out lib.ml lib.mli main.native main.byte 2>/dev/null || true
 
 
 Main : parser.mli parser.ml big.ml lexer.ml lib.mli lib.ml cryptobinding.ml derivation.ml main.ml 

@@ -1,6 +1,7 @@
 # -
 # Required variables:
-JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64/"
+#JAVA_HOME="/usr/lib/jvm/java-8-openjdk-amd64/"
+JAVA_HOME:="/opt/homebrew/Cellar/openjdk/17/libexec/openjdk.jdk/Contents/Home"
 #
 # Configs:
 #  BUILD_DIR

@@ -3,7 +3,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Arith.Le.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Arith.Compare_dec.
-Require Import Coq.omega.Omega.
+Require Import Lia.
 Require Import Bool.Sumbool.
 Require Import Bool.Bool.
 Require Import Coq.Logic.ConstructiveEpsilon.
@@ -138,7 +138,7 @@ Proof.
   simpl. apply f_equal. repeat (rewrite app_length).
   repeat (rewrite map_length). rewrite IHl.
   remember (length l) as n. rewrite Nat.mul_succ_r.
-  omega.
+  lia.
 Qed.
 
 (* Same as length_all_pairs, but for row version function *)
@@ -197,7 +197,7 @@ Fixpoint maxlist (l : list Z) : Z :=
    proof that maximum of m and n is n *)
 Lemma max_two_integer : forall (m n : Z), m < n -> Z.max m n = n.
 Proof.
-  intros m n H; apply Z.max_r; omega.
+  intros m n H; apply Z.max_r; lia.
 Qed.
 
 (* Shows the prop level existence of element x in list l >=  s if maximum element of
@@ -240,10 +240,10 @@ Proof.
   destruct H2. subst. auto. pose proof (proj1 (Z.compare_eq_iff _ _) Ht).
   specialize (IHl n H2). rewrite H5. auto.
   destruct H2. subst.
-  pose proof (proj1 (Z.compare_lt_iff _ _) Ht). omega.
+  pose proof (proj1 (Z.compare_lt_iff _ _) Ht). lia.
   apply IHl. assumption. assumption.
   destruct H2. subst. assumption. specialize (IHl n H2).
-  pose proof (proj1 (Z.compare_gt_iff _ _) Ht).  omega.
+  pose proof (proj1 (Z.compare_gt_iff _ _) Ht).  lia.
 Qed.
 
 (* minimum of two integers m and n is >= s then both numbers are
@@ -299,11 +299,11 @@ Proof.
   pose proof (H2 l0 (in_eq l0 ls)).
   pose proof (in_split l0 c H4). destruct H5 as [l1 [l2 H5]].
   rewrite H5 in H. rewrite app_length in H. simpl in H.
-  assert (Ht : (length l1 + S (length l2))%nat = (S (length l1 + length l2))%nat) by omega.
+  assert (Ht : (length l1 + S (length l2))%nat = (S (length l1 + length l2))%nat) by lia.
   rewrite Ht in H. clear Ht. inversion H. clear H.
   rewrite <- app_length in H7.
   assert ((length ls > length (l1 ++ l2))%nat).
-  { rewrite H7. rewrite H3 in H0. simpl in H0. omega. }
+  { rewrite H7. rewrite H3 in H0. simpl in H0. lia. }
   specialize (IHn (l1 ++ l2) H1 H7 ls H).
   assert (covers A (l1 ++ l2) ls).
   { unfold covers. intros x Hin.
@@ -325,10 +325,10 @@ Proof.
   split; intros. unfold Z.max in H. destruct (m ?= n) eqn : Ht.
   left. auto. right. auto. left. auto.
   destruct H. unfold Z.max. destruct (m ?= n) eqn: Ht.
-  auto. pose proof (proj1 (Z.compare_lt_iff _ _) Ht). omega. omega.
+  auto. pose proof (proj1 (Z.compare_lt_iff _ _) Ht). lia. lia.
   unfold Z.max. destruct (m ?= n) eqn:Ht.
-  pose proof (proj1 (Z.compare_eq_iff _ _) Ht). omega.
-  omega. pose proof (proj1 (Z.compare_gt_iff _ _) Ht). omega.
+  pose proof (proj1 (Z.compare_eq_iff _ _) Ht). lia.
+  lia. pose proof (proj1 (Z.compare_gt_iff _ _) Ht). lia.
 Qed.
 
 (* if length of list l is > n then there is a natural number
@@ -338,7 +338,7 @@ Lemma list_and_num : forall (A : Type) (n : nat) (l : list A),
 Proof.
   intros A n l H. induction l. inversion H.
   simpl in *. apply gt_S in H. destruct H. specialize (IHl H). destruct IHl as [p IHl].
-  exists (S p). omega. exists 1%nat. omega.
+  exists (S p). lia. exists 1%nat. lia.
 Qed.
 
 (* if forallb f l returns false then existance of element x in list l

@@ -3,7 +3,7 @@ Require Import Coq.Lists.List.
 Require Import Coq.Arith.Le.
 Require Import Coq.Numbers.Natural.Peano.NPeano.
 Require Import Coq.Arith.Compare_dec.
-Require Import Coq.omega.Omega.
+Require Import Lia.
 Require Import Bool.Sumbool.
 Require Import Bool.Bool.
 Require Import Coq.Logic.ConstructiveEpsilon.
@@ -19,6 +19,7 @@ Notation "'existsT' x .. y , p" :=
     (at level 200, x binder, right associativity,
      format "'[' 'existsT' '/ ' x .. y , '/ ' p ']'") : type_scope.
 
+Set Firstorder Solver auto with *.
 Section Cand.
   Variable A : Type.
   Variable P : A -> A -> Z.
